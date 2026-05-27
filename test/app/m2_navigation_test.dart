@@ -21,9 +21,10 @@ void main() {
   testWidgets('shows the four-tab shell and settings entries', (tester) async {
     await _pumpApp(tester, database);
 
-    expect(find.text('笔记'), findsWidgets);
+    expect(find.text('快速文字、语音和 AI 解析入口将在后续接入。'), findsOneWidget);
+    expect(find.text('捕获'), findsWidgets);
+    expect(find.text('笔记'), findsOneWidget);
     expect(find.text('时间线'), findsOneWidget);
-    expect(find.text('捕获'), findsOneWidget);
     expect(find.text('设置'), findsOneWidget);
 
     await tester.tap(find.text('设置').last);
@@ -39,6 +40,7 @@ void main() {
 
   testWidgets('plus menu creates a root note in uncategorized', (tester) async {
     await _pumpApp(tester, database);
+    await _openNotes(tester);
 
     await tester.tap(find.byTooltip('新建'));
     await _pumpUi(tester);
@@ -62,6 +64,7 @@ void main() {
 
   testWidgets('opens a folder and creates a note inside it', (tester) async {
     await _pumpApp(tester, database);
+    await _openNotes(tester);
 
     await tester.tap(find.byTooltip('新建'));
     await _pumpUi(tester);
@@ -127,6 +130,7 @@ void main() {
     );
 
     await _pumpApp(tester, database);
+    await _openNotes(tester);
 
     await tester.drag(find.text('工作'), const Offset(500, 0));
     await _pumpUi(tester);
@@ -182,6 +186,7 @@ void main() {
       ),
     );
     await _pumpApp(tester, database);
+    await _openNotes(tester);
 
     await tester.drag(find.text('待处理'), const Offset(-500, 0));
     await _pumpUi(tester);
@@ -225,6 +230,7 @@ void main() {
       ),
     );
     await _pumpApp(tester, database);
+    await _openNotes(tester);
 
     await tester.drag(find.text('左滑笔记'), const Offset(-500, 0));
     await _pumpUi(tester);
@@ -274,6 +280,7 @@ void main() {
     );
 
     await _pumpApp(tester, database);
+    await _openNotes(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('notes-search-field')),
@@ -313,6 +320,7 @@ void main() {
     );
 
     await _pumpApp(tester, database);
+    await _openNotes(tester);
     await tester.tap(find.text('会议记录'));
     await _pumpUi(tester);
 
@@ -343,9 +351,11 @@ void main() {
     await tester.tap(find.byTooltip('搜索任务'));
     await _pumpUi(tester);
     await tester.enterText(
-      find.byKey(const ValueKey('timeline-search-dialog-field')),
+      find.byKey(const ValueKey('timeline-search-overlay-field')),
       '明天',
     );
+    await _pumpUi(tester);
+    await tester.tap(find.byKey(const ValueKey('timeline-search-submit')));
     await _pumpUi(tester);
     expect(find.text('未找到相关任务'), findsOneWidget);
 
@@ -360,6 +370,11 @@ Future<void> _pumpApp(WidgetTester tester, AppDatabase database) async {
       child: const GlassNoteApp(),
     ),
   );
+  await _pumpUi(tester);
+}
+
+Future<void> _openNotes(WidgetTester tester) async {
+  await tester.tap(find.text('笔记').last);
   await _pumpUi(tester);
 }
 

@@ -39,7 +39,7 @@ class GlassScaffold extends StatelessWidget {
               GlassToolbar(title: title, leading: leading, actions: actions),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: body,
                 ),
               ),

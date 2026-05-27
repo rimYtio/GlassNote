@@ -17,7 +17,7 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/notes',
+    initialLocation: '/capture',
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
       GoRoute(
@@ -40,6 +40,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: '/capture',
+                builder: (context, state) => const CapturePage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/notes',
                 builder: (context, state) => const NotesPage(),
                 routes: [
@@ -57,14 +65,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/timeline',
                 builder: (context, state) => const SchedulePage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/capture',
-                builder: (context, state) => const CapturePage(),
               ),
             ],
           ),

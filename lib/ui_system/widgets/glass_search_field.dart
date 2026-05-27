@@ -18,7 +18,7 @@ class GlassSearchField extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.54),
+        color: colorScheme.surface.withValues(alpha: 0.28),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: colorScheme.onSurface.withValues(alpha: 0.08),

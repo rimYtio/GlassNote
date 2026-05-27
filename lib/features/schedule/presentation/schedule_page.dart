@@ -6,7 +6,6 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/timeline_task.dart';
-import '../../../ui_system/widgets/glass_search_field.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'timeline_controller.dart';
 
@@ -20,9 +19,12 @@ class SchedulePage extends ConsumerStatefulWidget {
 }
 
 class _SchedulePageState extends ConsumerState<SchedulePage> {
-  static const _rangeDays = 14;
+  static const _initialRangeDays = 31;
+  static const _rangeExtendDays = 31;
 
   DateTime? _anchorDate;
+  int _pastRangeDays = _initialRangeDays;
+  int _futureRangeDays = _initialRangeDays;
   DateTime? _overlayDate;
   bool _showDateOverlay = false;
   Timer? _overlayHideTimer;
@@ -43,8 +45,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   Widget build(BuildContext context) {
     final today = _today;
     final anchorDate = _timelineAnchor;
-    final startDate = anchorDate.subtract(const Duration(days: _rangeDays));
-    final endDate = anchorDate.add(const Duration(days: _rangeDays));
+    final startDate = anchorDate.subtract(Duration(days: _pastRangeDays));
+    final endDate = anchorDate.add(Duration(days: _futureRangeDays));
     final tasks = ref.watch(
       timelineTasksRangeProvider((startDate: startDate, endDate: endDate)),
     );
@@ -67,11 +69,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         children: [
           tasks.when(
             data: (items) => _TimelineDayList(
-              rangeDays: _rangeDays,
+              pastRangeDays: _pastRangeDays,
+              futureRangeDays: _futureRangeDays,
               tasks: items,
               today: today,
               anchorDate: anchorDate,
               onCenterDateChanged: _showOverlayForDate,
+              onExtendPast: _extendPastRange,
+              onExtendFuture: _extendFutureRange,
             ),
             error: (error, _) => Center(child: Text('时间线加载失败: $error')),
             loading: () => const SizedBox(height: 48),
@@ -85,12 +90,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
             ),
           Positioned(
             right: 6,
-            bottom: 12,
-            child: FloatingActionButton(
+            bottom: 104,
+            child: _GlassFloatingActionButton(
               tooltip: '新增任务',
               onPressed: () =>
                   _showTimelineTaskEditorSheet(context, initialDate: today),
-              child: const Icon(Icons.add_rounded),
             ),
           ),
         ],
@@ -99,10 +103,25 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   }
 
   Future<void> _showSearchDialog(BuildContext context) {
-    return showDialog<void>(
+    return showGeneralDialog<void>(
       context: context,
       useRootNavigator: true,
-      builder: (context) => const _TimelineSearchDialog(),
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const _TimelineSearchOverlay(),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            ),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -119,7 +138,19 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (selectedDate == null || !mounted) {
       return;
     }
-    setState(() => _anchorDate = _dateOnly(selectedDate));
+    setState(() {
+      _anchorDate = _dateOnly(selectedDate);
+      _pastRangeDays = _initialRangeDays;
+      _futureRangeDays = _initialRangeDays;
+    });
+  }
+
+  void _extendPastRange() {
+    setState(() => _pastRangeDays += _rangeExtendDays);
+  }
+
+  void _extendFutureRange() {
+    setState(() => _futureRangeDays += _rangeExtendDays);
   }
 
   void _showOverlayForDate(DateTime date) {
@@ -160,28 +191,119 @@ Future<void> _showTimelineTaskEditorSheet(
   );
 }
 
+class _GlassFloatingActionButton extends StatelessWidget {
+  const _GlassFloatingActionButton({
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: tooltip,
+      child: ClipRRect(
+        key: const ValueKey('timeline-glass-fab'),
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: DecoratedBox(
+            key: const ValueKey('timeline-glass-fab-surface'),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.34),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: colorScheme.onPrimaryContainer.withValues(alpha: 0.12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.14),
+                  blurRadius: 22,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onPressed,
+                child: SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: Icon(
+                    Icons.add_rounded,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TimelineDayList extends StatefulWidget {
   const _TimelineDayList({
-    required this.rangeDays,
+    required this.pastRangeDays,
+    required this.futureRangeDays,
     required this.tasks,
     required this.today,
     required this.anchorDate,
     required this.onCenterDateChanged,
+    required this.onExtendPast,
+    required this.onExtendFuture,
   });
 
-  final int rangeDays;
+  final int pastRangeDays;
+  final int futureRangeDays;
   final List<TimelineTask> tasks;
   final DateTime today;
   final DateTime anchorDate;
   final ValueChanged<DateTime> onCenterDateChanged;
+  final VoidCallback onExtendPast;
+  final VoidCallback onExtendFuture;
 
   @override
   State<_TimelineDayList> createState() => _TimelineDayListState();
 }
 
 class _TimelineDayListState extends State<_TimelineDayList> {
+  static const _edgeExtendThreshold = 520.0;
+
+  final _scrollController = ScrollController();
   final _dayKeys = <DateTime, GlobalKey>{};
   DateTime? _lastNotifiedDay;
+  int? _lastPastRangeRequest;
+  int? _lastFutureRangeRequest;
+  bool _pastExtendScheduled = false;
+  bool _futureExtendScheduled = false;
+
+  @override
+  void didUpdateWidget(covariant _TimelineDayList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_dateOnly(oldWidget.anchorDate) != _dateOnly(widget.anchorDate)) {
+      _lastNotifiedDay = null;
+      _lastPastRangeRequest = null;
+      _lastFutureRangeRequest = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -191,11 +313,11 @@ class _TimelineDayListState extends State<_TimelineDayList> {
     }
 
     final pastDays = [
-      for (var offset = widget.rangeDays; offset >= 1; offset -= 1)
+      for (var offset = 1; offset <= widget.pastRangeDays; offset += 1)
         widget.anchorDate.subtract(Duration(days: offset)),
     ];
     final futureDays = [
-      for (var offset = 1; offset <= widget.rangeDays; offset += 1)
+      for (var offset = 1; offset <= widget.futureRangeDays; offset += 1)
         widget.anchorDate.add(Duration(days: offset)),
     ];
 
@@ -203,7 +325,11 @@ class _TimelineDayListState extends State<_TimelineDayList> {
       onNotification: _handleScrollNotification,
       child: CustomScrollView(
         key: const ValueKey('timeline-scroll-view'),
+        controller: _scrollController,
         center: _timelineTodaySliverKey,
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         slivers: [
           SliverList.builder(
             itemCount: pastDays.length,
@@ -249,6 +375,7 @@ class _TimelineDayListState extends State<_TimelineDayList> {
               );
             },
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 112)),
         ],
       ),
     );
@@ -261,9 +388,54 @@ class _TimelineDayListState extends State<_TimelineDayList> {
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification is ScrollUpdateNotification &&
         notification.dragDetails != null) {
+      _maybeExtendRange(notification.metrics);
       _notifyCenterDate();
+    } else if (notification is OverscrollNotification &&
+        notification.dragDetails != null) {
+      _maybeExtendRange(notification.metrics);
     }
     return false;
+  }
+
+  void _maybeExtendRange(ScrollMetrics metrics) {
+    if (metrics.extentBefore < _edgeExtendThreshold &&
+        _lastPastRangeRequest != widget.pastRangeDays) {
+      _lastPastRangeRequest = widget.pastRangeDays;
+      _schedulePastExtend();
+    }
+    if (metrics.extentAfter < _edgeExtendThreshold &&
+        _lastFutureRangeRequest != widget.futureRangeDays) {
+      _lastFutureRangeRequest = widget.futureRangeDays;
+      _scheduleFutureExtend();
+    }
+  }
+
+  void _schedulePastExtend() {
+    if (_pastExtendScheduled) {
+      return;
+    }
+    _pastExtendScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _pastExtendScheduled = false;
+      widget.onExtendPast();
+    });
+  }
+
+  void _scheduleFutureExtend() {
+    if (_futureExtendScheduled) {
+      return;
+    }
+    _futureExtendScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _futureExtendScheduled = false;
+      widget.onExtendFuture();
+    });
   }
 
   void _notifyCenterDate() {
@@ -344,24 +516,46 @@ class _DaySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final title = _dayTitle(day, today);
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Padding(
+      key: ValueKey(_daySectionKey(day)),
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
-            child: Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(
+                  alpha: isLight ? 0.42 : 0.20,
+                ),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(
+                    alpha: isLight ? 0.14 : 0.20,
+                  ),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ),
           ),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: colorScheme.surface.withValues(alpha: 0.34),
+              color: colorScheme.surface.withValues(alpha: 0.24),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
@@ -446,73 +640,86 @@ class _TimelineTaskTile extends ConsumerWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 58,
-                  child: Text(
-                    _timeLabel(task),
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w800,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 58,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _timeLabel(task),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  width: 4,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(99),
+                  SizedBox(
+                    key: ValueKey('timeline-task-color-rail-${task.id}'),
+                    width: 4,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        key: ValueKey('timeline-task-content-${task.id}'),
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (task.isStarred) ...[
-                            Icon(Icons.star_rounded, size: 17, color: color),
-                            const SizedBox(width: 4),
-                          ],
-                          Expanded(
-                            child: Text(
-                              task.title,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    decoration: task.isCompleted
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          Row(
+                            children: [
+                              if (task.isStarred) ...[
+                                Icon(
+                                  Icons.star_rounded,
+                                  size: 17,
+                                  color: color,
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  task.title,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        decoration: task.isCompleted
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (task.description.isNotEmpty)
+                            Text(
+                              task.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Checkbox(
-                            value: task.isCompleted,
-                            onChanged: (_) => actions.toggleCompleted(task),
-                          ),
                         ],
                       ),
-                      if (task.description.isNotEmpty)
-                        Text(
-                          task.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _ordinalDayLabel(task.taskDate),
-                  key: ValueKey('timeline-task-date-label-${task.id}'),
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Center(
+                    child: Checkbox(
+                      value: task.isCompleted,
+                      onChanged: (_) => actions.toggleCompleted(task),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -614,17 +821,18 @@ class _TimelineDateOverlay extends StatelessWidget {
   }
 }
 
-class _TimelineSearchDialog extends ConsumerStatefulWidget {
-  const _TimelineSearchDialog();
+class _TimelineSearchOverlay extends ConsumerStatefulWidget {
+  const _TimelineSearchOverlay();
 
   @override
-  ConsumerState<_TimelineSearchDialog> createState() =>
-      _TimelineSearchDialogState();
+  ConsumerState<_TimelineSearchOverlay> createState() =>
+      _TimelineSearchOverlayState();
 }
 
-class _TimelineSearchDialogState extends ConsumerState<_TimelineSearchDialog> {
+class _TimelineSearchOverlayState
+    extends ConsumerState<_TimelineSearchOverlay> {
   final _controller = TextEditingController();
-  String _query = '';
+  String _submittedQuery = '';
 
   @override
   void dispose() {
@@ -634,34 +842,170 @@ class _TimelineSearchDialogState extends ConsumerState<_TimelineSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final results = ref.watch(timelineTaskSearchProvider(_query));
+    final results = ref.watch(timelineTaskSearchProvider(_submittedQuery));
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return AlertDialog(
-      title: const Text('搜索任务'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GlassSearchField(
-              key: const ValueKey('timeline-search-dialog-field'),
-              controller: _controller,
-              hintText: '输入任务标题或备注',
-              onChanged: (value) => setState(() => _query = value),
+    return Material(
+      key: const ValueKey('timeline-search-overlay'),
+      color: Colors.transparent,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).pop(),
+              child: BackdropFilter(
+                key: const ValueKey('timeline-search-backdrop'),
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: ColoredBox(color: Colors.black.withValues(alpha: 0.10)),
+              ),
             ),
-            const SizedBox(height: 14),
-            results.when(
+          ),
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _TimelineSearchBar(
+                        controller: _controller,
+                        onSubmitted: _submitSearch,
+                      ),
+                      const SizedBox(height: 10),
+                      _TimelineSearchResults(
+                        query: _submittedQuery,
+                        results: results,
+                        colorScheme: colorScheme,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitSearch() {
+    setState(() => _submittedQuery = _controller.text.trim());
+  }
+}
+
+class _TimelineSearchBar extends StatelessWidget {
+  const _TimelineSearchBar({
+    required this.controller,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.34),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: colorScheme.onSurface.withValues(alpha: 0.12),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.10),
+                blurRadius: 28,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 16),
+              Icon(Icons.search_rounded, color: colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('timeline-search-overlay-field'),
+                  controller: controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => onSubmitted(),
+                  decoration: const InputDecoration(
+                    hintText: '输入任务标题或备注',
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              IconButton(
+                key: const ValueKey('timeline-search-submit'),
+                tooltip: '执行搜索',
+                icon: const Icon(Icons.search_rounded),
+                onPressed: onSubmitted,
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineSearchResults extends StatelessWidget {
+  const _TimelineSearchResults({
+    required this.query,
+    required this.results,
+    required this.colorScheme,
+  });
+
+  final String query;
+  final AsyncValue<List<TimelineTask>> results;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: DecoratedBox(
+          key: const ValueKey('timeline-search-results'),
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.30),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colorScheme.onSurface.withValues(alpha: 0.10),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: results.when(
               data: (items) {
-                if (_query.trim().isEmpty) {
-                  return const Text('输入关键词开始搜索');
-                }
                 if (items.isEmpty) {
-                  return const Text('未找到相关任务');
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('未找到相关任务'),
+                  );
                 }
                 return ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 260),
                   child: ListView(
                     shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     children: [
                       for (final task in items)
                         ListTile(
@@ -672,18 +1016,15 @@ class _TimelineSearchDialogState extends ConsumerState<_TimelineSearchDialog> {
                   ),
                 );
               },
-              error: (error, _) => Text('搜索失败: $error'),
+              error: (error, _) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('搜索失败: $error'),
+              ),
               loading: () => const SizedBox(height: 48),
             ),
-          ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
-        ),
-      ],
     );
   }
 }
@@ -730,7 +1071,7 @@ class _TimelineCalendarDialogState
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.surface.withValues(alpha: 0.74),
+              ).colorScheme.surface.withValues(alpha: 0.42),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
                 color: Theme.of(
@@ -1312,7 +1653,7 @@ String _dayTitle(DateTime day, DateTime today) {
   if (_dateOnly(day) == _dateOnly(today).add(const Duration(days: 1))) {
     return '明天';
   }
-  return _dateLabel(day);
+  return _ordinalDayLabel(day);
 }
 
 String _timeLabel(TimelineTask task) {
@@ -1344,6 +1685,10 @@ String _ordinalDayLabel(DateTime value) {
     },
   };
   return '$day$suffix';
+}
+
+String _daySectionKey(DateTime value) {
+  return 'timeline-day-${value.year}-${value.month}-${value.day}';
 }
 
 String _hourMinute(DateTime value) {

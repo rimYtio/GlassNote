@@ -24,4 +24,77 @@ void main() {
     expect(selected.height, greaterThan(54));
     expect(selected.width, greaterThan(unselected.width));
   });
+
+  testWidgets('bottom navigation is translucent glass and keeps tab taps', (
+    tester,
+  ) async {
+    var tappedIndex = -1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: GlassBottomNavigation(
+            currentIndex: 0,
+            onTap: (index) => tappedIndex = index,
+          ),
+        ),
+      ),
+    );
+
+    final surface = tester.widget<DecoratedBox>(
+      find.byKey(const ValueKey('glass-bottom-navigation-surface')),
+    );
+    final decoration = surface.decoration as BoxDecoration;
+
+    expect(decoration.color?.a, lessThan(0.3));
+
+    await tester.tap(find.text('时间线'));
+    expect(tappedIndex, 2);
+  });
+
+  testWidgets('bottom navigation order starts with capture microphone tab', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: GlassBottomNavigation(
+            currentIndex: 0,
+            onTap: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.mic), findsOneWidget);
+
+    final captureLeft = tester.getTopLeft(find.text('捕获')).dx;
+    final notesLeft = tester.getTopLeft(find.text('笔记')).dx;
+    final timelineLeft = tester.getTopLeft(find.text('时间线')).dx;
+    final settingsLeft = tester.getTopLeft(find.text('设置')).dx;
+
+    expect(captureLeft, lessThan(notesLeft));
+    expect(notesLeft, lessThan(timelineLeft));
+    expect(timelineLeft, lessThan(settingsLeft));
+  });
+
+  testWidgets('bottom navigation tab switch uses nonlinear animation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: GlassBottomNavigation(
+            currentIndex: 0,
+            onTap: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final selectedPill = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('nav-pill-0')),
+    );
+    expect(selectedPill.curve, Curves.easeOutBack);
+  });
 }

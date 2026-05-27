@@ -18,6 +18,7 @@ class CapturePage extends StatelessWidget {
         ),
       ],
       body: ListView(
+        padding: const EdgeInsets.only(bottom: 108),
         children: const [GlassCard(child: Text('快速文字、语音和 AI 解析入口将在后续接入。'))],
       ),
     );

@@ -18,6 +18,7 @@ class SettingsPage extends ConsumerWidget {
       title: '设置',
       body: settings.when(
         data: (value) => ListView(
+          padding: const EdgeInsets.only(bottom: 108),
           children: [
             Text('Theme', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),

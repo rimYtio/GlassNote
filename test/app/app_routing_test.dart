@@ -18,14 +18,15 @@ void main() {
     await database.close();
   });
 
-  testWidgets('starts on notes shell and navigates to settings tab', (
+  testWidgets('starts on capture shell and navigates to settings tab', (
     tester,
   ) async {
     await _pumpApp(tester, database);
 
-    expect(find.text('笔记'), findsWidgets);
+    expect(find.text('快速文字、语音和 AI 解析入口将在后续接入。'), findsOneWidget);
+    expect(find.text('捕获'), findsWidgets);
+    expect(find.text('笔记'), findsOneWidget);
     expect(find.text('时间线'), findsOneWidget);
-    expect(find.text('捕获'), findsOneWidget);
     expect(find.text('设置'), findsOneWidget);
 
     await tester.tap(find.text('设置').last);

@@ -23,7 +23,7 @@ class GlassCard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Material(
-          color: colorScheme.surface.withValues(alpha: 0.58),
+          color: colorScheme.surface.withValues(alpha: 0.34),
           child: InkWell(
             onTap: onTap,
             child: DecoratedBox(

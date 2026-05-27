@@ -15,6 +15,7 @@ class GlassBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return SafeArea(
       top: false,
@@ -25,14 +26,26 @@ class GlassBottomNavigation extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
               child: DecoratedBox(
+                key: const ValueKey('glass-bottom-navigation-surface'),
                 decoration: BoxDecoration(
-                  color: colorScheme.surface.withValues(alpha: 0.72),
+                  color: colorScheme.surface.withValues(
+                    alpha: isLight ? 0.24 : 0.20,
+                  ),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: colorScheme.onSurface.withValues(alpha: 0.10),
+                    color: colorScheme.onSurface.withValues(
+                      alpha: isLight ? 0.16 : 0.22,
+                    ),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withValues(alpha: 0.10),
+                      blurRadius: 28,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -92,14 +105,14 @@ class _GlassNavItem extends StatelessWidget {
         child: Center(
           child: AnimatedContainer(
             key: ValueKey('nav-pill-$index'),
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutBack,
             width: selected ? 88 : 58,
             height: selected ? 62 : 58,
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
               color: selected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.56)
+                  ? colorScheme.primaryContainer.withValues(alpha: 0.42)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected
@@ -151,6 +164,7 @@ class _NavDestination {
 }
 
 const _destinations = [
+  _NavDestination(label: '捕获', icon: Icons.mic_none, selectedIcon: Icons.mic),
   _NavDestination(
     label: '笔记',
     icon: Icons.note_alt_outlined,
@@ -160,11 +174,6 @@ const _destinations = [
     label: '时间线',
     icon: Icons.timeline_outlined,
     selectedIcon: Icons.timeline,
-  ),
-  _NavDestination(
-    label: '捕获',
-    icon: Icons.add_circle_outline,
-    selectedIcon: Icons.add_circle,
   ),
   _NavDestination(
     label: '设置',

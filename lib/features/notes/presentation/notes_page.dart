@@ -78,6 +78,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
         ),
       ],
       body: ListView(
+        padding: const EdgeInsets.only(bottom: 108),
         children: [
           GlassSearchField(
             key: const ValueKey('notes-search-field'),
