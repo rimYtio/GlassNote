@@ -100,6 +100,74 @@ void main() {
     await _disposeApp(tester);
   });
 
+  testWidgets('folder swipe actions rename star and delete user folders', (
+    tester,
+  ) async {
+    await database.foldersDao.ensureUncategorized();
+    await database.foldersDao.createFolder(
+      FolderRowsCompanion.insert(
+        id: 'work-folder',
+        name: '工作',
+        sortOrder: 1,
+        isSystem: false,
+        createdAt: DateTime(2026, 5, 27, 9),
+        updatedAt: DateTime(2026, 5, 27, 9),
+      ),
+    );
+    await database.notesDao.createNote(
+      NoteRowsCompanion.insert(
+        id: 'folder-note',
+        title: '文件夹内笔记',
+        plainText: '',
+        richContentJson: '{}',
+        folderId: 'work-folder',
+        createdAt: DateTime(2026, 5, 27, 10),
+        updatedAt: DateTime(2026, 5, 27, 10),
+      ),
+    );
+
+    await _pumpApp(tester, database);
+
+    await tester.drag(find.text('工作'), const Offset(500, 0));
+    await _pumpUi(tester);
+    expect(find.text('重命名'), findsOneWidget);
+    expect(find.text('星标'), findsOneWidget);
+
+    await tester.tap(find.text('星标'));
+    await _pumpUi(tester);
+    expect(
+      (await database.foldersDao.findById('work-folder'))?.isStarred,
+      isTrue,
+    );
+
+    await tester.drag(find.text('工作'), const Offset(500, 0));
+    await _pumpUi(tester);
+    await tester.tap(find.text('重命名'));
+    await _pumpUi(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('folder-rename-field')),
+      '项目',
+    );
+    await tester.tap(find.text('保存'));
+    await _flushAsyncUi(tester);
+    expect(find.text('项目'), findsOneWidget);
+    expect((await database.foldersDao.findById('work-folder'))?.name, '项目');
+
+    await tester.drag(find.text('项目'), const Offset(-500, 0));
+    await _pumpUi(tester);
+    expect(find.text('删除'), findsOneWidget);
+    await tester.tap(find.text('删除'));
+    await _pumpUi(tester);
+
+    expect(await database.foldersDao.findById('work-folder'), isNull);
+    expect(
+      (await database.notesDao.findById('folder-note'))?.folderId,
+      Folder.uncategorizedId,
+    );
+
+    await _disposeApp(tester);
+  });
+
   testWidgets('swiping a note can star and delete it', (tester) async {
     await database.foldersDao.ensureUncategorized();
     await database.notesDao.createNote(

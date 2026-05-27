@@ -25,9 +25,17 @@ class FolderRepositoryImpl implements FolderRepository {
         parentId: Value(draft.parentId),
         sortOrder: now.microsecondsSinceEpoch,
         isSystem: false,
+        isStarred: const Value(false),
         createdAt: now,
         updatedAt: now,
       ),
+    );
+  }
+
+  @override
+  Future<Folder> update(Folder folder) {
+    return _database.foldersDao.updateFolder(
+      folder.copyWith(updatedAt: DateTime.now()),
     );
   }
 

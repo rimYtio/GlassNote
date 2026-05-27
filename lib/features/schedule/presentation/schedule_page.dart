@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,13 +22,29 @@ class SchedulePage extends ConsumerStatefulWidget {
 class _SchedulePageState extends ConsumerState<SchedulePage> {
   static const _rangeDays = 14;
 
+  DateTime? _anchorDate;
+  DateTime? _overlayDate;
+  bool _showDateOverlay = false;
+  Timer? _overlayHideTimer;
+  Timer? _overlayRemoveTimer;
+
   DateTime get _today => _dateOnly(DateTime.now());
+
+  DateTime get _timelineAnchor => _anchorDate ?? _today;
+
+  @override
+  void dispose() {
+    _overlayHideTimer?.cancel();
+    _overlayRemoveTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final today = _today;
-    final startDate = today.subtract(const Duration(days: _rangeDays));
-    final endDate = today.add(const Duration(days: _rangeDays));
+    final anchorDate = _timelineAnchor;
+    final startDate = anchorDate.subtract(const Duration(days: _rangeDays));
+    final endDate = anchorDate.add(const Duration(days: _rangeDays));
     final tasks = ref.watch(
       timelineTasksRangeProvider((startDate: startDate, endDate: endDate)),
     );
@@ -33,6 +52,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     return GlassScaffold(
       title: '时间线',
       actions: [
+        IconButton(
+          tooltip: '查看任务日历',
+          icon: const Icon(Icons.calendar_month_rounded),
+          onPressed: () => _showCalendarDialog(context, anchorDate: anchorDate),
+        ),
         IconButton(
           tooltip: '搜索任务',
           icon: const Icon(Icons.search_rounded),
@@ -46,10 +70,19 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
               rangeDays: _rangeDays,
               tasks: items,
               today: today,
+              anchorDate: anchorDate,
+              onCenterDateChanged: _showOverlayForDate,
             ),
             error: (error, _) => Center(child: Text('时间线加载失败: $error')),
             loading: () => const SizedBox(height: 48),
           ),
+          if (_overlayDate != null)
+            Positioned.fill(
+              child: _TimelineDateOverlay(
+                date: _overlayDate!,
+                visible: _showDateOverlay,
+              ),
+            ),
           Positioned(
             right: 6,
             bottom: 12,
@@ -72,6 +105,43 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       builder: (context) => const _TimelineSearchDialog(),
     );
   }
+
+  Future<void> _showCalendarDialog(
+    BuildContext context, {
+    required DateTime anchorDate,
+  }) async {
+    final selectedDate = await showDialog<DateTime>(
+      context: context,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.18),
+      builder: (context) => _TimelineCalendarDialog(initialDate: anchorDate),
+    );
+    if (selectedDate == null || !mounted) {
+      return;
+    }
+    setState(() => _anchorDate = _dateOnly(selectedDate));
+  }
+
+  void _showOverlayForDate(DateTime date) {
+    _overlayHideTimer?.cancel();
+    _overlayRemoveTimer?.cancel();
+    setState(() {
+      _overlayDate = _dateOnly(date);
+      _showDateOverlay = true;
+    });
+
+    _overlayHideTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _showDateOverlay = false);
+      _overlayRemoveTimer = Timer(const Duration(milliseconds: 320), () {
+        if (mounted && !_showDateOverlay) {
+          setState(() => _overlayDate = null);
+        }
+      });
+    });
+  }
 }
 
 Future<void> _showTimelineTaskEditorSheet(
@@ -90,73 +160,148 @@ Future<void> _showTimelineTaskEditorSheet(
   );
 }
 
-class _TimelineDayList extends StatelessWidget {
+class _TimelineDayList extends StatefulWidget {
   const _TimelineDayList({
     required this.rangeDays,
     required this.tasks,
     required this.today,
+    required this.anchorDate,
+    required this.onCenterDateChanged,
   });
 
   final int rangeDays;
   final List<TimelineTask> tasks;
   final DateTime today;
+  final DateTime anchorDate;
+  final ValueChanged<DateTime> onCenterDateChanged;
+
+  @override
+  State<_TimelineDayList> createState() => _TimelineDayListState();
+}
+
+class _TimelineDayListState extends State<_TimelineDayList> {
+  final _dayKeys = <DateTime, GlobalKey>{};
+  DateTime? _lastNotifiedDay;
 
   @override
   Widget build(BuildContext context) {
     final grouped = <DateTime, List<TimelineTask>>{};
-    for (final task in tasks) {
+    for (final task in widget.tasks) {
       grouped.putIfAbsent(_dateOnly(task.taskDate), () => []).add(task);
     }
 
     final pastDays = [
-      for (var offset = rangeDays; offset >= 1; offset -= 1)
-        today.subtract(Duration(days: offset)),
+      for (var offset = widget.rangeDays; offset >= 1; offset -= 1)
+        widget.anchorDate.subtract(Duration(days: offset)),
     ];
     final futureDays = [
-      for (var offset = 1; offset <= rangeDays; offset += 1)
-        today.add(Duration(days: offset)),
+      for (var offset = 1; offset <= widget.rangeDays; offset += 1)
+        widget.anchorDate.add(Duration(days: offset)),
     ];
 
-    return CustomScrollView(
-      center: _timelineTodaySliverKey,
-      slivers: [
-        SliverList.builder(
-          itemCount: pastDays.length,
-          itemBuilder: (context, index) {
-            final day = pastDays[index];
-            return _TimelineDayEntry(
-              day: day,
-              today: today,
-              tasks: grouped[day] ?? const <TimelineTask>[],
-              showDivider: index > 0,
-            );
-          },
-        ),
-        SliverList(
-          key: _timelineTodaySliverKey,
-          delegate: SliverChildListDelegate.fixed([
-            _TimelineDayEntry(
-              day: today,
-              today: today,
-              tasks: grouped[today] ?? const <TimelineTask>[],
-              showDivider: false,
-            ),
-          ]),
-        ),
-        SliverList.builder(
-          itemCount: futureDays.length,
-          itemBuilder: (context, index) {
-            final day = futureDays[index];
-            return _TimelineDayEntry(
-              day: day,
-              today: today,
-              tasks: grouped[day] ?? const <TimelineTask>[],
-              showDivider: true,
-            );
-          },
-        ),
-      ],
+    return NotificationListener<ScrollNotification>(
+      onNotification: _handleScrollNotification,
+      child: CustomScrollView(
+        key: const ValueKey('timeline-scroll-view'),
+        center: _timelineTodaySliverKey,
+        slivers: [
+          SliverList.builder(
+            itemCount: pastDays.length,
+            itemBuilder: (context, index) {
+              final day = pastDays[index];
+              return KeyedSubtree(
+                key: _keyFor(day),
+                child: _TimelineDayEntry(
+                  day: day,
+                  today: widget.today,
+                  tasks: grouped[day] ?? const <TimelineTask>[],
+                  showDivider: index > 0,
+                ),
+              );
+            },
+          ),
+          SliverList(
+            key: _timelineTodaySliverKey,
+            delegate: SliverChildListDelegate.fixed([
+              KeyedSubtree(
+                key: _keyFor(widget.anchorDate),
+                child: _TimelineDayEntry(
+                  day: widget.anchorDate,
+                  today: widget.today,
+                  tasks: grouped[widget.anchorDate] ?? const <TimelineTask>[],
+                  showDivider: false,
+                ),
+              ),
+            ]),
+          ),
+          SliverList.builder(
+            itemCount: futureDays.length,
+            itemBuilder: (context, index) {
+              final day = futureDays[index];
+              return KeyedSubtree(
+                key: _keyFor(day),
+                child: _TimelineDayEntry(
+                  day: day,
+                  today: widget.today,
+                  tasks: grouped[day] ?? const <TimelineTask>[],
+                  showDivider: true,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
+  }
+
+  GlobalKey _keyFor(DateTime day) {
+    return _dayKeys.putIfAbsent(_dateOnly(day), GlobalKey.new);
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification &&
+        notification.dragDetails != null) {
+      _notifyCenterDate();
+    }
+    return false;
+  }
+
+  void _notifyCenterDate() {
+    if (!mounted) {
+      return;
+    }
+    final viewport = context.findRenderObject();
+    if (viewport is! RenderBox || !viewport.hasSize) {
+      return;
+    }
+
+    final viewportOrigin = viewport.localToGlobal(Offset.zero).dy;
+    final viewportCenter = viewport.size.height / 2;
+    DateTime? bestDay;
+    var bestDistance = double.infinity;
+
+    for (final entry in _dayKeys.entries) {
+      final dayContext = entry.value.currentContext;
+      final renderObject = dayContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) {
+        continue;
+      }
+      final top = renderObject.localToGlobal(Offset.zero).dy - viewportOrigin;
+      final center = top + renderObject.size.height / 2;
+      final distance = (center - viewportCenter).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestDay = entry.key;
+      }
+    }
+
+    if (bestDay != null) {
+      if (_lastNotifiedDay == bestDay) {
+        return;
+      }
+      _lastNotifiedDay = bestDay;
+      widget.onCenterDateChanged(bestDay);
+    }
   }
 }
 
@@ -362,7 +507,8 @@ class _TimelineTaskTile extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _dateLabel(task.taskDate),
+                  _ordinalDayLabel(task.taskDate),
+                  key: ValueKey('timeline-task-date-label-${task.id}'),
                   textAlign: TextAlign.right,
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
@@ -419,6 +565,49 @@ class _GlassDayDivider extends StatelessWidget {
             colorScheme.primaryContainer.withValues(alpha: 0.22),
             colorScheme.surface.withValues(alpha: 0.0),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineDateOverlay extends StatelessWidget {
+  const _TimelineDateOverlay({required this.date, required this.visible});
+
+  final DateTime date;
+  final bool visible;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        key: const ValueKey('timeline-date-overlay'),
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${date.year}',
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.18),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                ),
+              ),
+              Text(
+                '${date.month}月',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.20),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -495,6 +684,307 @@ class _TimelineSearchDialogState extends ConsumerState<_TimelineSearchDialog> {
           child: const Text('关闭'),
         ),
       ],
+    );
+  }
+}
+
+class _TimelineCalendarDialog extends ConsumerStatefulWidget {
+  const _TimelineCalendarDialog({required this.initialDate});
+
+  final DateTime initialDate;
+
+  @override
+  ConsumerState<_TimelineCalendarDialog> createState() =>
+      _TimelineCalendarDialogState();
+}
+
+class _TimelineCalendarDialogState
+    extends ConsumerState<_TimelineCalendarDialog> {
+  late int _year;
+  late int _month;
+
+  @override
+  void initState() {
+    super.initState();
+    _year = widget.initialDate.year;
+    _month = widget.initialDate.month;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final range = (
+      startDate: DateTime(_year),
+      endDate: DateTime(_year, 12, 31),
+    );
+    final tasks = ref.watch(timelineTasksRangeProvider(range));
+
+    return Dialog(
+      key: const ValueKey('timeline-calendar-dialog'),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+      backgroundColor: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.74),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.10),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              child: SingleChildScrollView(
+                child: tasks.when(
+                  data: _buildCalendar,
+                  error: (error, _) => Text('日历加载失败: $error'),
+                  loading: () => const SizedBox(height: 320),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalendar(List<TimelineTask> tasks) {
+    final monthCounts = <int, int>{};
+    final dayCounts = <int, int>{};
+    for (final task in tasks) {
+      if (task.taskDate.year != _year) {
+        continue;
+      }
+      monthCounts.update(
+        task.taskDate.month,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+      if (task.taskDate.month == _month) {
+        dayCounts.update(
+          task.taskDate.day,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: '上一年',
+              onPressed: () => setState(() => _year -= 1),
+              icon: const Icon(Icons.chevron_left_rounded),
+            ),
+            Expanded(
+              child: Text(
+                '$_year 年任务热力',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            IconButton(
+              tooltip: '下一年',
+              onPressed: () => setState(() => _year += 1),
+              icon: const Icon(Icons.chevron_right_rounded),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var month = 1; month <= 12; month += 1)
+              _MonthHeatDot(
+                key: ValueKey('timeline-calendar-month-$month'),
+                month: month,
+                count: monthCounts[month] ?? 0,
+                selected: month == _month,
+                onTap: () => setState(() => _month = month),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          '$_month月',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 10),
+        _MonthCalendarGrid(
+          year: _year,
+          month: _month,
+          dayCounts: dayCounts,
+          onDateSelected: (date) => Navigator.of(context).pop(date),
+        ),
+      ],
+    );
+  }
+}
+
+class _MonthHeatDot extends StatelessWidget {
+  const _MonthHeatDot({
+    required super.key,
+    required this.month,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int month;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final intensity = count == 0
+        ? 0.12
+        : (0.26 + count * 0.12).clamp(0.26, 0.88);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        width: 54,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primaryContainer.withValues(alpha: 0.52)
+              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colorScheme.onSurface.withValues(
+              alpha: selected ? 0.16 : 0.08,
+            ),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(
+                  alpha: intensity.toDouble(),
+                ),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text('$month月', maxLines: 1),
+            Text('$count', style: Theme.of(context).textTheme.labelSmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthCalendarGrid extends StatelessWidget {
+  const _MonthCalendarGrid({
+    required this.year,
+    required this.month,
+    required this.dayCounts,
+    required this.onDateSelected,
+  });
+
+  final int year;
+  final int month;
+  final Map<int, int> dayCounts;
+  final ValueChanged<DateTime> onDateSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final firstDay = DateTime(year, month);
+    final leadingSlots = firstDay.weekday % 7;
+    final dayCount = DateTime(year, month + 1, 0).day;
+    final cells = <Widget>[
+      for (final label in const ['日', '一', '二', '三', '四', '五', '六'])
+        Center(
+          child: Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ),
+      for (var index = 0; index < leadingSlots; index += 1)
+        const SizedBox.shrink(),
+      for (var day = 1; day <= dayCount; day += 1)
+        _CalendarDayCell(
+          key: ValueKey('timeline-calendar-day-$day'),
+          date: DateTime(year, month, day),
+          count: dayCounts[day] ?? 0,
+          onTap: onDateSelected,
+        ),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 7,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: cells,
+    );
+  }
+}
+
+class _CalendarDayCell extends StatelessWidget {
+  const _CalendarDayCell({
+    required super.key,
+    required this.date,
+    required this.count,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final int count;
+  final ValueChanged<DateTime> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasTasks = count > 0;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => onTap(date),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: hasTasks
+              ? colorScheme.primaryContainer.withValues(alpha: 0.46)
+              : colorScheme.surface.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: colorScheme.onSurface.withValues(
+              alpha: hasTasks ? 0.12 : 0.06,
+            ),
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${date.day}'),
+              if (hasTasks)
+                Text('$count 项', style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -840,6 +1330,20 @@ String _timeLabel(TimelineTask task) {
 
 String _dateLabel(DateTime value) {
   return '${value.year}/${value.month}/${value.day}';
+}
+
+String _ordinalDayLabel(DateTime value) {
+  final day = value.day;
+  final suffix = switch (day % 100) {
+    11 || 12 || 13 => 'th',
+    _ => switch (day % 10) {
+      1 => 'st',
+      2 => 'nd',
+      3 => 'rd',
+      _ => 'th',
+    },
+  };
+  return '$day$suffix';
 }
 
 String _hourMinute(DateTime value) {

@@ -35,6 +35,8 @@ class FolderRows extends Table {
   TextColumn get parentId => text().named('parent_id').nullable()();
   IntColumn get sortOrder => integer().named('sort_order')();
   BoolColumn get isSystem => boolean().named('is_system')();
+  BoolColumn get isStarred =>
+      boolean().named('is_starred').withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().named('created_at')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
 
@@ -153,6 +155,7 @@ class FoldersDao extends DatabaseAccessor<AppDatabase> with _$FoldersDaoMixin {
         parentId: Value(folder.parentId),
         sortOrder: folder.sortOrder,
         isSystem: folder.isSystem,
+        isStarred: Value(folder.isStarred),
         createdAt: folder.createdAt,
         updatedAt: folder.updatedAt,
       ),
@@ -164,6 +167,22 @@ class FoldersDao extends DatabaseAccessor<AppDatabase> with _$FoldersDaoMixin {
     await into(folderRows).insertOnConflictUpdate(folder);
     final created = await findById(folder.id.value);
     return created!;
+  }
+
+  Future<Folder> updateFolder(Folder folder) async {
+    await (update(
+      folderRows,
+    )..where((table) => table.id.equals(folder.id))).write(
+      FolderRowsCompanion(
+        name: Value(folder.name),
+        parentId: Value(folder.parentId),
+        sortOrder: Value(folder.sortOrder),
+        isSystem: Value(folder.isSystem),
+        isStarred: Value(folder.isStarred),
+        updatedAt: Value(folder.updatedAt),
+      ),
+    );
+    return (await findById(folder.id))!;
   }
 
   Future<void> deleteFolder(String id) async {
@@ -191,6 +210,7 @@ class FoldersDao extends DatabaseAccessor<AppDatabase> with _$FoldersDaoMixin {
   SimpleSelectStatement<$FolderRowsTable, FolderRow> _allFoldersQuery() {
     return select(folderRows)..orderBy([
       (table) => OrderingTerm.desc(table.isSystem),
+      (table) => OrderingTerm.desc(table.isStarred),
       (table) => OrderingTerm.asc(table.sortOrder),
       (table) => OrderingTerm.asc(table.createdAt),
     ]);
@@ -203,6 +223,7 @@ class FoldersDao extends DatabaseAccessor<AppDatabase> with _$FoldersDaoMixin {
       parentId: row.parentId,
       sortOrder: row.sortOrder,
       isSystem: row.isSystem,
+      isStarred: row.isStarred,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );
@@ -459,7 +480,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -471,6 +492,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await migrator.createTable(timelineTaskRows);
+      }
+      if (from < 4) {
+        await migrator.addColumn(folderRows, folderRows.isStarred);
       }
     },
   );

@@ -40,6 +40,7 @@ void main() {
     await _flushAsyncUi(tester);
 
     expect(find.text('完成项目计划'), findsOneWidget);
+    expect(find.text(_ordinalDay(DateTime.now().day)), findsOneWidget);
     expect(
       (await database.timelineTasksDao.search('项目')).single.title,
       '完成项目计划',
@@ -84,6 +85,78 @@ void main() {
       find.descendant(of: dialog, matching: find.text('今天汇报')),
       findsNothing,
     );
+
+    await _disposeApp(tester);
+  });
+
+  testWidgets('timeline calendar shows heat counts and selects a date', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final target = DateTime(now.year, now.month, now.day);
+    await _seedTask(
+      database,
+      id: 'calendar-task',
+      title: '跨月任务',
+      taskDate: target,
+    );
+
+    await _pumpApp(tester, database);
+    await _openTimeline(tester);
+
+    expect(find.byTooltip('查看任务日历'), findsOneWidget);
+    await tester.tap(find.byTooltip('查看任务日历'));
+    await _pumpUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('timeline-calendar-dialog')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(ValueKey('timeline-calendar-month-${target.month}')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+
+    expect(
+      find.descendant(
+        of: find.byKey(ValueKey('timeline-calendar-day-${target.day}')),
+        matching: find.text('1 项'),
+      ),
+      findsOneWidget,
+    );
+
+    final dayCell = find.byKey(ValueKey('timeline-calendar-day-${target.day}'));
+    await tester.ensureVisible(dayCell);
+    await tester.tap(dayCell);
+    await _pumpUi(tester);
+
+    expect(find.text('跨月任务'), findsOneWidget);
+
+    await _disposeApp(tester);
+  });
+
+  testWidgets('timeline scroll shows year month overlay then hides it', (
+    tester,
+  ) async {
+    await _pumpApp(tester, database);
+    await _openTimeline(tester);
+
+    await tester.drag(
+      find.byKey(const ValueKey('timeline-scroll-view')),
+      const Offset(0, -360),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('timeline-date-overlay')), findsOneWidget);
+    expect(find.text('${DateTime.now().year}'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byKey(const ValueKey('timeline-date-overlay')), findsNothing);
 
     await _disposeApp(tester);
   });
@@ -200,4 +273,17 @@ Future<void> _disposeApp(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 1));
   await tester.pump(const Duration(milliseconds: 1));
+}
+
+String _ordinalDay(int day) {
+  if (day % 100 >= 11 && day % 100 <= 13) {
+    return '${day}th';
+  }
+  final suffix = switch (day % 10) {
+    1 => 'st',
+    2 => 'nd',
+    3 => 'rd',
+    _ => 'th',
+  };
+  return '$day$suffix';
 }

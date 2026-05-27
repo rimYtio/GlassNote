@@ -5,6 +5,8 @@ abstract interface class FolderRepository {
 
   Future<Folder> create(FolderDraft draft);
 
+  Future<Folder> update(Folder folder);
+
   Future<void> delete(String id);
 
   Future<Folder?> findById(String id);

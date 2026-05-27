@@ -81,6 +81,22 @@ class NotesActions {
     return _ref.read(noteRepositoryProvider).update(note);
   }
 
+  Future<Folder> renameFolder(Folder folder, String name) async {
+    final updated = await _ref
+        .read(folderRepositoryProvider)
+        .update(folder.copyWith(name: name.trim()));
+    _ref.invalidate(allFoldersProvider);
+    return updated;
+  }
+
+  Future<Folder> toggleFolderStar(Folder folder) async {
+    final updated = await _ref
+        .read(folderRepositoryProvider)
+        .update(folder.copyWith(isStarred: !folder.isStarred));
+    _ref.invalidate(allFoldersProvider);
+    return updated;
+  }
+
   Future<void> toggleStar(Note note) {
     return _ref
         .read(noteRepositoryProvider)
@@ -91,7 +107,8 @@ class NotesActions {
     return _ref.read(noteRepositoryProvider).delete(note.id);
   }
 
-  Future<void> deleteFolder(String folderId) {
-    return _ref.read(deleteFolderUseCaseProvider)(folderId);
+  Future<void> deleteFolder(String folderId) async {
+    await _ref.read(deleteFolderUseCaseProvider)(folderId);
+    _ref.invalidate(allFoldersProvider);
   }
 }

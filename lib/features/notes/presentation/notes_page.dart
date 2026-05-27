@@ -8,6 +8,7 @@ import '../../../domain/entities/note.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import '../../../ui_system/widgets/glass_search_field.dart';
+import '../../../ui_system/widgets/jelly_swipe_action_row.dart';
 import 'notes_controller.dart';
 
 class NotesPage extends ConsumerStatefulWidget {
@@ -22,7 +23,8 @@ class NotesPage extends ConsumerStatefulWidget {
 class _NotesPageState extends ConsumerState<NotesPage> {
   final _searchController = TextEditingController();
   String _query = '';
-  String? _openActionNoteId;
+  String? _openActionRowId;
+  JellySwipeSide? _openActionSide;
 
   @override
   void dispose() {
@@ -88,7 +90,8 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             _SearchResults(
               query: query,
               folders: allFolders,
-              openActionNoteId: _openActionNoteId,
+              openActionRowId: _openActionRowId,
+              openActionSide: _openActionSide,
               onOpenActions: _openActions,
               onCloseActions: _closeActions,
             )
@@ -97,6 +100,9 @@ class _NotesPageState extends ConsumerState<NotesPage> {
               _SectionTitle('文件夹'),
               _RootFolderList(
                 folders: ref.watch(rootFoldersProvider),
+                openActionRowId: _openActionRowId,
+                openActionSide: _openActionSide,
+                onOpenActions: _openActions,
                 onCloseActions: _closeActions,
               ),
               const SizedBox(height: 24),
@@ -104,7 +110,8 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             ],
             _NotesList(
               folderId: activeFolderId,
-              openActionNoteId: _openActionNoteId,
+              openActionRowId: _openActionRowId,
+              openActionSide: _openActionSide,
               onOpenActions: _openActions,
               onCloseActions: _closeActions,
             ),
@@ -157,15 +164,21 @@ class _NotesPageState extends ConsumerState<NotesPage> {
     );
   }
 
-  void _openActions(String noteId) {
-    if (_openActionNoteId != noteId) {
-      setState(() => _openActionNoteId = noteId);
+  void _openActions(String rowId, JellySwipeSide side) {
+    if (_openActionRowId != rowId || _openActionSide != side) {
+      setState(() {
+        _openActionRowId = rowId;
+        _openActionSide = side;
+      });
     }
   }
 
   void _closeActions() {
-    if (_openActionNoteId != null) {
-      setState(() => _openActionNoteId = null);
+    if (_openActionRowId != null) {
+      setState(() {
+        _openActionRowId = null;
+        _openActionSide = null;
+      });
     }
   }
 }
@@ -174,15 +187,17 @@ class _SearchResults extends ConsumerWidget {
   const _SearchResults({
     required this.query,
     required this.folders,
-    required this.openActionNoteId,
+    required this.openActionRowId,
+    required this.openActionSide,
     required this.onOpenActions,
     required this.onCloseActions,
   });
 
   final String query;
   final List<Folder> folders;
-  final String? openActionNoteId;
-  final ValueChanged<String> onOpenActions;
+  final String? openActionRowId;
+  final JellySwipeSide? openActionSide;
+  final void Function(String rowId, JellySwipeSide side) onOpenActions;
   final VoidCallback onCloseActions;
 
   @override
@@ -199,7 +214,14 @@ class _SearchResults extends ConsumerWidget {
         if (matchingFolders.isNotEmpty) ...[
           _SectionTitle('文件夹'),
           for (final folder in matchingFolders) ...[
-            _FolderTile(folder: folder, onCloseActions: onCloseActions),
+            _FolderTile(
+              folder: folder,
+              isActionOpen: openActionRowId == _folderRowId(folder),
+              openSide: openActionSide,
+              hasAnyOpenAction: openActionRowId != null,
+              onOpenActions: onOpenActions,
+              onCloseActions: onCloseActions,
+            ),
             const SizedBox(height: 10),
           ],
         ],
@@ -218,8 +240,9 @@ class _SearchResults extends ConsumerWidget {
                 for (final note in items) ...[
                   _NoteTile(
                     note: note,
-                    isActionOpen: openActionNoteId == note.id,
-                    hasAnyOpenAction: openActionNoteId != null,
+                    isActionOpen: openActionRowId == _noteRowId(note),
+                    openSide: openActionSide,
+                    hasAnyOpenAction: openActionRowId != null,
                     onOpenActions: onOpenActions,
                     onCloseActions: onCloseActions,
                   ),
@@ -237,9 +260,18 @@ class _SearchResults extends ConsumerWidget {
 }
 
 class _RootFolderList extends StatelessWidget {
-  const _RootFolderList({required this.folders, required this.onCloseActions});
+  const _RootFolderList({
+    required this.folders,
+    required this.openActionRowId,
+    required this.openActionSide,
+    required this.onOpenActions,
+    required this.onCloseActions,
+  });
 
   final AsyncValue<List<Folder>> folders;
+  final String? openActionRowId;
+  final JellySwipeSide? openActionSide;
+  final void Function(String rowId, JellySwipeSide side) onOpenActions;
   final VoidCallback onCloseActions;
 
   @override
@@ -248,7 +280,14 @@ class _RootFolderList extends StatelessWidget {
       data: (items) => Column(
         children: [
           for (final folder in items) ...[
-            _FolderTile(folder: folder, onCloseActions: onCloseActions),
+            _FolderTile(
+              folder: folder,
+              isActionOpen: openActionRowId == _folderRowId(folder),
+              openSide: openActionSide,
+              hasAnyOpenAction: openActionRowId != null,
+              onOpenActions: onOpenActions,
+              onCloseActions: onCloseActions,
+            ),
             const SizedBox(height: 10),
           ],
         ],
@@ -259,16 +298,32 @@ class _RootFolderList extends StatelessWidget {
   }
 }
 
-class _FolderTile extends StatelessWidget {
-  const _FolderTile({required this.folder, required this.onCloseActions});
+class _FolderTile extends ConsumerWidget {
+  const _FolderTile({
+    required this.folder,
+    required this.isActionOpen,
+    required this.openSide,
+    required this.hasAnyOpenAction,
+    required this.onOpenActions,
+    required this.onCloseActions,
+  });
 
   final Folder folder;
+  final bool isActionOpen;
+  final JellySwipeSide? openSide;
+  final bool hasAnyOpenAction;
+  final void Function(String rowId, JellySwipeSide side) onOpenActions;
   final VoidCallback onCloseActions;
 
   @override
-  Widget build(BuildContext context) {
-    return GlassCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rowId = _folderRowId(folder);
+    final card = GlassCard(
       onTap: () {
+        if (hasAnyOpenAction) {
+          onCloseActions();
+          return;
+        }
         onCloseActions();
         context.go('/notes/folder/${folder.id}');
       },
@@ -276,6 +331,10 @@ class _FolderTile extends StatelessWidget {
         children: [
           const Icon(Icons.folder_rounded),
           const SizedBox(width: 12),
+          if (folder.isStarred) ...[
+            const Icon(Icons.star_rounded, size: 18),
+            const SizedBox(width: 8),
+          ],
           Expanded(
             child: Text(
               folder.name,
@@ -286,20 +345,101 @@ class _FolderTile extends StatelessWidget {
         ],
       ),
     );
+
+    if (folder.isSystem) {
+      return card;
+    }
+
+    return JellySwipeActionRow(
+      isOpen: isActionOpen,
+      openSide: openSide,
+      onOpen: (side) => onOpenActions(rowId, side),
+      onClose: onCloseActions,
+      leadingActions: [
+        JellySwipeAction(
+          label: '重命名',
+          icon: Icons.drive_file_rename_outline_rounded,
+          onPressed: () => _showRenameFolderDialog(context, ref, folder),
+        ),
+        JellySwipeAction(
+          label: folder.isStarred ? '取消星标' : '星标',
+          icon: folder.isStarred
+              ? Icons.star_outline_rounded
+              : Icons.star_rounded,
+          onPressed: () {
+            ref.read(notesActionsProvider).toggleFolderStar(folder);
+          },
+        ),
+      ],
+      trailingActions: [
+        JellySwipeAction(
+          label: '删除',
+          icon: Icons.delete_rounded,
+          style: JellySwipeActionStyle.danger,
+          onPressed: () {
+            ref.read(notesActionsProvider).deleteFolder(folder.id);
+          },
+        ),
+      ],
+      child: card,
+    );
+  }
+
+  Future<void> _showRenameFolderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Folder folder,
+  ) async {
+    final controller = TextEditingController(text: folder.name);
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('重命名文件夹'),
+          content: TextField(
+            key: const ValueKey('folder-rename-field'),
+            controller: controller,
+            decoration: const InputDecoration(labelText: '文件夹名称'),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isEmpty) {
+                  return;
+                }
+                await ref.read(notesActionsProvider).renameFolder(folder, name);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
 class _NotesList extends ConsumerWidget {
   const _NotesList({
     required this.folderId,
-    required this.openActionNoteId,
+    required this.openActionRowId,
+    required this.openActionSide,
     required this.onOpenActions,
     required this.onCloseActions,
   });
 
   final String folderId;
-  final String? openActionNoteId;
-  final ValueChanged<String> onOpenActions;
+  final String? openActionRowId;
+  final JellySwipeSide? openActionSide;
+  final void Function(String rowId, JellySwipeSide side) onOpenActions;
   final VoidCallback onCloseActions;
 
   @override
@@ -320,8 +460,9 @@ class _NotesList extends ConsumerWidget {
             for (final note in items) ...[
               _NoteTile(
                 note: note,
-                isActionOpen: openActionNoteId == note.id,
-                hasAnyOpenAction: openActionNoteId != null,
+                isActionOpen: openActionRowId == _noteRowId(note),
+                openSide: openActionSide,
+                hasAnyOpenAction: openActionRowId != null,
                 onOpenActions: onOpenActions,
                 onCloseActions: onCloseActions,
               ),
@@ -340,6 +481,7 @@ class _NoteTile extends ConsumerWidget {
   const _NoteTile({
     required this.note,
     required this.isActionOpen,
+    required this.openSide,
     required this.hasAnyOpenAction,
     required this.onOpenActions,
     required this.onCloseActions,
@@ -347,88 +489,80 @@ class _NoteTile extends ConsumerWidget {
 
   final Note note;
   final bool isActionOpen;
+  final JellySwipeSide? openSide;
   final bool hasAnyOpenAction;
-  final ValueChanged<String> onOpenActions;
+  final void Function(String rowId, JellySwipeSide side) onOpenActions;
   final VoidCallback onCloseActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onHorizontalDragUpdate: (details) {
-        final delta = details.primaryDelta ?? 0;
-        if (delta < -8 && !isActionOpen) {
-          onOpenActions(note.id);
-        }
-      },
-      onHorizontalDragEnd: (details) {
-        if ((details.primaryVelocity ?? 0) < 0) {
-          onOpenActions(note.id);
-        }
-      },
-      child: Row(
-        children: [
-          Expanded(
-            child: GlassCard(
-              onTap: () {
-                if (hasAnyOpenAction) {
-                  onCloseActions();
-                  return;
-                }
-                context.go('/notes/${note.id}/edit');
-              },
-              child: Row(
+    return JellySwipeActionRow(
+      isOpen: isActionOpen,
+      openSide: openSide,
+      onOpen: (side) => onOpenActions(_noteRowId(note), side),
+      onClose: onCloseActions,
+      trailingActions: [
+        JellySwipeAction(
+          label: note.isStarred ? '取消星标' : '星标',
+          icon: note.isStarred
+              ? Icons.star_outline_rounded
+              : Icons.star_rounded,
+          onPressed: () {
+            ref.read(notesActionsProvider).toggleStar(note);
+          },
+        ),
+        JellySwipeAction(
+          label: '删除',
+          icon: Icons.delete_rounded,
+          style: JellySwipeActionStyle.danger,
+          onPressed: () {
+            ref.read(notesActionsProvider).deleteNote(note);
+          },
+        ),
+      ],
+      child: GlassCard(
+        onTap: () {
+          if (hasAnyOpenAction) {
+            onCloseActions();
+            return;
+          }
+          context.go('/notes/${note.id}/edit');
+        },
+        child: Row(
+          children: [
+            if (note.isStarred) ...[
+              const Icon(Icons.star_rounded, size: 20),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (note.isStarred) ...[
-                    const Icon(Icons.star_rounded, size: 20),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          note.title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        if (note.plainText.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            note.plainText,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
+                  Text(
+                    note.title,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
+                  if (note.plainText.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      note.plainText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
-          ),
-          if (isActionOpen) ...[
-            const SizedBox(width: 8),
-            FilledButton.tonal(
-              onPressed: () async {
-                await ref.read(notesActionsProvider).toggleStar(note);
-                onCloseActions();
-              },
-              child: Text(note.isStarred ? '取消星标' : '星标'),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: () async {
-                await ref.read(notesActionsProvider).deleteNote(note);
-                onCloseActions();
-              },
-              child: const Text('删除'),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
+
+String _folderRowId(Folder folder) => 'folder:${folder.id}';
+
+String _noteRowId(Note note) => 'note:${note.id}';
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);

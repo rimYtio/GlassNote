@@ -717,6 +717,21 @@ class $FolderRowsTable extends FolderRows
       'CHECK ("is_system" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _isStarredMeta = const VerificationMeta(
+    'isStarred',
+  );
+  @override
+  late final GeneratedColumn<bool> isStarred = GeneratedColumn<bool>(
+    'is_starred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_starred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -746,6 +761,7 @@ class $FolderRowsTable extends FolderRows
     parentId,
     sortOrder,
     isSystem,
+    isStarred,
     createdAt,
     updatedAt,
   ];
@@ -796,6 +812,12 @@ class $FolderRowsTable extends FolderRows
     } else if (isInserting) {
       context.missing(_isSystemMeta);
     }
+    if (data.containsKey('is_starred')) {
+      context.handle(
+        _isStarredMeta,
+        isStarred.isAcceptableOrUnknown(data['is_starred']!, _isStarredMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -841,6 +863,10 @@ class $FolderRowsTable extends FolderRows
         DriftSqlType.bool,
         data['${effectivePrefix}is_system'],
       )!,
+      isStarred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_starred'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -864,6 +890,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
   final String? parentId;
   final int sortOrder;
   final bool isSystem;
+  final bool isStarred;
   final DateTime createdAt;
   final DateTime updatedAt;
   const FolderRow({
@@ -872,6 +899,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
     this.parentId,
     required this.sortOrder,
     required this.isSystem,
+    required this.isStarred,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -885,6 +913,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
     }
     map['sort_order'] = Variable<int>(sortOrder);
     map['is_system'] = Variable<bool>(isSystem);
+    map['is_starred'] = Variable<bool>(isStarred);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -899,6 +928,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
           : Value(parentId),
       sortOrder: Value(sortOrder),
       isSystem: Value(isSystem),
+      isStarred: Value(isStarred),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -915,6 +945,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
       parentId: serializer.fromJson<String?>(json['parentId']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       isSystem: serializer.fromJson<bool>(json['isSystem']),
+      isStarred: serializer.fromJson<bool>(json['isStarred']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -928,6 +959,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
       'parentId': serializer.toJson<String?>(parentId),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'isSystem': serializer.toJson<bool>(isSystem),
+      'isStarred': serializer.toJson<bool>(isStarred),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -939,6 +971,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
     Value<String?> parentId = const Value.absent(),
     int? sortOrder,
     bool? isSystem,
+    bool? isStarred,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => FolderRow(
@@ -947,6 +980,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
     parentId: parentId.present ? parentId.value : this.parentId,
     sortOrder: sortOrder ?? this.sortOrder,
     isSystem: isSystem ?? this.isSystem,
+    isStarred: isStarred ?? this.isStarred,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -957,6 +991,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
       parentId: data.parentId.present ? data.parentId.value : this.parentId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       isSystem: data.isSystem.present ? data.isSystem.value : this.isSystem,
+      isStarred: data.isStarred.present ? data.isStarred.value : this.isStarred,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -970,6 +1005,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
           ..write('parentId: $parentId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isSystem: $isSystem, ')
+          ..write('isStarred: $isStarred, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -983,6 +1019,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
     parentId,
     sortOrder,
     isSystem,
+    isStarred,
     createdAt,
     updatedAt,
   );
@@ -995,6 +1032,7 @@ class FolderRow extends DataClass implements Insertable<FolderRow> {
           other.parentId == this.parentId &&
           other.sortOrder == this.sortOrder &&
           other.isSystem == this.isSystem &&
+          other.isStarred == this.isStarred &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1005,6 +1043,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
   final Value<String?> parentId;
   final Value<int> sortOrder;
   final Value<bool> isSystem;
+  final Value<bool> isStarred;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1014,6 +1053,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
     this.parentId = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isSystem = const Value.absent(),
+    this.isStarred = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1024,6 +1064,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
     this.parentId = const Value.absent(),
     required int sortOrder,
     required bool isSystem,
+    this.isStarred = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -1039,6 +1080,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
     Expression<String>? parentId,
     Expression<int>? sortOrder,
     Expression<bool>? isSystem,
+    Expression<bool>? isStarred,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1049,6 +1091,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
       if (parentId != null) 'parent_id': parentId,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isSystem != null) 'is_system': isSystem,
+      if (isStarred != null) 'is_starred': isStarred,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1061,6 +1104,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
     Value<String?>? parentId,
     Value<int>? sortOrder,
     Value<bool>? isSystem,
+    Value<bool>? isStarred,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -1071,6 +1115,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
       parentId: parentId ?? this.parentId,
       sortOrder: sortOrder ?? this.sortOrder,
       isSystem: isSystem ?? this.isSystem,
+      isStarred: isStarred ?? this.isStarred,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1095,6 +1140,9 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
     if (isSystem.present) {
       map['is_system'] = Variable<bool>(isSystem.value);
     }
+    if (isStarred.present) {
+      map['is_starred'] = Variable<bool>(isStarred.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1115,6 +1163,7 @@ class FolderRowsCompanion extends UpdateCompanion<FolderRow> {
           ..write('parentId: $parentId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isSystem: $isSystem, ')
+          ..write('isStarred: $isStarred, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -2780,6 +2829,7 @@ typedef $$FolderRowsTableCreateCompanionBuilder =
       Value<String?> parentId,
       required int sortOrder,
       required bool isSystem,
+      Value<bool> isStarred,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -2791,6 +2841,7 @@ typedef $$FolderRowsTableUpdateCompanionBuilder =
       Value<String?> parentId,
       Value<int> sortOrder,
       Value<bool> isSystem,
+      Value<bool> isStarred,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -2827,6 +2878,11 @@ class $$FolderRowsTableFilterComposer
 
   ColumnFilters<bool> get isSystem => $composableBuilder(
     column: $table.isSystem,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isStarred => $composableBuilder(
+    column: $table.isStarred,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2875,6 +2931,11 @@ class $$FolderRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isStarred => $composableBuilder(
+    column: $table.isStarred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2909,6 +2970,9 @@ class $$FolderRowsTableAnnotationComposer
 
   GeneratedColumn<bool> get isSystem =>
       $composableBuilder(column: $table.isSystem, builder: (column) => column);
+
+  GeneratedColumn<bool> get isStarred =>
+      $composableBuilder(column: $table.isStarred, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2953,6 +3017,7 @@ class $$FolderRowsTableTableManager
                 Value<String?> parentId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isSystem = const Value.absent(),
+                Value<bool> isStarred = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -2962,6 +3027,7 @@ class $$FolderRowsTableTableManager
                 parentId: parentId,
                 sortOrder: sortOrder,
                 isSystem: isSystem,
+                isStarred: isStarred,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -2973,6 +3039,7 @@ class $$FolderRowsTableTableManager
                 Value<String?> parentId = const Value.absent(),
                 required int sortOrder,
                 required bool isSystem,
+                Value<bool> isStarred = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -2982,6 +3049,7 @@ class $$FolderRowsTableTableManager
                 parentId: parentId,
                 sortOrder: sortOrder,
                 isSystem: isSystem,
+                isStarred: isStarred,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

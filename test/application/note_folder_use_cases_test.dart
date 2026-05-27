@@ -135,6 +135,9 @@ class _FakeFolderRepository implements FolderRepository {
   }
 
   @override
+  Future<Folder> update(Folder folder) async => folder;
+
+  @override
   Future<Folder> ensureUncategorized() async {
     ensureUncategorizedCalled = true;
     return Folder.uncategorized(now: DateTime(2026, 5, 27, 9));

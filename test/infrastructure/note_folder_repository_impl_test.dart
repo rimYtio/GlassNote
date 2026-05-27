@@ -28,7 +28,23 @@ void main() {
 
     expect(folder.id, Folder.uncategorizedId);
     expect(folder.name, '未分类');
+    expect(folder.isStarred, isFalse);
     expect(settings.id, AppSettings.defaultId);
+  });
+
+  test('updates folder name and starred state', () async {
+    final work = await folders.create(
+      const FolderDraft(name: '工作', parentId: null),
+    );
+
+    final updated = await folders.update(
+      work.copyWith(name: '项目', isStarred: true),
+    );
+
+    expect(updated.name, '项目');
+    expect(updated.isStarred, isTrue);
+    expect((await folders.findById(work.id))?.name, '项目');
+    expect((await folders.findById(work.id))?.isStarred, isTrue);
   });
 
   test('creates folders and notes, searches notes, and soft deletes', () async {
