@@ -1,0 +1,70 @@
+import 'package:uuid/uuid.dart';
+
+import '../../domain/entities/note.dart';
+import '../../domain/repositories/note_repository.dart';
+import '../database/app_database.dart';
+
+class NoteRepositoryImpl implements NoteRepository {
+  const NoteRepositoryImpl(this._database);
+
+  final AppDatabase _database;
+
+  @override
+  Future<Note> create(NoteDraft draft) {
+    final now = DateTime.now();
+    return _database.notesDao.createNote(
+      NoteRowsCompanion.insert(
+        id: const Uuid().v4(),
+        title: draft.title.trim().isEmpty ? '无标题笔记' : draft.title.trim(),
+        plainText: draft.plainText,
+        richContentJson: draft.richContentJson,
+        folderId: draft.folderId,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  @override
+  Future<void> delete(String id) {
+    return _database.notesDao.softDelete(id);
+  }
+
+  @override
+  Future<Note?> findById(String id) {
+    return _database.notesDao.findById(id);
+  }
+
+  @override
+  Future<List<Note>> listByFolder(String folderId) {
+    return _database.notesDao.listByFolder(folderId);
+  }
+
+  @override
+  Future<void> moveNotesToFolder({
+    required String fromFolderId,
+    required String toFolderId,
+  }) {
+    return _database.notesDao.moveNotesToFolder(
+      fromFolderId: fromFolderId,
+      toFolderId: toFolderId,
+    );
+  }
+
+  @override
+  Future<List<Note>> search(String query) {
+    return _database.notesDao.search(query);
+  }
+
+  @override
+  Future<Note> update(Note note) {
+    return _database.notesDao.updateNote(
+      note.copyWith(updatedAt: DateTime.now()),
+    );
+  }
+
+  @override
+  Stream<List<Note>> watchByFolder(String folderId) {
+    return _database.notesDao.watchByFolder(folderId);
+  }
+}
