@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/folder_repository.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/repositories/timeline_task_repository.dart';
 import '../database/app_database.dart';
 import '../repositories/folder_repository_impl.dart';
 import '../repositories/note_repository_impl.dart';
 import '../repositories/settings_repository_impl.dart';
+import '../repositories/timeline_task_repository_impl.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final database = AppDatabase();
@@ -24,4 +26,8 @@ final folderRepositoryProvider = Provider<FolderRepository>((ref) {
 
 final noteRepositoryProvider = Provider<NoteRepository>((ref) {
   return NoteRepositoryImpl(ref.watch(appDatabaseProvider));
+});
+
+final timelineTaskRepositoryProvider = Provider<TimelineTaskRepository>((ref) {
+  return TimelineTaskRepositoryImpl(ref.watch(appDatabaseProvider));
 });

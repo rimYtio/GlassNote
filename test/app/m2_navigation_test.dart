@@ -130,6 +130,46 @@ void main() {
     await _disposeApp(tester);
   });
 
+  testWidgets('tapping elsewhere closes an open note swipe action row', (
+    tester,
+  ) async {
+    await database.foldersDao.ensureUncategorized();
+    await database.notesDao.createNote(
+      NoteRowsCompanion.insert(
+        id: 'n-left',
+        title: '左滑笔记',
+        plainText: '',
+        richContentJson: '{}',
+        folderId: Folder.uncategorizedId,
+        createdAt: DateTime(2026, 5, 27, 9),
+        updatedAt: DateTime(2026, 5, 27, 9),
+      ),
+    );
+    await database.notesDao.createNote(
+      NoteRowsCompanion.insert(
+        id: 'n-other',
+        title: '其他笔记',
+        plainText: '',
+        richContentJson: '{}',
+        folderId: Folder.uncategorizedId,
+        createdAt: DateTime(2026, 5, 27, 10),
+        updatedAt: DateTime(2026, 5, 27, 10),
+      ),
+    );
+    await _pumpApp(tester, database);
+
+    await tester.drag(find.text('左滑笔记'), const Offset(-500, 0));
+    await _pumpUi(tester);
+    expect(find.text('星标'), findsOneWidget);
+
+    await tester.tap(find.text('其他笔记'));
+    await _pumpUi(tester);
+    expect(find.text('星标'), findsNothing);
+    expect(find.byKey(const ValueKey('note-editor-page')), findsNothing);
+
+    await _disposeApp(tester);
+  });
+
   testWidgets('search finds matching folders and notes', (tester) async {
     await database.foldersDao.ensureUncategorized();
     await database.foldersDao.createFolder(
@@ -231,13 +271,15 @@ void main() {
     await tester.tap(find.text('时间线').last);
     await _pumpUi(tester);
 
-    expect(find.byKey(const ValueKey('timeline-search-field')), findsOneWidget);
+    expect(find.byTooltip('搜索任务'), findsOneWidget);
+    await tester.tap(find.byTooltip('搜索任务'));
+    await _pumpUi(tester);
     await tester.enterText(
-      find.byKey(const ValueKey('timeline-search-field')),
+      find.byKey(const ValueKey('timeline-search-dialog-field')),
       '明天',
     );
     await _pumpUi(tester);
-    expect(find.text('暂未找到相关行程'), findsOneWidget);
+    expect(find.text('未找到相关任务'), findsOneWidget);
 
     await _disposeApp(tester);
   });

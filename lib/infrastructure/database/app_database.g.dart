@@ -42,6 +42,22 @@ class NotesDaoManager {
       $$NoteRowsTableTableManager(_db.attachedDatabase, _db.noteRows);
 }
 
+mixin _$TimelineTasksDaoMixin on DatabaseAccessor<AppDatabase> {
+  $TimelineTaskRowsTable get timelineTaskRows =>
+      attachedDatabase.timelineTaskRows;
+  TimelineTasksDaoManager get managers => TimelineTasksDaoManager(this);
+}
+
+class TimelineTasksDaoManager {
+  final _$TimelineTasksDaoMixin _db;
+  TimelineTasksDaoManager(this._db);
+  $$TimelineTaskRowsTableTableManager get timelineTaskRows =>
+      $$TimelineTaskRowsTableTableManager(
+        _db.attachedDatabase,
+        _db.timelineTaskRows,
+      );
+}
+
 class $AppSettingsRowsTable extends AppSettingsRows
     with TableInfo<$AppSettingsRowsTable, AppSettingsRow> {
   @override
@@ -1671,6 +1687,771 @@ class NoteRowsCompanion extends UpdateCompanion<NoteRow> {
   }
 }
 
+class $TimelineTaskRowsTable extends TimelineTaskRows
+    with TableInfo<$TimelineTaskRowsTable, TimelineTaskRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TimelineTaskRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taskDateMeta = const VerificationMeta(
+    'taskDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> taskDate = GeneratedColumn<DateTime>(
+    'task_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startAtMeta = const VerificationMeta(
+    'startAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startAt = GeneratedColumn<DateTime>(
+    'start_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endAtMeta = const VerificationMeta('endAt');
+  @override
+  late final GeneratedColumn<DateTime> endAt = GeneratedColumn<DateTime>(
+    'end_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _importanceMeta = const VerificationMeta(
+    'importance',
+  );
+  @override
+  late final GeneratedColumn<String> importance = GeneratedColumn<String>(
+    'importance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorArgbMeta = const VerificationMeta(
+    'colorArgb',
+  );
+  @override
+  late final GeneratedColumn<int> colorArgb = GeneratedColumn<int>(
+    'color_argb',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isCompletedMeta = const VerificationMeta(
+    'isCompleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
+    'is_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isStarredMeta = const VerificationMeta(
+    'isStarred',
+  );
+  @override
+  late final GeneratedColumn<bool> isStarred = GeneratedColumn<bool>(
+    'is_starred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_starred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    description,
+    taskDate,
+    startAt,
+    endAt,
+    importance,
+    colorArgb,
+    isCompleted,
+    isStarred,
+    isDeleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'timeline_task_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TimelineTaskRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('task_date')) {
+      context.handle(
+        _taskDateMeta,
+        taskDate.isAcceptableOrUnknown(data['task_date']!, _taskDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskDateMeta);
+    }
+    if (data.containsKey('start_at')) {
+      context.handle(
+        _startAtMeta,
+        startAt.isAcceptableOrUnknown(data['start_at']!, _startAtMeta),
+      );
+    }
+    if (data.containsKey('end_at')) {
+      context.handle(
+        _endAtMeta,
+        endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
+      );
+    }
+    if (data.containsKey('importance')) {
+      context.handle(
+        _importanceMeta,
+        importance.isAcceptableOrUnknown(data['importance']!, _importanceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_importanceMeta);
+    }
+    if (data.containsKey('color_argb')) {
+      context.handle(
+        _colorArgbMeta,
+        colorArgb.isAcceptableOrUnknown(data['color_argb']!, _colorArgbMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorArgbMeta);
+    }
+    if (data.containsKey('is_completed')) {
+      context.handle(
+        _isCompletedMeta,
+        isCompleted.isAcceptableOrUnknown(
+          data['is_completed']!,
+          _isCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_starred')) {
+      context.handle(
+        _isStarredMeta,
+        isStarred.isAcceptableOrUnknown(data['is_starred']!, _isStarredMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TimelineTaskRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TimelineTaskRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      taskDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}task_date'],
+      )!,
+      startAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_at'],
+      ),
+      endAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_at'],
+      ),
+      importance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}importance'],
+      )!,
+      colorArgb: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_argb'],
+      )!,
+      isCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_completed'],
+      )!,
+      isStarred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_starred'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TimelineTaskRowsTable createAlias(String alias) {
+    return $TimelineTaskRowsTable(attachedDatabase, alias);
+  }
+}
+
+class TimelineTaskRow extends DataClass implements Insertable<TimelineTaskRow> {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime taskDate;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final String importance;
+  final int colorArgb;
+  final bool isCompleted;
+  final bool isStarred;
+  final bool isDeleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const TimelineTaskRow({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.taskDate,
+    this.startAt,
+    this.endAt,
+    required this.importance,
+    required this.colorArgb,
+    required this.isCompleted,
+    required this.isStarred,
+    required this.isDeleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['description'] = Variable<String>(description);
+    map['task_date'] = Variable<DateTime>(taskDate);
+    if (!nullToAbsent || startAt != null) {
+      map['start_at'] = Variable<DateTime>(startAt);
+    }
+    if (!nullToAbsent || endAt != null) {
+      map['end_at'] = Variable<DateTime>(endAt);
+    }
+    map['importance'] = Variable<String>(importance);
+    map['color_argb'] = Variable<int>(colorArgb);
+    map['is_completed'] = Variable<bool>(isCompleted);
+    map['is_starred'] = Variable<bool>(isStarred);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  TimelineTaskRowsCompanion toCompanion(bool nullToAbsent) {
+    return TimelineTaskRowsCompanion(
+      id: Value(id),
+      title: Value(title),
+      description: Value(description),
+      taskDate: Value(taskDate),
+      startAt: startAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startAt),
+      endAt: endAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endAt),
+      importance: Value(importance),
+      colorArgb: Value(colorArgb),
+      isCompleted: Value(isCompleted),
+      isStarred: Value(isStarred),
+      isDeleted: Value(isDeleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TimelineTaskRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TimelineTaskRow(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String>(json['description']),
+      taskDate: serializer.fromJson<DateTime>(json['taskDate']),
+      startAt: serializer.fromJson<DateTime?>(json['startAt']),
+      endAt: serializer.fromJson<DateTime?>(json['endAt']),
+      importance: serializer.fromJson<String>(json['importance']),
+      colorArgb: serializer.fromJson<int>(json['colorArgb']),
+      isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      isStarred: serializer.fromJson<bool>(json['isStarred']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String>(description),
+      'taskDate': serializer.toJson<DateTime>(taskDate),
+      'startAt': serializer.toJson<DateTime?>(startAt),
+      'endAt': serializer.toJson<DateTime?>(endAt),
+      'importance': serializer.toJson<String>(importance),
+      'colorArgb': serializer.toJson<int>(colorArgb),
+      'isCompleted': serializer.toJson<bool>(isCompleted),
+      'isStarred': serializer.toJson<bool>(isStarred),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  TimelineTaskRow copyWith({
+    String? id,
+    String? title,
+    String? description,
+    DateTime? taskDate,
+    Value<DateTime?> startAt = const Value.absent(),
+    Value<DateTime?> endAt = const Value.absent(),
+    String? importance,
+    int? colorArgb,
+    bool? isCompleted,
+    bool? isStarred,
+    bool? isDeleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => TimelineTaskRow(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    taskDate: taskDate ?? this.taskDate,
+    startAt: startAt.present ? startAt.value : this.startAt,
+    endAt: endAt.present ? endAt.value : this.endAt,
+    importance: importance ?? this.importance,
+    colorArgb: colorArgb ?? this.colorArgb,
+    isCompleted: isCompleted ?? this.isCompleted,
+    isStarred: isStarred ?? this.isStarred,
+    isDeleted: isDeleted ?? this.isDeleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TimelineTaskRow copyWithCompanion(TimelineTaskRowsCompanion data) {
+    return TimelineTaskRow(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      taskDate: data.taskDate.present ? data.taskDate.value : this.taskDate,
+      startAt: data.startAt.present ? data.startAt.value : this.startAt,
+      endAt: data.endAt.present ? data.endAt.value : this.endAt,
+      importance: data.importance.present
+          ? data.importance.value
+          : this.importance,
+      colorArgb: data.colorArgb.present ? data.colorArgb.value : this.colorArgb,
+      isCompleted: data.isCompleted.present
+          ? data.isCompleted.value
+          : this.isCompleted,
+      isStarred: data.isStarred.present ? data.isStarred.value : this.isStarred,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimelineTaskRow(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('taskDate: $taskDate, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('importance: $importance, ')
+          ..write('colorArgb: $colorArgb, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('isStarred: $isStarred, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    description,
+    taskDate,
+    startAt,
+    endAt,
+    importance,
+    colorArgb,
+    isCompleted,
+    isStarred,
+    isDeleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TimelineTaskRow &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.taskDate == this.taskDate &&
+          other.startAt == this.startAt &&
+          other.endAt == this.endAt &&
+          other.importance == this.importance &&
+          other.colorArgb == this.colorArgb &&
+          other.isCompleted == this.isCompleted &&
+          other.isStarred == this.isStarred &&
+          other.isDeleted == this.isDeleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TimelineTaskRowsCompanion extends UpdateCompanion<TimelineTaskRow> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> description;
+  final Value<DateTime> taskDate;
+  final Value<DateTime?> startAt;
+  final Value<DateTime?> endAt;
+  final Value<String> importance;
+  final Value<int> colorArgb;
+  final Value<bool> isCompleted;
+  final Value<bool> isStarred;
+  final Value<bool> isDeleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const TimelineTaskRowsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.taskDate = const Value.absent(),
+    this.startAt = const Value.absent(),
+    this.endAt = const Value.absent(),
+    this.importance = const Value.absent(),
+    this.colorArgb = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.isStarred = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TimelineTaskRowsCompanion.insert({
+    required String id,
+    required String title,
+    required String description,
+    required DateTime taskDate,
+    this.startAt = const Value.absent(),
+    this.endAt = const Value.absent(),
+    required String importance,
+    required int colorArgb,
+    this.isCompleted = const Value.absent(),
+    this.isStarred = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       description = Value(description),
+       taskDate = Value(taskDate),
+       importance = Value(importance),
+       colorArgb = Value(colorArgb),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<TimelineTaskRow> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<DateTime>? taskDate,
+    Expression<DateTime>? startAt,
+    Expression<DateTime>? endAt,
+    Expression<String>? importance,
+    Expression<int>? colorArgb,
+    Expression<bool>? isCompleted,
+    Expression<bool>? isStarred,
+    Expression<bool>? isDeleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (taskDate != null) 'task_date': taskDate,
+      if (startAt != null) 'start_at': startAt,
+      if (endAt != null) 'end_at': endAt,
+      if (importance != null) 'importance': importance,
+      if (colorArgb != null) 'color_argb': colorArgb,
+      if (isCompleted != null) 'is_completed': isCompleted,
+      if (isStarred != null) 'is_starred': isStarred,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TimelineTaskRowsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? description,
+    Value<DateTime>? taskDate,
+    Value<DateTime?>? startAt,
+    Value<DateTime?>? endAt,
+    Value<String>? importance,
+    Value<int>? colorArgb,
+    Value<bool>? isCompleted,
+    Value<bool>? isStarred,
+    Value<bool>? isDeleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TimelineTaskRowsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      taskDate: taskDate ?? this.taskDate,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
+      importance: importance ?? this.importance,
+      colorArgb: colorArgb ?? this.colorArgb,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isStarred: isStarred ?? this.isStarred,
+      isDeleted: isDeleted ?? this.isDeleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (taskDate.present) {
+      map['task_date'] = Variable<DateTime>(taskDate.value);
+    }
+    if (startAt.present) {
+      map['start_at'] = Variable<DateTime>(startAt.value);
+    }
+    if (endAt.present) {
+      map['end_at'] = Variable<DateTime>(endAt.value);
+    }
+    if (importance.present) {
+      map['importance'] = Variable<String>(importance.value);
+    }
+    if (colorArgb.present) {
+      map['color_argb'] = Variable<int>(colorArgb.value);
+    }
+    if (isCompleted.present) {
+      map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (isStarred.present) {
+      map['is_starred'] = Variable<bool>(isStarred.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimelineTaskRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('taskDate: $taskDate, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('importance: $importance, ')
+          ..write('colorArgb: $colorArgb, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('isStarred: $isStarred, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1679,9 +2460,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $FolderRowsTable folderRows = $FolderRowsTable(this);
   late final $NoteRowsTable noteRows = $NoteRowsTable(this);
+  late final $TimelineTaskRowsTable timelineTaskRows = $TimelineTaskRowsTable(
+    this,
+  );
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   late final FoldersDao foldersDao = FoldersDao(this as AppDatabase);
   late final NotesDao notesDao = NotesDao(this as AppDatabase);
+  late final TimelineTasksDao timelineTasksDao = TimelineTasksDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1690,6 +2477,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appSettingsRows,
     folderRows,
     noteRows,
+    timelineTaskRows,
   ];
 }
 
@@ -2492,6 +3280,370 @@ typedef $$NoteRowsTableProcessedTableManager =
       NoteRow,
       PrefetchHooks Function()
     >;
+typedef $$TimelineTaskRowsTableCreateCompanionBuilder =
+    TimelineTaskRowsCompanion Function({
+      required String id,
+      required String title,
+      required String description,
+      required DateTime taskDate,
+      Value<DateTime?> startAt,
+      Value<DateTime?> endAt,
+      required String importance,
+      required int colorArgb,
+      Value<bool> isCompleted,
+      Value<bool> isStarred,
+      Value<bool> isDeleted,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TimelineTaskRowsTableUpdateCompanionBuilder =
+    TimelineTaskRowsCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String> description,
+      Value<DateTime> taskDate,
+      Value<DateTime?> startAt,
+      Value<DateTime?> endAt,
+      Value<String> importance,
+      Value<int> colorArgb,
+      Value<bool> isCompleted,
+      Value<bool> isStarred,
+      Value<bool> isDeleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$TimelineTaskRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $TimelineTaskRowsTable> {
+  $$TimelineTaskRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get taskDate => $composableBuilder(
+    column: $table.taskDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get importance => $composableBuilder(
+    column: $table.importance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorArgb => $composableBuilder(
+    column: $table.colorArgb,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isStarred => $composableBuilder(
+    column: $table.isStarred,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TimelineTaskRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TimelineTaskRowsTable> {
+  $$TimelineTaskRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get taskDate => $composableBuilder(
+    column: $table.taskDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get importance => $composableBuilder(
+    column: $table.importance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorArgb => $composableBuilder(
+    column: $table.colorArgb,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isStarred => $composableBuilder(
+    column: $table.isStarred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TimelineTaskRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TimelineTaskRowsTable> {
+  $$TimelineTaskRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get taskDate =>
+      $composableBuilder(column: $table.taskDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startAt =>
+      $composableBuilder(column: $table.startAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endAt =>
+      $composableBuilder(column: $table.endAt, builder: (column) => column);
+
+  GeneratedColumn<String> get importance => $composableBuilder(
+    column: $table.importance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get colorArgb =>
+      $composableBuilder(column: $table.colorArgb, builder: (column) => column);
+
+  GeneratedColumn<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isStarred =>
+      $composableBuilder(column: $table.isStarred, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TimelineTaskRowsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TimelineTaskRowsTable,
+          TimelineTaskRow,
+          $$TimelineTaskRowsTableFilterComposer,
+          $$TimelineTaskRowsTableOrderingComposer,
+          $$TimelineTaskRowsTableAnnotationComposer,
+          $$TimelineTaskRowsTableCreateCompanionBuilder,
+          $$TimelineTaskRowsTableUpdateCompanionBuilder,
+          (
+            TimelineTaskRow,
+            BaseReferences<
+              _$AppDatabase,
+              $TimelineTaskRowsTable,
+              TimelineTaskRow
+            >,
+          ),
+          TimelineTaskRow,
+          PrefetchHooks Function()
+        > {
+  $$TimelineTaskRowsTableTableManager(
+    _$AppDatabase db,
+    $TimelineTaskRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TimelineTaskRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TimelineTaskRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TimelineTaskRowsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<DateTime> taskDate = const Value.absent(),
+                Value<DateTime?> startAt = const Value.absent(),
+                Value<DateTime?> endAt = const Value.absent(),
+                Value<String> importance = const Value.absent(),
+                Value<int> colorArgb = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<bool> isStarred = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TimelineTaskRowsCompanion(
+                id: id,
+                title: title,
+                description: description,
+                taskDate: taskDate,
+                startAt: startAt,
+                endAt: endAt,
+                importance: importance,
+                colorArgb: colorArgb,
+                isCompleted: isCompleted,
+                isStarred: isStarred,
+                isDeleted: isDeleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                required String description,
+                required DateTime taskDate,
+                Value<DateTime?> startAt = const Value.absent(),
+                Value<DateTime?> endAt = const Value.absent(),
+                required String importance,
+                required int colorArgb,
+                Value<bool> isCompleted = const Value.absent(),
+                Value<bool> isStarred = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TimelineTaskRowsCompanion.insert(
+                id: id,
+                title: title,
+                description: description,
+                taskDate: taskDate,
+                startAt: startAt,
+                endAt: endAt,
+                importance: importance,
+                colorArgb: colorArgb,
+                isCompleted: isCompleted,
+                isStarred: isStarred,
+                isDeleted: isDeleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TimelineTaskRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TimelineTaskRowsTable,
+      TimelineTaskRow,
+      $$TimelineTaskRowsTableFilterComposer,
+      $$TimelineTaskRowsTableOrderingComposer,
+      $$TimelineTaskRowsTableAnnotationComposer,
+      $$TimelineTaskRowsTableCreateCompanionBuilder,
+      $$TimelineTaskRowsTableUpdateCompanionBuilder,
+      (
+        TimelineTaskRow,
+        BaseReferences<_$AppDatabase, $TimelineTaskRowsTable, TimelineTaskRow>,
+      ),
+      TimelineTaskRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2502,4 +3654,6 @@ class $AppDatabaseManager {
       $$FolderRowsTableTableManager(_db, _db.folderRows);
   $$NoteRowsTableTableManager get noteRows =>
       $$NoteRowsTableTableManager(_db, _db.noteRows);
+  $$TimelineTaskRowsTableTableManager get timelineTaskRows =>
+      $$TimelineTaskRowsTableTableManager(_db, _db.timelineTaskRows);
 }

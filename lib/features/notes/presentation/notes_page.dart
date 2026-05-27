@@ -22,6 +22,7 @@ class NotesPage extends ConsumerStatefulWidget {
 class _NotesPageState extends ConsumerState<NotesPage> {
   final _searchController = TextEditingController();
   String _query = '';
+  String? _openActionNoteId;
 
   @override
   void dispose() {
@@ -84,15 +85,29 @@ class _NotesPageState extends ConsumerState<NotesPage> {
           ),
           const SizedBox(height: 18),
           if (query.isNotEmpty)
-            _SearchResults(query: query, folders: allFolders)
+            _SearchResults(
+              query: query,
+              folders: allFolders,
+              openActionNoteId: _openActionNoteId,
+              onOpenActions: _openActions,
+              onCloseActions: _closeActions,
+            )
           else ...[
             if (widget.folderId == null) ...[
               _SectionTitle('文件夹'),
-              _RootFolderList(folders: ref.watch(rootFoldersProvider)),
+              _RootFolderList(
+                folders: ref.watch(rootFoldersProvider),
+                onCloseActions: _closeActions,
+              ),
               const SizedBox(height: 24),
               _SectionTitle('最近笔记'),
             ],
-            _NotesList(folderId: activeFolderId),
+            _NotesList(
+              folderId: activeFolderId,
+              openActionNoteId: _openActionNoteId,
+              onOpenActions: _openActions,
+              onCloseActions: _closeActions,
+            ),
           ],
         ],
       ),
@@ -141,13 +156,34 @@ class _NotesPageState extends ConsumerState<NotesPage> {
       },
     );
   }
+
+  void _openActions(String noteId) {
+    if (_openActionNoteId != noteId) {
+      setState(() => _openActionNoteId = noteId);
+    }
+  }
+
+  void _closeActions() {
+    if (_openActionNoteId != null) {
+      setState(() => _openActionNoteId = null);
+    }
+  }
 }
 
 class _SearchResults extends ConsumerWidget {
-  const _SearchResults({required this.query, required this.folders});
+  const _SearchResults({
+    required this.query,
+    required this.folders,
+    required this.openActionNoteId,
+    required this.onOpenActions,
+    required this.onCloseActions,
+  });
 
   final String query;
   final List<Folder> folders;
+  final String? openActionNoteId;
+  final ValueChanged<String> onOpenActions;
+  final VoidCallback onCloseActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -163,7 +199,7 @@ class _SearchResults extends ConsumerWidget {
         if (matchingFolders.isNotEmpty) ...[
           _SectionTitle('文件夹'),
           for (final folder in matchingFolders) ...[
-            _FolderTile(folder: folder),
+            _FolderTile(folder: folder, onCloseActions: onCloseActions),
             const SizedBox(height: 10),
           ],
         ],
@@ -180,7 +216,13 @@ class _SearchResults extends ConsumerWidget {
               children: [
                 if (items.isNotEmpty) _SectionTitle('笔记'),
                 for (final note in items) ...[
-                  _NoteTile(note: note),
+                  _NoteTile(
+                    note: note,
+                    isActionOpen: openActionNoteId == note.id,
+                    hasAnyOpenAction: openActionNoteId != null,
+                    onOpenActions: onOpenActions,
+                    onCloseActions: onCloseActions,
+                  ),
                   const SizedBox(height: 10),
                 ],
               ],
@@ -195,9 +237,10 @@ class _SearchResults extends ConsumerWidget {
 }
 
 class _RootFolderList extends StatelessWidget {
-  const _RootFolderList({required this.folders});
+  const _RootFolderList({required this.folders, required this.onCloseActions});
 
   final AsyncValue<List<Folder>> folders;
+  final VoidCallback onCloseActions;
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +248,7 @@ class _RootFolderList extends StatelessWidget {
       data: (items) => Column(
         children: [
           for (final folder in items) ...[
-            _FolderTile(folder: folder),
+            _FolderTile(folder: folder, onCloseActions: onCloseActions),
             const SizedBox(height: 10),
           ],
         ],
@@ -217,14 +260,18 @@ class _RootFolderList extends StatelessWidget {
 }
 
 class _FolderTile extends StatelessWidget {
-  const _FolderTile({required this.folder});
+  const _FolderTile({required this.folder, required this.onCloseActions});
 
   final Folder folder;
+  final VoidCallback onCloseActions;
 
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-      onTap: () => context.go('/notes/folder/${folder.id}'),
+      onTap: () {
+        onCloseActions();
+        context.go('/notes/folder/${folder.id}');
+      },
       child: Row(
         children: [
           const Icon(Icons.folder_rounded),
@@ -243,9 +290,17 @@ class _FolderTile extends StatelessWidget {
 }
 
 class _NotesList extends ConsumerWidget {
-  const _NotesList({required this.folderId});
+  const _NotesList({
+    required this.folderId,
+    required this.openActionNoteId,
+    required this.onOpenActions,
+    required this.onCloseActions,
+  });
 
   final String folderId;
+  final String? openActionNoteId;
+  final ValueChanged<String> onOpenActions;
+  final VoidCallback onCloseActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -263,7 +318,13 @@ class _NotesList extends ConsumerWidget {
         return Column(
           children: [
             for (final note in items) ...[
-              _NoteTile(note: note),
+              _NoteTile(
+                note: note,
+                isActionOpen: openActionNoteId == note.id,
+                hasAnyOpenAction: openActionNoteId != null,
+                onOpenActions: onOpenActions,
+                onCloseActions: onCloseActions,
+              ),
               const SizedBox(height: 10),
             ],
           ],
@@ -275,40 +336,47 @@ class _NotesList extends ConsumerWidget {
   }
 }
 
-class _NoteTile extends ConsumerStatefulWidget {
-  const _NoteTile({required this.note});
+class _NoteTile extends ConsumerWidget {
+  const _NoteTile({
+    required this.note,
+    required this.isActionOpen,
+    required this.hasAnyOpenAction,
+    required this.onOpenActions,
+    required this.onCloseActions,
+  });
 
   final Note note;
+  final bool isActionOpen;
+  final bool hasAnyOpenAction;
+  final ValueChanged<String> onOpenActions;
+  final VoidCallback onCloseActions;
 
   @override
-  ConsumerState<_NoteTile> createState() => _NoteTileState();
-}
-
-class _NoteTileState extends ConsumerState<_NoteTile> {
-  bool _showActions = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final note = widget.note;
-
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onHorizontalDragUpdate: (details) {
         final delta = details.primaryDelta ?? 0;
-        if (delta < -8 && !_showActions) {
-          setState(() => _showActions = true);
+        if (delta < -8 && !isActionOpen) {
+          onOpenActions(note.id);
         }
       },
       onHorizontalDragEnd: (details) {
         if ((details.primaryVelocity ?? 0) < 0) {
-          setState(() => _showActions = true);
+          onOpenActions(note.id);
         }
       },
       child: Row(
         children: [
           Expanded(
             child: GlassCard(
-              onTap: () => context.go('/notes/${note.id}/edit'),
+              onTap: () {
+                if (hasAnyOpenAction) {
+                  onCloseActions();
+                  return;
+                }
+                context.go('/notes/${note.id}/edit');
+              },
               child: Row(
                 children: [
                   if (note.isStarred) ...[
@@ -338,20 +406,21 @@ class _NoteTileState extends ConsumerState<_NoteTile> {
               ),
             ),
           ),
-          if (_showActions) ...[
+          if (isActionOpen) ...[
             const SizedBox(width: 8),
             FilledButton.tonal(
               onPressed: () async {
                 await ref.read(notesActionsProvider).toggleStar(note);
-                if (mounted) {
-                  setState(() => _showActions = false);
-                }
+                onCloseActions();
               },
               child: Text(note.isStarred ? '取消星标' : '星标'),
             ),
             const SizedBox(width: 8),
             FilledButton(
-              onPressed: () => ref.read(notesActionsProvider).deleteNote(note),
+              onPressed: () async {
+                await ref.read(notesActionsProvider).deleteNote(note);
+                onCloseActions();
+              },
               child: const Text('删除'),
             ),
           ],

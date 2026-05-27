@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
+import '../../domain/entities/timeline_task.dart';
 
 part 'app_database.g.dart';
 
@@ -47,6 +48,28 @@ class NoteRows extends Table {
   TextColumn get plainText => text().named('plain_text')();
   TextColumn get richContentJson => text().named('rich_content_json')();
   TextColumn get folderId => text().named('folder_id')();
+  BoolColumn get isStarred =>
+      boolean().named('is_starred').withDefault(const Constant(false))();
+  BoolColumn get isDeleted =>
+      boolean().named('is_deleted').withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().named('created_at')();
+  DateTimeColumn get updatedAt => dateTime().named('updated_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class TimelineTaskRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text()();
+  DateTimeColumn get taskDate => dateTime().named('task_date')();
+  DateTimeColumn get startAt => dateTime().named('start_at').nullable()();
+  DateTimeColumn get endAt => dateTime().named('end_at').nullable()();
+  TextColumn get importance => text()();
+  IntColumn get colorArgb => integer().named('color_argb')();
+  BoolColumn get isCompleted =>
+      boolean().named('is_completed').withDefault(const Constant(false))();
   BoolColumn get isStarred =>
       boolean().named('is_starred').withDefault(const Constant(false))();
   BoolColumn get isDeleted =>
@@ -304,9 +327,131 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   }
 }
 
+@DriftAccessor(tables: [TimelineTaskRows])
+class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
+    with _$TimelineTasksDaoMixin {
+  TimelineTasksDao(super.db);
+
+  Future<TimelineTask> createTask(TimelineTaskRowsCompanion task) async {
+    await into(timelineTaskRows).insertOnConflictUpdate(task);
+    final created = await findById(task.id.value);
+    return created!;
+  }
+
+  Future<TimelineTask> updateTask(TimelineTask task) async {
+    await (update(
+      timelineTaskRows,
+    )..where((table) => table.id.equals(task.id))).write(
+      TimelineTaskRowsCompanion(
+        title: Value(task.title),
+        description: Value(task.description),
+        taskDate: Value(_dateOnly(task.taskDate)),
+        startAt: Value(task.startAt),
+        endAt: Value(task.endAt),
+        importance: Value(task.importance.name),
+        colorArgb: Value(task.colorArgb),
+        isCompleted: Value(task.isCompleted),
+        isStarred: Value(task.isStarred),
+        isDeleted: Value(task.isDeleted),
+        updatedAt: Value(task.updatedAt),
+      ),
+    );
+    return (await findById(task.id))!;
+  }
+
+  Future<void> softDelete(String id) async {
+    await (update(
+      timelineTaskRows,
+    )..where((table) => table.id.equals(id))).write(
+      TimelineTaskRowsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<TimelineTask?> findById(String id) async {
+    final row =
+        await (_activeTasksQuery()..where((table) => table.id.equals(id)))
+            .getSingleOrNull();
+    return row == null ? null : _rowToDomain(row);
+  }
+
+  Future<List<TimelineTask>> listRange({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final rows = await _rangeQuery(
+      startDate: startDate,
+      endDate: endDate,
+    ).get();
+    return TimelineTaskSort.sortedForTimeline(rows.map(_rowToDomain));
+  }
+
+  Future<List<TimelineTask>> search(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return const [];
+    }
+
+    final pattern = '%$trimmed%';
+    final rows =
+        await (_activeTasksQuery()..where(
+              (table) =>
+                  table.title.like(pattern) | table.description.like(pattern),
+            ))
+            .get();
+    return TimelineTaskSort.sortedForTimeline(rows.map(_rowToDomain));
+  }
+
+  Stream<List<TimelineTask>> watchRange({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    return _rangeQuery(startDate: startDate, endDate: endDate).watch().map(
+      (rows) => TimelineTaskSort.sortedForTimeline(rows.map(_rowToDomain)),
+    );
+  }
+
+  SimpleSelectStatement<$TimelineTaskRowsTable, TimelineTaskRow> _rangeQuery({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    return _activeTasksQuery()..where(
+      (table) =>
+          table.taskDate.isBiggerOrEqualValue(_dateOnly(startDate)) &
+          table.taskDate.isSmallerOrEqualValue(_dateOnly(endDate)),
+    );
+  }
+
+  SimpleSelectStatement<$TimelineTaskRowsTable, TimelineTaskRow>
+  _activeTasksQuery() {
+    return select(timelineTaskRows)
+      ..where((table) => table.isDeleted.equals(false));
+  }
+
+  TimelineTask _rowToDomain(TimelineTaskRow row) {
+    return TimelineTask(
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      taskDate: row.taskDate,
+      startAt: row.startAt,
+      endAt: row.endAt,
+      importance: TimelineImportance.fromStorageValue(row.importance),
+      colorArgb: row.colorArgb,
+      isCompleted: row.isCompleted,
+      isStarred: row.isStarred,
+      isDeleted: row.isDeleted,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    );
+  }
+}
+
 @DriftDatabase(
-  tables: [AppSettingsRows, FolderRows, NoteRows],
-  daos: [SettingsDao, FoldersDao, NotesDao],
+  tables: [AppSettingsRows, FolderRows, NoteRows, TimelineTaskRows],
+  daos: [SettingsDao, FoldersDao, NotesDao, TimelineTasksDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -314,7 +459,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -324,8 +469,15 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(folderRows);
         await migrator.createTable(noteRows);
       }
+      if (from < 3) {
+        await migrator.createTable(timelineTaskRows);
+      }
     },
   );
+}
+
+DateTime _dateOnly(DateTime value) {
+  return DateTime(value.year, value.month, value.day);
 }
 
 QueryExecutor _openConnection() {
