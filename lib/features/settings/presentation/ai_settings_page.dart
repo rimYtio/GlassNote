@@ -183,7 +183,9 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                             ),
                             _testButton(
                               key: 'ai-test-deepseek-button',
-                              label: _testingDeepSeek ? '测试中...' : '测试 DeepSeek',
+                              label: _testingDeepSeek
+                                  ? '测试中...'
+                                  : '测试 DeepSeek',
                               onPressed: _testingDeepSeek || _saving
                                   ? null
                                   : _testDeepSeek,
@@ -236,7 +238,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                     ),
                   ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 132),
                   child: FilledButton(
                     onPressed: _saving ? null : _save,
                     child: Text(_saving ? '保存中...' : '保存 API 设置'),

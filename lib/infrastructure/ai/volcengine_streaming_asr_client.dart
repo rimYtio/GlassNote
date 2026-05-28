@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:uuid/uuid.dart';
@@ -25,57 +26,69 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
     final requestId = const Uuid().v4();
     channel.sink.add(_buildFullClientRequest(config, requestId));
 
-    final incoming = channel.stream
-        .cast<Object>()
-        .map<TranscriptionEvent>(_decodeServerMessage)
-        .where((event) => event.text.trim().isNotEmpty);
-
-    final audioDone = Completer<void>();
-    final audioError = Completer<Object>();
-    unawaited(
-      audio
-          .listen(
-            (chunk) => channel.sink.add(_buildAudioRequest(chunk)),
-            onDone: () {
-              channel.sink.add(_buildAudioRequest(const [], isLast: true));
-              audioDone.complete();
-            },
-            onError: (Object error) {
-              if (!audioDone.isCompleted) {
-                audioDone.completeError(error);
-              }
-              if (!audioError.isCompleted) {
-                audioError.complete(error);
-              }
-            },
-            cancelOnError: true,
-          )
-          .asFuture<void>(),
+    final events = StreamController<TranscriptionEvent>();
+    var lastTranscript = '';
+    late final StreamSubscription<Object> incomingSub;
+    incomingSub = channel.stream.cast<Object>().listen(
+      (message) {
+        final event = _decodeServerMessage(message);
+        if (event.text.trim().isEmpty) {
+          return;
+        }
+        switch (event.type) {
+          case TranscriptionEventType.delta:
+            lastTranscript = event.text;
+            events.add(event);
+          case TranscriptionEventType.completed:
+            lastTranscript = event.text;
+            events.add(event);
+            unawaited(events.close());
+          case TranscriptionEventType.error:
+            if (_isWaitingNextPacketTimeout(event.text) &&
+                lastTranscript.trim().isNotEmpty) {
+              events.add(TranscriptionEvent.completed(lastTranscript));
+            } else {
+              events.add(event);
+            }
+            unawaited(events.close());
+        }
+      },
+      onDone: () {
+        unawaited(events.close());
+      },
+      onError: (Object error) {
+        events.add(TranscriptionEvent.error('语音识别错误: $error'));
+        unawaited(events.close());
+      },
     );
-
+    final audioDone = _sendAudio(audio, channel);
     try {
-      final combined = StreamController<TranscriptionEvent>();
-      final incomingSub = incoming.listen(
-        combined.add,
-        onDone: combined.close,
-        onError: (Object e) {
-          combined.add(TranscriptionEvent.error('语音识别错误: $e'));
-        },
-      );
-      audioError.future.then((error) {
-        if (!combined.isClosed) {
-          combined.add(TranscriptionEvent.error('录音失败: $error'));
+      audioDone.catchError((Object error) {
+        if (!events.isClosed) {
+          events.add(TranscriptionEvent.error('录音失败: $error'));
+          unawaited(events.close());
         }
       });
-
-      yield* combined.stream;
+      yield* events.stream;
       unawaited(incomingSub.cancel());
-      if (!audioError.isCompleted) {
-        await audioDone.future;
-      }
+      await audioDone;
     } finally {
       unawaited(channel.sink.close());
     }
+  }
+
+  Future<void> _sendAudio(
+    Stream<List<int>> audio,
+    WebSocketChannel channel,
+  ) async {
+    List<int>? pending;
+    await for (final chunk in audio) {
+      if (pending != null) {
+        channel.sink.add(_buildAudioRequest(pending));
+      }
+      pending = chunk;
+    }
+    channel.sink.add(_buildAudioRequest(pending ?? const [], isLast: true));
   }
 }
 
@@ -117,6 +130,10 @@ class VolcengineAsrEventParser {
     final json = jsonDecode(decoded);
     if (json is! Map<String, Object?>) {
       return const TranscriptionEvent.error('语音识别返回格式无效');
+    }
+    final error = json['error'];
+    if (error != null) {
+      return TranscriptionEvent.error(error.toString());
     }
     final code = json['code'];
     if (code != null && code.toString() != '0') {
@@ -166,43 +183,51 @@ class VolcengineAsrEventParser {
 }
 
 TranscriptionEvent _decodeServerMessage(Object message) {
-  if (message is String) {
-    return VolcengineAsrEventParser.parsePayload(utf8.encode(message));
-  }
-  if (message is List<int>) {
-    return VolcengineAsrEventParser.parsePayload(_extractPayload(message));
+  try {
+    if (message is String) {
+      return VolcengineAsrEventParser.parsePayload(utf8.encode(message));
+    }
+    if (message is List<int>) {
+      return VolcengineAsrEventParser.parsePayload(_extractPayload(message));
+    }
+  } on FormatException catch (error) {
+    return TranscriptionEvent.error('语音识别返回格式无效: ${error.message}');
   }
   return const TranscriptionEvent.error('语音识别返回格式无效');
 }
 
 Uint8List _buildFullClientRequest(AiConfig config, String requestId) {
-  final payload = utf8.encode(
-    jsonEncode({
-      'user': {'uid': 'glassnote-local'},
-      'audio': {
-        'format': 'pcm',
-        'rate': 16000,
-        'bits': 16,
-        'channel': 1,
-      },
-      'request': {
-        'model_name': 'bigmodel',
-        'enable_itn': true,
-        'enable_punc': true,
-        'language': config.volcAsrLanguage,
-        'reqid': requestId,
-      },
-    }),
+  final payload = gzip.encode(
+    utf8.encode(
+      jsonEncode({
+        'user': {'uid': 'glassnote-local'},
+        'audio': {
+          'format': 'pcm',
+          'codec': 'raw',
+          'rate': 16000,
+          'bits': 16,
+          'channel': 1,
+        },
+        'request': {
+          'model_name': 'bigmodel',
+          'enable_itn': true,
+          'enable_punc': true,
+          'language': config.volcAsrLanguage,
+          'reqid': requestId,
+        },
+      }),
+    ),
   );
-  return _buildPacket(messageType: 1, payload: payload);
+  return _buildPacket(messageType: 1, payload: payload, compressionMethod: 1);
 }
 
 Uint8List _buildAudioRequest(List<int> audio, {bool isLast = false}) {
   return _buildPacket(
     messageType: 2,
-    payload: audio,
+    payload: gzip.encode(audio),
     isLast: isLast,
     serializationMethod: 0,
+    compressionMethod: 1,
   );
 }
 
@@ -211,11 +236,12 @@ Uint8List _buildPacket({
   required List<int> payload,
   bool isLast = false,
   int serializationMethod = 1,
+  int compressionMethod = 0,
 }) {
   final header = <int>[
     0x11,
     (messageType << 4) | (isLast ? 0x02 : 0x00),
-    (serializationMethod << 4),
+    (serializationMethod << 4) | compressionMethod,
     0x00,
   ];
   final length = ByteData(4)..setInt32(0, payload.length, Endian.big);
@@ -231,15 +257,44 @@ Uint8List _extractPayload(List<int> packet) {
     return Uint8List.fromList(packet);
   }
   final headerLength = (packet[0] & 0x0f) * 4;
-  if (packet.length < headerLength + 4) {
+  if (packet.length < headerLength) {
     return Uint8List.fromList(packet);
+  }
+  final messageType = packet[1] >> 4;
+  final flags = packet[1] & 0x0f;
+  final compressionMethod = packet[2] & 0x0f;
+  var cursor = headerLength;
+  if (_packetHasSequence(messageType, flags) && packet.length >= cursor + 4) {
+    cursor += 4;
+  }
+  if (messageType == 15 && packet.length >= cursor + 4) {
+    cursor += 4;
+  }
+  if (packet.length < cursor + 4) {
+    return Uint8List.fromList(packet.sublist(cursor));
   }
   final length = ByteData.sublistView(
     Uint8List.fromList(packet),
-    headerLength,
-    headerLength + 4,
+    cursor,
+    cursor + 4,
   ).getInt32(0, Endian.big);
-  final start = headerLength + 4;
+  final start = cursor + 4;
   final end = (start + length).clamp(start, packet.length);
-  return Uint8List.fromList(packet.sublist(start, end));
+  final payload = Uint8List.fromList(packet.sublist(start, end));
+  if (compressionMethod == 1) {
+    return Uint8List.fromList(gzip.decode(payload));
+  }
+  return payload;
+}
+
+bool _packetHasSequence(int messageType, int flags) {
+  if (messageType != 9 && messageType != 11) {
+    return false;
+  }
+  return flags == 1 || flags == 3;
+}
+
+bool _isWaitingNextPacketTimeout(String text) {
+  return text.contains('Timeout waiting next packet') ||
+      text.contains('waiting next packet timeout');
 }

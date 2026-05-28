@@ -27,6 +27,7 @@ void main() {
   testWidgets('API settings saves config and masks secret fields', (
     tester,
   ) async {
+    _useTallViewport(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -90,6 +91,7 @@ void main() {
   testWidgets('API settings tests Volcengine and DeepSeek separately', (
     tester,
   ) async {
+    _useTallViewport(tester);
     connectionTester.deepSeekResult = const AiConnectionTestResult.failure(
       'DeepSeek 连接失败: invalid model',
     );
@@ -140,6 +142,15 @@ Future<void> _pumpUi(WidgetTester tester) async {
   for (var i = 0; i < 5; i += 1) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+void _useTallViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
 }
 
 class _FakeAiConnectionTester implements AiConnectionTester {

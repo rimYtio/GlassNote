@@ -74,6 +74,7 @@ void main() {
   testWidgets('capture clears missing API error after settings are saved', (
     tester,
   ) async {
+    _useTallViewport(tester);
     secrets = InMemorySecureKeyValueStore();
     await tester.pumpWidget(
       ProviderScope(
@@ -215,4 +216,13 @@ Future<void> _pumpUi(WidgetTester tester) async {
   for (var i = 0; i < 5; i += 1) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+void _useTallViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
 }
