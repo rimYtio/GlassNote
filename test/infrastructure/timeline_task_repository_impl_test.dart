@@ -49,6 +49,9 @@ void main() {
       final search = await repository.search('计划');
       expect(search.single.id, task.id);
 
+      final dateSearch = await repository.search('2026.5.27');
+      expect(dateSearch.single.id, task.id);
+
       final updated = await repository.update(
         task.copyWith(isCompleted: true, isStarred: true),
       );

@@ -1,0 +1,113 @@
+import 'dart:async';
+
+import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:glass_note/app/app.dart';
+import 'package:glass_note/domain/entities/ai_config.dart';
+import 'package:glass_note/domain/entities/capture_draft_preview.dart';
+import 'package:glass_note/domain/services/audio_input_service.dart';
+import 'package:glass_note/domain/services/capture_analyzer.dart';
+import 'package:glass_note/domain/services/realtime_transcription_client.dart';
+import 'package:glass_note/infrastructure/database/app_database.dart';
+import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
+import 'package:glass_note/infrastructure/security/in_memory_secure_key_value_store.dart';
+
+void main() {
+  late AppDatabase database;
+  late InMemorySecureKeyValueStore secrets;
+
+  setUp(() async {
+    database = AppDatabase.forTesting(NativeDatabase.memory());
+    secrets = InMemorySecureKeyValueStore();
+    await secrets.writeSecret(key: 'volc_app_key', value: 'app');
+    await secrets.writeSecret(key: 'volc_access_key', value: 'access');
+    await secrets.writeSecret(key: 'deepseek_api_key', value: 'deepseek');
+  });
+
+  tearDown(() async {
+    await database.close();
+  });
+
+  testWidgets('capture records transcript and confirms note preview', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          audioInputServiceProvider.overrideWithValue(_FakeAudioInputService()),
+          realtimeTranscriptionClientProvider.overrideWithValue(
+            _FakeRealtimeTranscriptionClient(),
+          ),
+          captureAnalyzerProvider.overrideWithValue(_FakeCaptureAnalyzer()),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    final button = find.byKey(const ValueKey('capture-mic-button'));
+    expect(button, findsOneWidget);
+
+    final gesture = await tester.startGesture(tester.getCenter(button));
+    await _pumpUi(tester);
+    expect(find.text('正在聆听'), findsOneWidget);
+    expect(find.textContaining('记录一个想法'), findsOneWidget);
+
+    await gesture.up();
+    await _pumpUi(tester);
+    expect(find.byKey(const ValueKey('capture-preview-card')), findsOneWidget);
+    expect(find.text('语音想法'), findsOneWidget);
+
+    await tester.tap(find.text('确认创建'));
+    await _pumpUi(tester);
+
+    final notes = await database.notesDao.search('语音想法');
+    expect(notes.single.plainText, '记录一个想法');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+}
+
+class _FakeAudioInputService implements AudioInputService {
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Stream<List<int>> startPcm16Stream() => Stream.value([0, 1, 2, 3]);
+
+  @override
+  Future<void> stop() async {}
+}
+
+class _FakeRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
+  @override
+  Stream<TranscriptionEvent> transcribe({
+    required Stream<List<int>> audio,
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async* {
+    yield const TranscriptionEvent.delta('记录一个想法');
+    yield const TranscriptionEvent.completed('记录一个想法');
+  }
+}
+
+class _FakeCaptureAnalyzer implements CaptureAnalyzer {
+  @override
+  Future<CaptureDraftPreview> analyze({
+    required String transcript,
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    return CaptureDraftPreview.note(title: '语音想法', content: transcript);
+  }
+}
+
+Future<void> _pumpUi(WidgetTester tester) async {
+  for (var i = 0; i < 5; i += 1) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}

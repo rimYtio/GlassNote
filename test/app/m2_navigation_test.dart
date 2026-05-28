@@ -21,7 +21,7 @@ void main() {
   testWidgets('shows the four-tab shell and settings entries', (tester) async {
     await _pumpApp(tester, database);
 
-    expect(find.text('快速文字、语音和 AI 解析入口将在后续接入。'), findsOneWidget);
+    expect(find.text('长按下方话筒，说出想法、笔记或任务。'), findsOneWidget);
     expect(find.text('捕获'), findsWidgets);
     expect(find.text('笔记'), findsOneWidget);
     expect(find.text('时间线'), findsOneWidget);
@@ -58,6 +58,29 @@ void main() {
     await _pumpUi(tester);
     expect(notes.single.title, '根目录笔记');
     expect(find.text('根目录笔记'), findsOneWidget);
+
+    await _disposeApp(tester);
+  });
+
+  testWidgets('notes create menu uses liquid glass surface', (tester) async {
+    await _pumpApp(tester, database);
+    await _openNotes(tester);
+
+    await tester.tap(find.byTooltip('新建'));
+    await _pumpUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('notes-create-glass-menu-surface')),
+      findsOneWidget,
+    );
+    expect(find.text('新建笔记'), findsOneWidget);
+    expect(find.text('新建文件夹'), findsOneWidget);
+
+    final surface = tester.widget<DecoratedBox>(
+      find.byKey(const ValueKey('notes-create-glass-menu-surface')),
+    );
+    final decoration = surface.decoration as BoxDecoration;
+    expect(decoration.color?.a, lessThan(0.5));
 
     await _disposeApp(tester);
   });

@@ -49,20 +49,75 @@ void main() {
     await _disposeApp(tester);
   });
 
-  testWidgets('timeline searches all active tasks from a glass search overlay', (
+  testWidgets(
+    'timeline searches all active tasks from a glass search overlay',
+    (tester) async {
+      await _seedTask(
+        database,
+        id: 'today-task',
+        title: '今天汇报',
+        taskDate: DateTime.now(),
+      );
+      await _seedTask(
+        database,
+        id: 'future-task',
+        title: '未来会议',
+        taskDate: DateTime.now().add(const Duration(days: 8)),
+      );
+
+      await _pumpApp(tester, database);
+      try {
+        await _openTimeline(tester);
+
+        await tester.tap(find.byTooltip('搜索任务'));
+        await _pumpUi(tester);
+        expect(
+          find.byKey(const ValueKey('timeline-search-overlay')),
+          findsOneWidget,
+        );
+        expect(find.byType(AlertDialog), findsNothing);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('timeline-search-overlay-field')),
+          '未来',
+        );
+        await _flushAsyncUi(tester);
+        expect(find.text('未来会议'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('timeline-search-submit')));
+        await _flushAsyncUi(tester);
+
+        final results = find.byKey(const ValueKey('timeline-search-results'));
+        expect(
+          find.descendant(of: results, matching: find.text('未来会议')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: results, matching: find.text('今天汇报')),
+          findsNothing,
+        );
+
+        await tester.tapAt(const Offset(8, 8));
+        await _pumpUi(tester);
+        expect(
+          find.byKey(const ValueKey('timeline-search-overlay')),
+          findsNothing,
+        );
+      } finally {
+        await _disposeApp(tester);
+      }
+    },
+  );
+
+  testWidgets('timeline search supports dates and jumps to the selected task', (
     tester,
   ) async {
+    final targetDate = DateTime(2026, 2, 23);
     await _seedTask(
       database,
-      id: 'today-task',
-      title: '今天汇报',
-      taskDate: DateTime.now(),
-    );
-    await _seedTask(
-      database,
-      id: 'future-task',
-      title: '未来会议',
-      taskDate: DateTime.now().add(const Duration(days: 8)),
+      id: 'date-search-task',
+      title: '日期搜索任务',
+      taskDate: targetDate,
     );
 
     await _pumpApp(tester, database);
@@ -71,38 +126,28 @@ void main() {
 
       await tester.tap(find.byTooltip('搜索任务'));
       await _pumpUi(tester);
-      expect(
-        find.byKey(const ValueKey('timeline-search-overlay')),
-        findsOneWidget,
-      );
-      expect(find.byType(AlertDialog), findsNothing);
-
       await tester.enterText(
         find.byKey(const ValueKey('timeline-search-overlay-field')),
-        '未来',
+        '2026.2.23',
       );
-      await _flushAsyncUi(tester);
-      expect(find.text('未来会议'), findsNothing);
-
       await tester.tap(find.byKey(const ValueKey('timeline-search-submit')));
       await _flushAsyncUi(tester);
 
       final results = find.byKey(const ValueKey('timeline-search-results'));
       expect(
-        find.descendant(of: results, matching: find.text('未来会议')),
+        find.descendant(of: results, matching: find.text('日期搜索任务')),
         findsOneWidget,
       );
-      expect(
-        find.descendant(of: results, matching: find.text('今天汇报')),
-        findsNothing,
-      );
 
-      await tester.tapAt(const Offset(8, 8));
+      await tester.tap(find.text('日期搜索任务'));
       await _pumpUi(tester);
+
       expect(
         find.byKey(const ValueKey('timeline-search-overlay')),
         findsNothing,
       );
+      expect(find.byKey(ValueKey(_daySectionKey(targetDate))), findsOneWidget);
+      expect(find.text('日期搜索任务'), findsOneWidget);
     } finally {
       await _disposeApp(tester);
     }
@@ -322,6 +367,44 @@ void main() {
     await _pumpUi(tester);
 
     expect(find.text('跨月任务'), findsOneWidget);
+
+    await _disposeApp(tester);
+  });
+
+  testWidgets('timeline calendar keeps year and grid dimensions stable', (
+    tester,
+  ) async {
+    await _pumpApp(tester, database);
+    await _openTimeline(tester);
+
+    await tester.tap(find.byTooltip('查看任务日历'));
+    await _pumpUi(tester);
+
+    final surface = find.byKey(const ValueKey('timeline-calendar-surface'));
+    final grid = find.byKey(const ValueKey('timeline-calendar-month-grid'));
+    final january = find.byKey(const ValueKey('timeline-calendar-month-1'));
+    final bottomNavigation = find.byKey(
+      const ValueKey('glass-bottom-navigation-surface'),
+    );
+    final initialDialogSize = tester.getSize(surface);
+    final initialGridSize = tester.getSize(grid);
+    final initialMonthSize = tester.getSize(january);
+    expect(
+      tester.getBottomLeft(surface).dy,
+      lessThanOrEqualTo(tester.getTopLeft(bottomNavigation).dy - 8),
+    );
+
+    await tester.tap(find.byTooltip('下一年'));
+    await _pumpUi(tester);
+    expect(tester.getSize(surface), initialDialogSize);
+    expect(tester.getSize(grid), initialGridSize);
+    expect(tester.getSize(january), initialMonthSize);
+
+    await tester.tap(find.byTooltip('下一年'));
+    await _pumpUi(tester);
+    expect(tester.getSize(surface), initialDialogSize);
+    expect(tester.getSize(grid), initialGridSize);
+    expect(tester.getSize(january), initialMonthSize);
 
     await _disposeApp(tester);
   });

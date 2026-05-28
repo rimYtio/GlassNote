@@ -102,8 +102,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     );
   }
 
-  Future<void> _showSearchDialog(BuildContext context) {
-    return showGeneralDialog<void>(
+  Future<void> _showSearchDialog(BuildContext context) async {
+    final selectedTask = await showGeneralDialog<TimelineTask>(
       context: context,
       useRootNavigator: true,
       barrierDismissible: false,
@@ -123,6 +123,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         );
       },
     );
+    if (selectedTask == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _anchorDate = _dateOnly(selectedTask.taskDate);
+      _pastRangeDays = _initialRangeDays;
+      _futureRangeDays = _initialRangeDays;
+    });
   }
 
   Future<void> _showCalendarDialog(
@@ -879,6 +887,8 @@ class _TimelineSearchOverlayState
                         query: _submittedQuery,
                         results: results,
                         colorScheme: colorScheme,
+                        onTaskSelected: (task) =>
+                            Navigator.of(context).pop(task),
                       ),
                     ],
                   ),
@@ -966,11 +976,13 @@ class _TimelineSearchResults extends StatelessWidget {
     required this.query,
     required this.results,
     required this.colorScheme,
+    required this.onTaskSelected,
   });
 
   final String query;
   final AsyncValue<List<TimelineTask>> results;
   final ColorScheme colorScheme;
+  final ValueChanged<TimelineTask> onTaskSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1008,9 +1020,13 @@ class _TimelineSearchResults extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     children: [
                       for (final task in items)
-                        ListTile(
-                          title: Text(task.title),
-                          subtitle: Text(_dateLabel(task.taskDate)),
+                        Material(
+                          type: MaterialType.transparency,
+                          child: ListTile(
+                            onTap: () => onTaskSelected(task),
+                            title: Text(task.title),
+                            subtitle: Text(_dateLabel(task.taskDate)),
+                          ),
                         ),
                     ],
                   ),
@@ -1061,13 +1077,14 @@ class _TimelineCalendarDialogState
 
     return Dialog(
       key: const ValueKey('timeline-calendar-dialog'),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+      insetPadding: const EdgeInsets.fromLTRB(18, 18, 18, 112),
       backgroundColor: Colors.transparent,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
           child: DecoratedBox(
+            key: const ValueKey('timeline-calendar-surface'),
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
@@ -1080,7 +1097,7 @@ class _TimelineCalendarDialogState
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: SingleChildScrollView(
                 child: tasks.when(
                   data: _buildCalendar,
@@ -1143,10 +1160,10 @@ class _TimelineCalendarDialogState
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: [
             for (var month = 1; month <= 12; month += 1)
               _MonthHeatDot(
@@ -1158,14 +1175,14 @@ class _TimelineCalendarDialogState
               ),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         Text(
           '$_month月',
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         _MonthCalendarGrid(
           year: _year,
           month: _month,
@@ -1202,8 +1219,9 @@ class _MonthHeatDot extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
-        width: 54,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        width: 50,
+        height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         decoration: BoxDecoration(
           color: selected
               ? colorScheme.primaryContainer.withValues(alpha: 0.52)
@@ -1216,11 +1234,11 @@ class _MonthHeatDot extends StatelessWidget {
           ),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 12,
-              height: 12,
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(
                 color: colorScheme.primary.withValues(
                   alpha: intensity.toDouble(),
@@ -1228,8 +1246,12 @@ class _MonthHeatDot extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(height: 4),
-            Text('$month月', maxLines: 1),
+            const SizedBox(height: 3),
+            Text(
+              '$month月',
+              maxLines: 1,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
             Text('$count', style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
@@ -1256,6 +1278,7 @@ class _MonthCalendarGrid extends StatelessWidget {
     final firstDay = DateTime(year, month);
     final leadingSlots = firstDay.weekday % 7;
     final dayCount = DateTime(year, month + 1, 0).day;
+    final trailingSlots = 42 - leadingSlots - dayCount;
     final cells = <Widget>[
       for (final label in const ['日', '一', '二', '三', '四', '五', '六'])
         Center(
@@ -1270,12 +1293,15 @@ class _MonthCalendarGrid extends StatelessWidget {
           count: dayCounts[day] ?? 0,
           onTap: onDateSelected,
         ),
+      for (var index = 0; index < trailingSlots; index += 1)
+        const SizedBox.shrink(),
     ];
 
     return GridView.count(
+      key: const ValueKey('timeline-calendar-month-grid'),
       crossAxisCount: 7,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: cells,

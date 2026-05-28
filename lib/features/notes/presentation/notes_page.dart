@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -53,28 +55,10 @@ class _NotesPageState extends ConsumerState<NotesPage> {
               onPressed: () => context.go('/notes'),
             ),
       actions: [
-        PopupMenuButton<_CreateAction>(
+        IconButton(
           tooltip: '新建',
           icon: const Icon(Icons.add),
-          onSelected: (action) {
-            switch (action) {
-              case _CreateAction.note:
-                final target = widget.folderId == null
-                    ? '/notes/new'
-                    : '/notes/new?folderId=${widget.folderId}';
-                context.go(target);
-              case _CreateAction.folder:
-                _showCreateFolderDialog(
-                  context,
-                  ref,
-                  parentId: widget.folderId,
-                );
-            }
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: _CreateAction.note, child: Text('新建笔记')),
-            PopupMenuItem(value: _CreateAction.folder, child: Text('新建文件夹')),
-          ],
+          onPressed: () => _showCreateMenu(context, ref),
         ),
       ],
       body: ListView(
@@ -120,6 +104,44 @@ class _NotesPageState extends ConsumerState<NotesPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showCreateMenu(BuildContext context, WidgetRef ref) async {
+    final action = await showGeneralDialog<_CreateAction>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '关闭新建菜单',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return const _CreateMenuOverlay();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: ScaleTransition(
+            alignment: Alignment.topRight,
+            scale: Tween<double>(begin: 0.94, end: 1).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+    if (action == null || !context.mounted) {
+      return;
+    }
+
+    switch (action) {
+      case _CreateAction.note:
+        final target = widget.folderId == null
+            ? '/notes/new'
+            : '/notes/new?folderId=${widget.folderId}';
+        context.go(target);
+      case _CreateAction.folder:
+        await _showCreateFolderDialog(context, ref, parentId: widget.folderId);
+    }
   }
 
   Future<void> _showCreateFolderDialog(
@@ -181,6 +203,99 @@ class _NotesPageState extends ConsumerState<NotesPage> {
         _openActionSide = null;
       });
     }
+  }
+}
+
+class _CreateMenuOverlay extends StatelessWidget {
+  const _CreateMenuOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8, right: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                child: DecoratedBox(
+                  key: const ValueKey('notes-create-glass-menu-surface'),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface.withValues(alpha: 0.32),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colorScheme.onSurface.withValues(alpha: 0.12),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.shadow.withValues(alpha: 0.10),
+                        blurRadius: 26,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _CreateMenuItem(
+                          icon: Icons.note_add_outlined,
+                          label: '新建笔记',
+                          action: _CreateAction.note,
+                        ),
+                        _CreateMenuItem(
+                          icon: Icons.create_new_folder_outlined,
+                          label: '新建文件夹',
+                          action: _CreateAction.folder,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateMenuItem extends StatelessWidget {
+  const _CreateMenuItem({
+    required this.icon,
+    required this.label,
+    required this.action,
+  });
+
+  final IconData icon;
+  final String label;
+  final _CreateAction action;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.of(context).pop(action),
+      child: SizedBox(
+        width: 156,
+        height: 48,
+        child: Row(
+          children: [
+            const SizedBox(width: 16),
+            Icon(icon, size: 20),
+            const SizedBox(width: 12),
+            Text(label),
+          ],
+        ),
+      ),
+    );
   }
 }
 

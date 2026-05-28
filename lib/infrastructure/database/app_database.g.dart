@@ -18,6 +18,18 @@ class SettingsDaoManager {
       );
 }
 
+mixin _$AiConfigDaoMixin on DatabaseAccessor<AppDatabase> {
+  $AiConfigRowsTable get aiConfigRows => attachedDatabase.aiConfigRows;
+  AiConfigDaoManager get managers => AiConfigDaoManager(this);
+}
+
+class AiConfigDaoManager {
+  final _$AiConfigDaoMixin _db;
+  AiConfigDaoManager(this._db);
+  $$AiConfigRowsTableTableManager get aiConfigRows =>
+      $$AiConfigRowsTableTableManager(_db.attachedDatabase, _db.aiConfigRows);
+}
+
 mixin _$FoldersDaoMixin on DatabaseAccessor<AppDatabase> {
   $FolderRowsTable get folderRows => attachedDatabase.folderRows;
   FoldersDaoManager get managers => FoldersDaoManager(this);
@@ -650,6 +662,602 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
           ..write('defaultFolderId: $defaultFolderId, ')
           ..write('exportIncludeMetadata: $exportIncludeMetadata, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AiConfigRowsTable extends AiConfigRows
+    with TableInfo<$AiConfigRowsTable, AiConfigRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AiConfigRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _volcAsrEndpointMeta = const VerificationMeta(
+    'volcAsrEndpoint',
+  );
+  @override
+  late final GeneratedColumn<String> volcAsrEndpoint = GeneratedColumn<String>(
+    'volc_asr_endpoint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _volcAsrResourceIdMeta = const VerificationMeta(
+    'volcAsrResourceId',
+  );
+  @override
+  late final GeneratedColumn<String> volcAsrResourceId =
+      GeneratedColumn<String>(
+        'volc_asr_resource_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _volcAsrLanguageMeta = const VerificationMeta(
+    'volcAsrLanguage',
+  );
+  @override
+  late final GeneratedColumn<String> volcAsrLanguage = GeneratedColumn<String>(
+    'volc_asr_language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deepSeekBaseUrlMeta = const VerificationMeta(
+    'deepSeekBaseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> deepSeekBaseUrl = GeneratedColumn<String>(
+    'deep_seek_base_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deepSeekModelMeta = const VerificationMeta(
+    'deepSeekModel',
+  );
+  @override
+  late final GeneratedColumn<String> deepSeekModel = GeneratedColumn<String>(
+    'deep_seek_model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _temperatureMeta = const VerificationMeta(
+    'temperature',
+  );
+  @override
+  late final GeneratedColumn<double> temperature = GeneratedColumn<double>(
+    'temperature',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timeoutSecondsMeta = const VerificationMeta(
+    'timeoutSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> timeoutSeconds = GeneratedColumn<int>(
+    'timeout_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    volcAsrEndpoint,
+    volcAsrResourceId,
+    volcAsrLanguage,
+    deepSeekBaseUrl,
+    deepSeekModel,
+    temperature,
+    timeoutSeconds,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ai_config_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AiConfigRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('volc_asr_endpoint')) {
+      context.handle(
+        _volcAsrEndpointMeta,
+        volcAsrEndpoint.isAcceptableOrUnknown(
+          data['volc_asr_endpoint']!,
+          _volcAsrEndpointMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_volcAsrEndpointMeta);
+    }
+    if (data.containsKey('volc_asr_resource_id')) {
+      context.handle(
+        _volcAsrResourceIdMeta,
+        volcAsrResourceId.isAcceptableOrUnknown(
+          data['volc_asr_resource_id']!,
+          _volcAsrResourceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_volcAsrResourceIdMeta);
+    }
+    if (data.containsKey('volc_asr_language')) {
+      context.handle(
+        _volcAsrLanguageMeta,
+        volcAsrLanguage.isAcceptableOrUnknown(
+          data['volc_asr_language']!,
+          _volcAsrLanguageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_volcAsrLanguageMeta);
+    }
+    if (data.containsKey('deep_seek_base_url')) {
+      context.handle(
+        _deepSeekBaseUrlMeta,
+        deepSeekBaseUrl.isAcceptableOrUnknown(
+          data['deep_seek_base_url']!,
+          _deepSeekBaseUrlMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_deepSeekBaseUrlMeta);
+    }
+    if (data.containsKey('deep_seek_model')) {
+      context.handle(
+        _deepSeekModelMeta,
+        deepSeekModel.isAcceptableOrUnknown(
+          data['deep_seek_model']!,
+          _deepSeekModelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_deepSeekModelMeta);
+    }
+    if (data.containsKey('temperature')) {
+      context.handle(
+        _temperatureMeta,
+        temperature.isAcceptableOrUnknown(
+          data['temperature']!,
+          _temperatureMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_temperatureMeta);
+    }
+    if (data.containsKey('timeout_seconds')) {
+      context.handle(
+        _timeoutSecondsMeta,
+        timeoutSeconds.isAcceptableOrUnknown(
+          data['timeout_seconds']!,
+          _timeoutSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_timeoutSecondsMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AiConfigRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AiConfigRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      volcAsrEndpoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}volc_asr_endpoint'],
+      )!,
+      volcAsrResourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}volc_asr_resource_id'],
+      )!,
+      volcAsrLanguage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}volc_asr_language'],
+      )!,
+      deepSeekBaseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}deep_seek_base_url'],
+      )!,
+      deepSeekModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}deep_seek_model'],
+      )!,
+      temperature: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}temperature'],
+      )!,
+      timeoutSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timeout_seconds'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AiConfigRowsTable createAlias(String alias) {
+    return $AiConfigRowsTable(attachedDatabase, alias);
+  }
+}
+
+class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
+  final String id;
+  final String volcAsrEndpoint;
+  final String volcAsrResourceId;
+  final String volcAsrLanguage;
+  final String deepSeekBaseUrl;
+  final String deepSeekModel;
+  final double temperature;
+  final int timeoutSeconds;
+  final DateTime updatedAt;
+  const AiConfigRow({
+    required this.id,
+    required this.volcAsrEndpoint,
+    required this.volcAsrResourceId,
+    required this.volcAsrLanguage,
+    required this.deepSeekBaseUrl,
+    required this.deepSeekModel,
+    required this.temperature,
+    required this.timeoutSeconds,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['volc_asr_endpoint'] = Variable<String>(volcAsrEndpoint);
+    map['volc_asr_resource_id'] = Variable<String>(volcAsrResourceId);
+    map['volc_asr_language'] = Variable<String>(volcAsrLanguage);
+    map['deep_seek_base_url'] = Variable<String>(deepSeekBaseUrl);
+    map['deep_seek_model'] = Variable<String>(deepSeekModel);
+    map['temperature'] = Variable<double>(temperature);
+    map['timeout_seconds'] = Variable<int>(timeoutSeconds);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AiConfigRowsCompanion toCompanion(bool nullToAbsent) {
+    return AiConfigRowsCompanion(
+      id: Value(id),
+      volcAsrEndpoint: Value(volcAsrEndpoint),
+      volcAsrResourceId: Value(volcAsrResourceId),
+      volcAsrLanguage: Value(volcAsrLanguage),
+      deepSeekBaseUrl: Value(deepSeekBaseUrl),
+      deepSeekModel: Value(deepSeekModel),
+      temperature: Value(temperature),
+      timeoutSeconds: Value(timeoutSeconds),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory AiConfigRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AiConfigRow(
+      id: serializer.fromJson<String>(json['id']),
+      volcAsrEndpoint: serializer.fromJson<String>(json['volcAsrEndpoint']),
+      volcAsrResourceId: serializer.fromJson<String>(json['volcAsrResourceId']),
+      volcAsrLanguage: serializer.fromJson<String>(json['volcAsrLanguage']),
+      deepSeekBaseUrl: serializer.fromJson<String>(json['deepSeekBaseUrl']),
+      deepSeekModel: serializer.fromJson<String>(json['deepSeekModel']),
+      temperature: serializer.fromJson<double>(json['temperature']),
+      timeoutSeconds: serializer.fromJson<int>(json['timeoutSeconds']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'volcAsrEndpoint': serializer.toJson<String>(volcAsrEndpoint),
+      'volcAsrResourceId': serializer.toJson<String>(volcAsrResourceId),
+      'volcAsrLanguage': serializer.toJson<String>(volcAsrLanguage),
+      'deepSeekBaseUrl': serializer.toJson<String>(deepSeekBaseUrl),
+      'deepSeekModel': serializer.toJson<String>(deepSeekModel),
+      'temperature': serializer.toJson<double>(temperature),
+      'timeoutSeconds': serializer.toJson<int>(timeoutSeconds),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  AiConfigRow copyWith({
+    String? id,
+    String? volcAsrEndpoint,
+    String? volcAsrResourceId,
+    String? volcAsrLanguage,
+    String? deepSeekBaseUrl,
+    String? deepSeekModel,
+    double? temperature,
+    int? timeoutSeconds,
+    DateTime? updatedAt,
+  }) => AiConfigRow(
+    id: id ?? this.id,
+    volcAsrEndpoint: volcAsrEndpoint ?? this.volcAsrEndpoint,
+    volcAsrResourceId: volcAsrResourceId ?? this.volcAsrResourceId,
+    volcAsrLanguage: volcAsrLanguage ?? this.volcAsrLanguage,
+    deepSeekBaseUrl: deepSeekBaseUrl ?? this.deepSeekBaseUrl,
+    deepSeekModel: deepSeekModel ?? this.deepSeekModel,
+    temperature: temperature ?? this.temperature,
+    timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  AiConfigRow copyWithCompanion(AiConfigRowsCompanion data) {
+    return AiConfigRow(
+      id: data.id.present ? data.id.value : this.id,
+      volcAsrEndpoint: data.volcAsrEndpoint.present
+          ? data.volcAsrEndpoint.value
+          : this.volcAsrEndpoint,
+      volcAsrResourceId: data.volcAsrResourceId.present
+          ? data.volcAsrResourceId.value
+          : this.volcAsrResourceId,
+      volcAsrLanguage: data.volcAsrLanguage.present
+          ? data.volcAsrLanguage.value
+          : this.volcAsrLanguage,
+      deepSeekBaseUrl: data.deepSeekBaseUrl.present
+          ? data.deepSeekBaseUrl.value
+          : this.deepSeekBaseUrl,
+      deepSeekModel: data.deepSeekModel.present
+          ? data.deepSeekModel.value
+          : this.deepSeekModel,
+      temperature: data.temperature.present
+          ? data.temperature.value
+          : this.temperature,
+      timeoutSeconds: data.timeoutSeconds.present
+          ? data.timeoutSeconds.value
+          : this.timeoutSeconds,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiConfigRow(')
+          ..write('id: $id, ')
+          ..write('volcAsrEndpoint: $volcAsrEndpoint, ')
+          ..write('volcAsrResourceId: $volcAsrResourceId, ')
+          ..write('volcAsrLanguage: $volcAsrLanguage, ')
+          ..write('deepSeekBaseUrl: $deepSeekBaseUrl, ')
+          ..write('deepSeekModel: $deepSeekModel, ')
+          ..write('temperature: $temperature, ')
+          ..write('timeoutSeconds: $timeoutSeconds, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    volcAsrEndpoint,
+    volcAsrResourceId,
+    volcAsrLanguage,
+    deepSeekBaseUrl,
+    deepSeekModel,
+    temperature,
+    timeoutSeconds,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AiConfigRow &&
+          other.id == this.id &&
+          other.volcAsrEndpoint == this.volcAsrEndpoint &&
+          other.volcAsrResourceId == this.volcAsrResourceId &&
+          other.volcAsrLanguage == this.volcAsrLanguage &&
+          other.deepSeekBaseUrl == this.deepSeekBaseUrl &&
+          other.deepSeekModel == this.deepSeekModel &&
+          other.temperature == this.temperature &&
+          other.timeoutSeconds == this.timeoutSeconds &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
+  final Value<String> id;
+  final Value<String> volcAsrEndpoint;
+  final Value<String> volcAsrResourceId;
+  final Value<String> volcAsrLanguage;
+  final Value<String> deepSeekBaseUrl;
+  final Value<String> deepSeekModel;
+  final Value<double> temperature;
+  final Value<int> timeoutSeconds;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const AiConfigRowsCompanion({
+    this.id = const Value.absent(),
+    this.volcAsrEndpoint = const Value.absent(),
+    this.volcAsrResourceId = const Value.absent(),
+    this.volcAsrLanguage = const Value.absent(),
+    this.deepSeekBaseUrl = const Value.absent(),
+    this.deepSeekModel = const Value.absent(),
+    this.temperature = const Value.absent(),
+    this.timeoutSeconds = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AiConfigRowsCompanion.insert({
+    required String id,
+    required String volcAsrEndpoint,
+    required String volcAsrResourceId,
+    required String volcAsrLanguage,
+    required String deepSeekBaseUrl,
+    required String deepSeekModel,
+    required double temperature,
+    required int timeoutSeconds,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       volcAsrEndpoint = Value(volcAsrEndpoint),
+       volcAsrResourceId = Value(volcAsrResourceId),
+       volcAsrLanguage = Value(volcAsrLanguage),
+       deepSeekBaseUrl = Value(deepSeekBaseUrl),
+       deepSeekModel = Value(deepSeekModel),
+       temperature = Value(temperature),
+       timeoutSeconds = Value(timeoutSeconds),
+       updatedAt = Value(updatedAt);
+  static Insertable<AiConfigRow> custom({
+    Expression<String>? id,
+    Expression<String>? volcAsrEndpoint,
+    Expression<String>? volcAsrResourceId,
+    Expression<String>? volcAsrLanguage,
+    Expression<String>? deepSeekBaseUrl,
+    Expression<String>? deepSeekModel,
+    Expression<double>? temperature,
+    Expression<int>? timeoutSeconds,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (volcAsrEndpoint != null) 'volc_asr_endpoint': volcAsrEndpoint,
+      if (volcAsrResourceId != null) 'volc_asr_resource_id': volcAsrResourceId,
+      if (volcAsrLanguage != null) 'volc_asr_language': volcAsrLanguage,
+      if (deepSeekBaseUrl != null) 'deep_seek_base_url': deepSeekBaseUrl,
+      if (deepSeekModel != null) 'deep_seek_model': deepSeekModel,
+      if (temperature != null) 'temperature': temperature,
+      if (timeoutSeconds != null) 'timeout_seconds': timeoutSeconds,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AiConfigRowsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? volcAsrEndpoint,
+    Value<String>? volcAsrResourceId,
+    Value<String>? volcAsrLanguage,
+    Value<String>? deepSeekBaseUrl,
+    Value<String>? deepSeekModel,
+    Value<double>? temperature,
+    Value<int>? timeoutSeconds,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return AiConfigRowsCompanion(
+      id: id ?? this.id,
+      volcAsrEndpoint: volcAsrEndpoint ?? this.volcAsrEndpoint,
+      volcAsrResourceId: volcAsrResourceId ?? this.volcAsrResourceId,
+      volcAsrLanguage: volcAsrLanguage ?? this.volcAsrLanguage,
+      deepSeekBaseUrl: deepSeekBaseUrl ?? this.deepSeekBaseUrl,
+      deepSeekModel: deepSeekModel ?? this.deepSeekModel,
+      temperature: temperature ?? this.temperature,
+      timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (volcAsrEndpoint.present) {
+      map['volc_asr_endpoint'] = Variable<String>(volcAsrEndpoint.value);
+    }
+    if (volcAsrResourceId.present) {
+      map['volc_asr_resource_id'] = Variable<String>(volcAsrResourceId.value);
+    }
+    if (volcAsrLanguage.present) {
+      map['volc_asr_language'] = Variable<String>(volcAsrLanguage.value);
+    }
+    if (deepSeekBaseUrl.present) {
+      map['deep_seek_base_url'] = Variable<String>(deepSeekBaseUrl.value);
+    }
+    if (deepSeekModel.present) {
+      map['deep_seek_model'] = Variable<String>(deepSeekModel.value);
+    }
+    if (temperature.present) {
+      map['temperature'] = Variable<double>(temperature.value);
+    }
+    if (timeoutSeconds.present) {
+      map['timeout_seconds'] = Variable<int>(timeoutSeconds.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiConfigRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('volcAsrEndpoint: $volcAsrEndpoint, ')
+          ..write('volcAsrResourceId: $volcAsrResourceId, ')
+          ..write('volcAsrLanguage: $volcAsrLanguage, ')
+          ..write('deepSeekBaseUrl: $deepSeekBaseUrl, ')
+          ..write('deepSeekModel: $deepSeekModel, ')
+          ..write('temperature: $temperature, ')
+          ..write('timeoutSeconds: $timeoutSeconds, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2507,12 +3115,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppSettingsRowsTable appSettingsRows = $AppSettingsRowsTable(
     this,
   );
+  late final $AiConfigRowsTable aiConfigRows = $AiConfigRowsTable(this);
   late final $FolderRowsTable folderRows = $FolderRowsTable(this);
   late final $NoteRowsTable noteRows = $NoteRowsTable(this);
   late final $TimelineTaskRowsTable timelineTaskRows = $TimelineTaskRowsTable(
     this,
   );
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
+  late final AiConfigDao aiConfigDao = AiConfigDao(this as AppDatabase);
   late final FoldersDao foldersDao = FoldersDao(this as AppDatabase);
   late final NotesDao notesDao = NotesDao(this as AppDatabase);
   late final TimelineTasksDao timelineTasksDao = TimelineTasksDao(
@@ -2524,6 +3134,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     appSettingsRows,
+    aiConfigRows,
     folderRows,
     noteRows,
     timelineTaskRows,
@@ -2820,6 +3431,296 @@ typedef $$AppSettingsRowsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $AppSettingsRowsTable, AppSettingsRow>,
       ),
       AppSettingsRow,
+      PrefetchHooks Function()
+    >;
+typedef $$AiConfigRowsTableCreateCompanionBuilder =
+    AiConfigRowsCompanion Function({
+      required String id,
+      required String volcAsrEndpoint,
+      required String volcAsrResourceId,
+      required String volcAsrLanguage,
+      required String deepSeekBaseUrl,
+      required String deepSeekModel,
+      required double temperature,
+      required int timeoutSeconds,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$AiConfigRowsTableUpdateCompanionBuilder =
+    AiConfigRowsCompanion Function({
+      Value<String> id,
+      Value<String> volcAsrEndpoint,
+      Value<String> volcAsrResourceId,
+      Value<String> volcAsrLanguage,
+      Value<String> deepSeekBaseUrl,
+      Value<String> deepSeekModel,
+      Value<double> temperature,
+      Value<int> timeoutSeconds,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$AiConfigRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $AiConfigRowsTable> {
+  $$AiConfigRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get volcAsrEndpoint => $composableBuilder(
+    column: $table.volcAsrEndpoint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get volcAsrResourceId => $composableBuilder(
+    column: $table.volcAsrResourceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get volcAsrLanguage => $composableBuilder(
+    column: $table.volcAsrLanguage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deepSeekBaseUrl => $composableBuilder(
+    column: $table.deepSeekBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deepSeekModel => $composableBuilder(
+    column: $table.deepSeekModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get temperature => $composableBuilder(
+    column: $table.temperature,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timeoutSeconds => $composableBuilder(
+    column: $table.timeoutSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AiConfigRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AiConfigRowsTable> {
+  $$AiConfigRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get volcAsrEndpoint => $composableBuilder(
+    column: $table.volcAsrEndpoint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get volcAsrResourceId => $composableBuilder(
+    column: $table.volcAsrResourceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get volcAsrLanguage => $composableBuilder(
+    column: $table.volcAsrLanguage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deepSeekBaseUrl => $composableBuilder(
+    column: $table.deepSeekBaseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deepSeekModel => $composableBuilder(
+    column: $table.deepSeekModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get temperature => $composableBuilder(
+    column: $table.temperature,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timeoutSeconds => $composableBuilder(
+    column: $table.timeoutSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AiConfigRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AiConfigRowsTable> {
+  $$AiConfigRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get volcAsrEndpoint => $composableBuilder(
+    column: $table.volcAsrEndpoint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get volcAsrResourceId => $composableBuilder(
+    column: $table.volcAsrResourceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get volcAsrLanguage => $composableBuilder(
+    column: $table.volcAsrLanguage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deepSeekBaseUrl => $composableBuilder(
+    column: $table.deepSeekBaseUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deepSeekModel => $composableBuilder(
+    column: $table.deepSeekModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get temperature => $composableBuilder(
+    column: $table.temperature,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get timeoutSeconds => $composableBuilder(
+    column: $table.timeoutSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AiConfigRowsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AiConfigRowsTable,
+          AiConfigRow,
+          $$AiConfigRowsTableFilterComposer,
+          $$AiConfigRowsTableOrderingComposer,
+          $$AiConfigRowsTableAnnotationComposer,
+          $$AiConfigRowsTableCreateCompanionBuilder,
+          $$AiConfigRowsTableUpdateCompanionBuilder,
+          (
+            AiConfigRow,
+            BaseReferences<_$AppDatabase, $AiConfigRowsTable, AiConfigRow>,
+          ),
+          AiConfigRow,
+          PrefetchHooks Function()
+        > {
+  $$AiConfigRowsTableTableManager(_$AppDatabase db, $AiConfigRowsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AiConfigRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AiConfigRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AiConfigRowsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> volcAsrEndpoint = const Value.absent(),
+                Value<String> volcAsrResourceId = const Value.absent(),
+                Value<String> volcAsrLanguage = const Value.absent(),
+                Value<String> deepSeekBaseUrl = const Value.absent(),
+                Value<String> deepSeekModel = const Value.absent(),
+                Value<double> temperature = const Value.absent(),
+                Value<int> timeoutSeconds = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AiConfigRowsCompanion(
+                id: id,
+                volcAsrEndpoint: volcAsrEndpoint,
+                volcAsrResourceId: volcAsrResourceId,
+                volcAsrLanguage: volcAsrLanguage,
+                deepSeekBaseUrl: deepSeekBaseUrl,
+                deepSeekModel: deepSeekModel,
+                temperature: temperature,
+                timeoutSeconds: timeoutSeconds,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String volcAsrEndpoint,
+                required String volcAsrResourceId,
+                required String volcAsrLanguage,
+                required String deepSeekBaseUrl,
+                required String deepSeekModel,
+                required double temperature,
+                required int timeoutSeconds,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AiConfigRowsCompanion.insert(
+                id: id,
+                volcAsrEndpoint: volcAsrEndpoint,
+                volcAsrResourceId: volcAsrResourceId,
+                volcAsrLanguage: volcAsrLanguage,
+                deepSeekBaseUrl: deepSeekBaseUrl,
+                deepSeekModel: deepSeekModel,
+                temperature: temperature,
+                timeoutSeconds: timeoutSeconds,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AiConfigRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AiConfigRowsTable,
+      AiConfigRow,
+      $$AiConfigRowsTableFilterComposer,
+      $$AiConfigRowsTableOrderingComposer,
+      $$AiConfigRowsTableAnnotationComposer,
+      $$AiConfigRowsTableCreateCompanionBuilder,
+      $$AiConfigRowsTableUpdateCompanionBuilder,
+      (
+        AiConfigRow,
+        BaseReferences<_$AppDatabase, $AiConfigRowsTable, AiConfigRow>,
+      ),
+      AiConfigRow,
       PrefetchHooks Function()
     >;
 typedef $$FolderRowsTableCreateCompanionBuilder =
@@ -3718,6 +4619,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$AppSettingsRowsTableTableManager get appSettingsRows =>
       $$AppSettingsRowsTableTableManager(_db, _db.appSettingsRows);
+  $$AiConfigRowsTableTableManager get aiConfigRows =>
+      $$AiConfigRowsTableTableManager(_db, _db.aiConfigRows);
   $$FolderRowsTableTableManager get folderRows =>
       $$FolderRowsTableTableManager(_db, _db.folderRows);
   $$NoteRowsTableTableManager get noteRows =>

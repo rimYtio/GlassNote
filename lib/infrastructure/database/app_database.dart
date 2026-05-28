@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/app_settings.dart';
+import '../../domain/entities/ai_config.dart';
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/entities/timeline_task.dart';
@@ -23,6 +24,21 @@ class AppSettingsRows extends Table {
   BoolColumn get exportIncludeMetadata =>
       boolean().named('export_include_metadata')();
   DateTimeColumn get createdAt => dateTime().named('created_at')();
+  DateTimeColumn get updatedAt => dateTime().named('updated_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class AiConfigRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get volcAsrEndpoint => text().named('volc_asr_endpoint')();
+  TextColumn get volcAsrResourceId => text().named('volc_asr_resource_id')();
+  TextColumn get volcAsrLanguage => text().named('volc_asr_language')();
+  TextColumn get deepSeekBaseUrl => text().named('deep_seek_base_url')();
+  TextColumn get deepSeekModel => text().named('deep_seek_model')();
+  RealColumn get temperature => real()();
+  IntColumn get timeoutSeconds => integer().named('timeout_seconds')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
 
   @override
@@ -132,6 +148,56 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
       defaultFolderId: row.defaultFolderId,
       exportIncludeMetadata: row.exportIncludeMetadata,
       createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    );
+  }
+}
+
+@DriftAccessor(tables: [AiConfigRows])
+class AiConfigDao extends DatabaseAccessor<AppDatabase>
+    with _$AiConfigDaoMixin {
+  AiConfigDao(super.db);
+
+  Future<AiConfig> loadConfig() async {
+    final row = await (select(
+      aiConfigRows,
+    )..where((table) => table.id.equals(AiConfig.defaultId))).getSingleOrNull();
+    if (row != null) {
+      return _rowToDomain(row);
+    }
+
+    final config = AiConfig.defaults();
+    await saveConfig(config);
+    return config;
+  }
+
+  Future<AiConfig> saveConfig(AiConfig config) async {
+    await into(aiConfigRows).insertOnConflictUpdate(
+      AiConfigRowsCompanion(
+        id: Value(config.id),
+        volcAsrEndpoint: Value(config.volcAsrEndpoint),
+        volcAsrResourceId: Value(config.volcAsrResourceId),
+        volcAsrLanguage: Value(config.volcAsrLanguage),
+        deepSeekBaseUrl: Value(config.deepSeekBaseUrl),
+        deepSeekModel: Value(config.deepSeekModel),
+        temperature: Value(config.temperature),
+        timeoutSeconds: Value(config.timeoutSeconds),
+        updatedAt: Value(config.updatedAt),
+      ),
+    );
+    return config;
+  }
+
+  AiConfig _rowToDomain(AiConfigRow row) {
+    return AiConfig(
+      id: row.id,
+      volcAsrEndpoint: row.volcAsrEndpoint,
+      volcAsrResourceId: row.volcAsrResourceId,
+      volcAsrLanguage: row.volcAsrLanguage,
+      deepSeekBaseUrl: row.deepSeekBaseUrl,
+      deepSeekModel: row.deepSeekModel,
+      temperature: row.temperature,
+      timeoutSeconds: row.timeoutSeconds,
       updatedAt: row.updatedAt,
     );
   }
@@ -416,11 +482,16 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     }
 
     final pattern = '%$trimmed%';
+    final searchDate = _tryParseSearchDate(trimmed);
     final rows =
-        await (_activeTasksQuery()..where(
-              (table) =>
-                  table.title.like(pattern) | table.description.like(pattern),
-            ))
+        await (_activeTasksQuery()..where((table) {
+              var filter =
+                  table.title.like(pattern) | table.description.like(pattern);
+              if (searchDate != null) {
+                filter = filter | table.taskDate.equals(searchDate);
+              }
+              return filter;
+            }))
             .get();
     return TimelineTaskSort.sortedForTimeline(rows.map(_rowToDomain));
   }
@@ -471,8 +542,14 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
 }
 
 @DriftDatabase(
-  tables: [AppSettingsRows, FolderRows, NoteRows, TimelineTaskRows],
-  daos: [SettingsDao, FoldersDao, NotesDao, TimelineTasksDao],
+  tables: [
+    AppSettingsRows,
+    AiConfigRows,
+    FolderRows,
+    NoteRows,
+    TimelineTaskRows,
+  ],
+  daos: [SettingsDao, AiConfigDao, FoldersDao, NotesDao, TimelineTasksDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -480,7 +557,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -496,12 +573,37 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await migrator.addColumn(folderRows, folderRows.isStarred);
       }
+      if (from < 5) {
+        await migrator.createTable(aiConfigRows);
+      }
     },
   );
 }
 
 DateTime _dateOnly(DateTime value) {
   return DateTime(value.year, value.month, value.day);
+}
+
+DateTime? _tryParseSearchDate(String value) {
+  final match = RegExp(
+    r'^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$',
+  ).firstMatch(value.trim());
+  if (match == null) {
+    return null;
+  }
+
+  final year = int.tryParse(match.group(1)!);
+  final month = int.tryParse(match.group(2)!);
+  final day = int.tryParse(match.group(3)!);
+  if (year == null || month == null || day == null) {
+    return null;
+  }
+
+  final date = DateTime(year, month, day);
+  if (date.year != year || date.month != month || date.day != day) {
+    return null;
+  }
+  return date;
 }
 
 QueryExecutor _openConnection() {
