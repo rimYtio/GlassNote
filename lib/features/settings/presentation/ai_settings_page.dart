@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,6 +38,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   bool _feedbackSuccess = true;
   String? _volcTestMessage;
   String? _deepSeekTestMessage;
+  bool _saveVisible = true;
+  bool _volcTestVisible = true;
+  bool _deepSeekTestVisible = true;
+  Timer? _dismissTimer;
 
   @override
   void initState() {
@@ -45,6 +51,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
 
   @override
   void dispose() {
+    _dismissTimer?.cancel();
     _volcEndpointController.dispose();
     _volcResourceController.dispose();
     _volcLanguageController.dispose();
@@ -97,13 +104,13 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                           _secretField(
                             key: 'ai-volc-app-key-field',
                             controller: _volcAppKeyController,
-                            label: 'App Key',
+                            label: 'APP ID',
                             saved: _volcAppKeySaved,
                           ),
                           _secretField(
                             key: 'ai-volc-access-key-field',
                             controller: _volcAccessKeyController,
-                            label: 'Access Key',
+                            label: 'Access Token',
                             saved: _volcAccessKeySaved,
                           ),
                           _testButton(
@@ -113,6 +120,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                                 ? null
                                 : _testVolcAsr,
                             message: _volcTestMessage,
+                            messageVisible: _volcTestVisible,
+                            onMessageCleared: () {
+                              _volcTestMessage = null;
+                            },
                           ),
                         ],
                       ),
@@ -163,6 +174,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                                 ? null
                                 : _testDeepSeek,
                             message: _deepSeekTestMessage,
+                            messageVisible: _deepSeekTestVisible,
+                            onMessageCleared: () {
+                              _deepSeekTestMessage = null;
+                            },
                           ),
                         ],
                       ),
@@ -183,7 +198,17 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                     left: 0,
                     right: 0,
                     bottom: 164,
-                    child: GlassCard(
+                    child: AnimatedOpacity(
+                      opacity: _saveVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 400),
+                      onEnd: () {
+                        if (!_saveVisible && mounted) {
+                          setState(() {
+                            _saveMessage = null;
+                          });
+                        }
+                      },
+                      child: GlassCard(
                       key: const ValueKey('ai-save-feedback'),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -202,6 +227,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                           const SizedBox(width: 10),
                           Expanded(child: Text(_saveMessage!)),
                         ],
+                      ),
                       ),
                     ),
                   ),
@@ -266,13 +292,28 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
     required String label,
     required VoidCallback? onPressed,
     required String? message,
+    required bool messageVisible,
+    required VoidCallback onMessageCleared,
   }) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (message != null) ...[Text(message), const SizedBox(height: 8)],
+          if (message != null)
+            AnimatedOpacity(
+              opacity: messageVisible ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 400),
+              onEnd: () {
+                if (!messageVisible && mounted) {
+                  setState(onMessageCleared);
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(message),
+              ),
+            ),
           OutlinedButton.icon(
             key: ValueKey(key),
             onPressed: onPressed,
@@ -324,11 +365,31 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
     );
   }
 
+  void _cancelDismiss() {
+    _dismissTimer?.cancel();
+  }
+
+  void _scheduleDismiss() {
+    _cancelDismiss();
+    _dismissTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _saveVisible = false;
+        _volcTestVisible = false;
+        _deepSeekTestVisible = false;
+      });
+    });
+  }
+
   Future<void> _testVolcAsr() async {
     setState(() {
       _testingVolc = true;
       _volcTestMessage = null;
+      _volcTestVisible = true;
     });
+    _cancelDismiss();
     final result = await ref
         .read(aiConnectionTesterProvider)
         .testVolcAsr(
@@ -343,14 +404,19 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       _volcTestMessage = result.message;
       _saveMessage = result.message;
       _feedbackSuccess = result.success;
+      _saveVisible = true;
+      _volcTestVisible = true;
     });
+    _scheduleDismiss();
   }
 
   Future<void> _testDeepSeek() async {
     setState(() {
       _testingDeepSeek = true;
       _deepSeekTestMessage = null;
+      _deepSeekTestVisible = true;
     });
+    _cancelDismiss();
     final result = await ref
         .read(aiConnectionTesterProvider)
         .testDeepSeek(
@@ -365,7 +431,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       _deepSeekTestMessage = result.message;
       _saveMessage = result.message;
       _feedbackSuccess = result.success;
+      _saveVisible = true;
+      _deepSeekTestVisible = true;
     });
+    _scheduleDismiss();
   }
 
   Future<void> _syncSavedSecretFlags() async {
@@ -401,7 +470,9 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       _saving = true;
       _saveMessage = null;
       _feedbackSuccess = true;
+      _saveVisible = true;
     });
+    _cancelDismiss();
     try {
       await ref.read(aiConfigRepositoryProvider).save(_currentConfig());
 
@@ -433,8 +504,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
         _deepSeekKeyController.clear();
         _saveMessage = 'API 设置已保存';
         _feedbackSuccess = true;
+        _saveVisible = true;
         _saving = false;
       });
+      _scheduleDismiss();
     } on Object catch (error) {
       if (!mounted) {
         return;
@@ -442,8 +515,10 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       setState(() {
         _saveMessage = 'API 设置保存失败: $error';
         _feedbackSuccess = false;
+        _saveVisible = true;
         _saving = false;
       });
+      _scheduleDismiss();
     }
   }
 

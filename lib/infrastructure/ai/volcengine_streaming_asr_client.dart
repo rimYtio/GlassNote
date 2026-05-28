@@ -178,18 +178,24 @@ Uint8List _buildFullClientRequest(AiConfig config, String requestId) {
 }
 
 Uint8List _buildAudioRequest(List<int> audio, {bool isLast = false}) {
-  return _buildPacket(messageType: 2, payload: audio, isLast: isLast);
+  return _buildPacket(
+    messageType: 2,
+    payload: audio,
+    isLast: isLast,
+    serializationMethod: 0,
+  );
 }
 
 Uint8List _buildPacket({
   required int messageType,
   required List<int> payload,
   bool isLast = false,
+  int serializationMethod = 1,
 }) {
   final header = <int>[
     0x11,
     (messageType << 4) | (isLast ? 0x02 : 0x00),
-    0x10,
+    (serializationMethod << 4),
     0x00,
   ];
   final length = ByteData(4)..setInt32(0, payload.length, Endian.big);

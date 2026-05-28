@@ -46,7 +46,7 @@ void main() {
       expect(result, const AiConnectionTestResult.success('DeepSeek 连接成功'));
       expect(
         captured!.url.toString(),
-        'https://api.deepseek.com/chat/completions',
+        'https://api.deepseek.com/v1/chat/completions',
       );
       expect(captured!.headers['Authorization'], 'Bearer deepseek-key');
       expect(body['model'], 'deepseek-v4-flash');

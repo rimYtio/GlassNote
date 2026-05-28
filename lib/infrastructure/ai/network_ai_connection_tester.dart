@@ -67,7 +67,7 @@ class NetworkAiConnectionTester implements AiConnectionTester {
     try {
       final uri = Uri.parse(
         config.deepSeekBaseUrl,
-      ).resolve('/chat/completions');
+      ).resolve('/v1/chat/completions');
       final response = await _httpClient
           .post(
             uri,
