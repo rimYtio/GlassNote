@@ -122,7 +122,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
           child: ScaleTransition(
             alignment: Alignment.topRight,
             scale: Tween<double>(begin: 0.94, end: 1).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+              CurvedAnimation(parent: animation, curve: Curves.elasticOut),
             ),
             child: child,
           ),
@@ -215,54 +215,64 @@ class _CreateMenuOverlay extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: SafeArea(
-        child: Align(
-          alignment: Alignment.topRight,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8, right: 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-                child: DecoratedBox(
-                  key: const ValueKey('notes-create-glass-menu-surface'),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface.withValues(alpha: 0.32),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: colorScheme.onSurface.withValues(alpha: 0.12),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.shadow.withValues(alpha: 0.10),
-                        blurRadius: 26,
-                        offset: const Offset(0, 14),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).pop(),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8, right: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                    child: DecoratedBox(
+                      key: const ValueKey('notes-create-glass-menu-surface'),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withValues(alpha: 0.32),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: colorScheme.onSurface.withValues(alpha: 0.12),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.shadow.withValues(alpha: 0.10),
+                            blurRadius: 26,
+                            offset: const Offset(0, 14),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _CreateMenuItem(
-                          icon: Icons.note_add_outlined,
-                          label: '新建笔记',
-                          action: _CreateAction.note,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _CreateMenuItem(
+                              icon: Icons.note_add_outlined,
+                              label: '新建笔记',
+                              action: _CreateAction.note,
+                            ),
+                            _CreateMenuItem(
+                              icon: Icons.create_new_folder_outlined,
+                              label: '新建文件夹',
+                              action: _CreateAction.folder,
+                            ),
+                          ],
                         ),
-                        _CreateMenuItem(
-                          icon: Icons.create_new_folder_outlined,
-                          label: '新建文件夹',
-                          action: _CreateAction.folder,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

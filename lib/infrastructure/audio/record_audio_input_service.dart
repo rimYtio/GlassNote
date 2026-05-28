@@ -29,6 +29,14 @@ class RecordAudioInputService implements AudioInputService {
   }
 
   @override
+  Stream<double> get amplitudeStream =>
+      _recorder.onAmplitudeChanged(const Duration(milliseconds: 60)).map((a) {
+        final db = a.current;
+        if (db.isNaN || db.isInfinite) return 0.0;
+        return ((db + 55) / 55).clamp(0.0, 1.0);
+      });
+
+  @override
   Future<void> stop() async {
     await _recorder.stop();
   }

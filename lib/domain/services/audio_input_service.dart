@@ -3,5 +3,7 @@ abstract interface class AudioInputService {
 
   Stream<List<int>> startPcm16Stream();
 
+  Stream<double> get amplitudeStream;
+
   Future<void> stop();
 }

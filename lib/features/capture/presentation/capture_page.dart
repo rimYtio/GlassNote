@@ -40,7 +40,9 @@ class CapturePage extends ConsumerWidget {
               if (state.previews.isEmpty &&
                   state.status != CaptureStatus.preview) ...[
                 const SizedBox(height: 24),
-                _VoiceWaveform(active: state.status == CaptureStatus.recording),
+                if (state.status == CaptureStatus.recording ||
+                    state.status == CaptureStatus.analyzing)
+                  const SizedBox(height: 140),
                 const SizedBox(height: 24),
               ] else
                 const SizedBox(height: 16),
@@ -69,16 +71,13 @@ class CapturePage extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ] else
-                GlassCard(
-                  child: Text(
-                    state.status == CaptureStatus.success
-                        ? '已创建'
-                        : '长按下方话筒，说出想法、笔记或任务。',
-                  ),
-                ),
+              ] else if (state.status != CaptureStatus.recording &&
+                  state.status != CaptureStatus.analyzing)
+                const _IdleFlow(),
             ],
           ),
+          if (state.status == CaptureStatus.recording)
+            const _VoiceBall(),
           if (state.status != CaptureStatus.preview &&
               state.status != CaptureStatus.saving)
             Positioned(
@@ -88,8 +87,8 @@ class CapturePage extends ConsumerWidget {
               child: Center(
                 child: _GlassMicButton(
                   active: state.status == CaptureStatus.recording,
-                  onDown: controller.startRecording,
-                  onUp: controller.stopRecording,
+                  onStart: controller.startRecording,
+                  onStop: controller.stopRecording,
                 ),
               ),
             ),
@@ -134,47 +133,41 @@ class _CaptionCard extends StatelessWidget {
   }
 }
 
-class _VoiceWaveform extends StatefulWidget {
-  const _VoiceWaveform({required this.active});
-
-  final bool active;
+class _IdleFlow extends StatefulWidget {
+  const _IdleFlow();
 
   @override
-  State<_VoiceWaveform> createState() => _VoiceWaveformState();
+  State<_IdleFlow> createState() => _IdleFlowState();
 }
 
-class _VoiceWaveformState extends State<_VoiceWaveform>
+class _IdleFlowState extends State<_IdleFlow>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+  late final AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(seconds: 8),
     )..repeat();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 180,
+      height: 200,
       child: AnimatedBuilder(
-        animation: _controller,
+        animation: _ctrl,
         builder: (context, _) {
           return CustomPaint(
-            painter: _WaveformPainter(
-              progress: _controller.value,
-              active: widget.active,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            painter: _IdleFlowPainter(phase: _ctrl.value),
             child: const SizedBox.expand(),
           );
         },
@@ -183,58 +176,195 @@ class _VoiceWaveformState extends State<_VoiceWaveform>
   }
 }
 
-class _WaveformPainter extends CustomPainter {
-  const _WaveformPainter({
-    required this.progress,
-    required this.active,
-    required this.color,
-  });
-
-  final double progress;
-  final bool active;
-  final Color color;
+class _IdleFlowPainter extends CustomPainter {
+  _IdleFlowPainter({required this.phase});
+  final double phase;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withValues(alpha: active ? 0.70 : 0.22)
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5;
-    final centerY = size.height / 2;
-    final bars = 28;
-    final gap = size.width / bars;
-    for (var i = 0; i < bars; i += 1) {
-      final phase = progress * math.pi * 2 + i * 0.55;
-      final height = active
-          ? 24 + math.sin(phase).abs() * 92
-          : 18 + math.sin(i).abs() * 28;
-      final x = gap * i + gap / 2;
-      canvas.drawLine(
-        Offset(x, centerY - height / 2),
-        Offset(x, centerY + height / 2),
-        paint,
+    final center = Offset(size.width / 2, size.height / 2);
+    final baseRadius = math.min(size.width, size.height) * 0.28;
+    final outerPaint = Paint()
+      ..color = const Color(0x885B8DEF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    for (var r = 0; r < 3; r++) {
+      final path = Path();
+      final radius = baseRadius + r * 14;
+      final circles = r == 0 ? 11 : r == 1 ? 17 : 23;
+      for (var i = 0; i <= circles; i++) {
+        final a = i / circles * math.pi * 2;
+        final wave =
+            math.sin(a * 3 + phase * math.pi * 2 * (1 + r * 0.4)) * 4;
+        final x = center.dx + math.cos(a) * (radius + wave);
+        final y = center.dy + math.sin(a) * (radius + wave);
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.close();
+      outerPaint.color = const Color(0x335B8DEF).withValues(
+        alpha: 0.15 + r * 0.08,
       );
+      canvas.drawPath(path, outerPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.active != active ||
-        oldDelegate.color != color;
+  bool shouldRepaint(covariant _IdleFlowPainter oldDelegate) =>
+      oldDelegate.phase != phase;
+}
+
+class _VoiceBall extends ConsumerStatefulWidget {
+  const _VoiceBall();
+
+  @override
+  ConsumerState<_VoiceBall> createState() => _VoiceBallState();
+}
+
+class _VoiceBallState extends ConsumerState<_VoiceBall>
+    with TickerProviderStateMixin {
+  late final AnimationController _entryCtrl;
+  late final Animation<double> _entryAnimation;
+  late final AnimationController _waveCtrl;
+  double _amplitude = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _entryAnimation = CurvedAnimation(
+      parent: _entryCtrl,
+      curve: Curves.easeOutBack,
+    );
+    _entryCtrl.forward();
+    _waveCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+    _startAmplitudeListener();
+  }
+
+  @override
+  void dispose() {
+    _entryCtrl.dispose();
+    _waveCtrl.dispose();
+    super.dispose();
+  }
+
+  void _startAmplitudeListener() {
+    ref.read(audioInputServiceProvider).amplitudeStream.listen((a) {
+      if (mounted) {
+        setState(() => _amplitude = a);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Positioned.fill(
+      child: Center(
+        child: ScaleTransition(
+          scale: _entryAnimation,
+          child: AnimatedBuilder(
+            animation: _waveCtrl,
+            builder: (context, _) {
+              return CustomPaint(
+                size: const Size(200, 200),
+                painter: _VoiceBallPainter(
+                  fillColor: colorScheme.primaryContainer
+                      .withValues(alpha: 0.22),
+                  ringColor: colorScheme.primary.withValues(alpha: 0.55),
+                  amplitude: _amplitude,
+                  wavePhase: _waveCtrl.value,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VoiceBallPainter extends CustomPainter {
+  _VoiceBallPainter({
+    required this.fillColor,
+    required this.ringColor,
+    required this.amplitude,
+    required this.wavePhase,
+  });
+
+  final Color fillColor;
+  final Color ringColor;
+  final double amplitude;
+  final double wavePhase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final baseRadius = size.width / 2 - 6;
+    final distortion = amplitude * 14;
+    final linearPhase = wavePhase * math.pi * 2;
+
+    final path = Path();
+    const segments = 50;
+    for (var i = 0; i <= segments; i++) {
+      final a = i / segments * math.pi * 2;
+      final wave =
+          math.sin(a * 5 + linearPhase) * distortion * 0.8 +
+          math.sin(a * 3 + linearPhase * 1.6) * distortion * 0.5 +
+          math.sin(a * 8 + linearPhase * 0.3) * distortion * 0.3;
+      final r = baseRadius + wave;
+      final x = center.dx + math.cos(a) * r;
+      final y = center.dy + math.sin(a) * r;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+
+    final fillPaint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, baseRadius - 2, fillPaint);
+    canvas.drawPath(path, fillPaint);
+
+    final ringPaint = Paint()
+      ..color = ringColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(path, ringPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VoiceBallPainter oldDelegate) {
+    return oldDelegate.amplitude != amplitude ||
+        oldDelegate.wavePhase != wavePhase;
   }
 }
 
 class _GlassMicButton extends StatefulWidget {
   const _GlassMicButton({
     required this.active,
-    required this.onDown,
-    required this.onUp,
+    required this.onStart,
+    required this.onStop,
   });
 
   final bool active;
-  final VoidCallback onDown;
-  final VoidCallback onUp;
+  final VoidCallback onStart;
+  final VoidCallback onStop;
 
   @override
   State<_GlassMicButton> createState() => _GlassMicButtonState();
@@ -244,10 +374,19 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
   bool _pressed = false;
 
   void _setPressed(bool value) {
-    if (_pressed == value) {
-      return;
-    }
+    if (_pressed == value) return;
     setState(() => _pressed = value);
+  }
+
+  void _showLongPressHint() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('长按开始录音'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 140, left: 60, right: 60),
+      ),
+    );
   }
 
   @override
@@ -257,17 +396,18 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) {
-        _setPressed(true);
-        widget.onDown();
-      },
-      onTapUp: (_) {
+      onTap: widget.active ? null : _showLongPressHint,
+      onLongPressStart: (_) {
+              _setPressed(true);
+              widget.onStart();
+            },
+      onLongPressEnd: (_) {
+              _setPressed(false);
+              widget.onStop();
+            },
+      onLongPressCancel: () {
         _setPressed(false);
-        widget.onUp();
-      },
-      onTapCancel: () {
-        _setPressed(false);
-        widget.onUp();
+        widget.onStop();
       },
       child: SizedBox(
         width: 132,
