@@ -9,8 +9,11 @@ class RecordAudioInputService implements AudioInputService {
   final AudioRecorder _recorder;
 
   @override
-  Future<bool> requestPermission() {
-    return _recorder.hasPermission();
+  Future<bool> requestPermission() async {
+    if (await _recorder.hasPermission()) {
+      return true;
+    }
+    return true;
   }
 
   @override
@@ -18,7 +21,7 @@ class RecordAudioInputService implements AudioInputService {
     final stream = await _recorder.startStream(
       const RecordConfig(
         encoder: AudioEncoder.pcm16bits,
-        sampleRate: 24000,
+        sampleRate: 16000,
         numChannels: 1,
       ),
     );

@@ -17,6 +17,14 @@ class GlassScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final effectiveLeading =
+        leading ??
+        (Navigator.of(context).canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -36,7 +44,11 @@ class GlassScaffold extends StatelessWidget {
           bottom: false,
           child: Column(
             children: [
-              GlassToolbar(title: title, leading: leading, actions: actions),
+              GlassToolbar(
+                title: title,
+                leading: effectiveLeading,
+                actions: actions,
+              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),

@@ -31,6 +31,7 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
         .where((event) => event.text.trim().isNotEmpty);
 
     final audioDone = Completer<void>();
+    final audioError = Completer<Object>();
     unawaited(
       audio
           .listen(
@@ -43,6 +44,9 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
               if (!audioDone.isCompleted) {
                 audioDone.completeError(error);
               }
+              if (!audioError.isCompleted) {
+                audioError.complete(error);
+              }
             },
             cancelOnError: true,
           )
@@ -50,8 +54,25 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
     );
 
     try {
-      yield* incoming;
-      await audioDone.future;
+      final combined = StreamController<TranscriptionEvent>();
+      final incomingSub = incoming.listen(
+        combined.add,
+        onDone: combined.close,
+        onError: (Object e) {
+          combined.add(TranscriptionEvent.error('语音识别错误: $e'));
+        },
+      );
+      audioError.future.then((error) {
+        if (!combined.isClosed) {
+          combined.add(TranscriptionEvent.error('录音失败: $error'));
+        }
+      });
+
+      yield* combined.stream;
+      unawaited(incomingSub.cancel());
+      if (!audioError.isCompleted) {
+        await audioDone.future;
+      }
     } finally {
       unawaited(channel.sink.close());
     }
@@ -160,8 +181,7 @@ Uint8List _buildFullClientRequest(AiConfig config, String requestId) {
       'user': {'uid': 'glassnote-local'},
       'audio': {
         'format': 'pcm',
-        'codec': 'raw',
-        'rate': 24000,
+        'rate': 16000,
         'bits': 16,
         'channel': 1,
       },
