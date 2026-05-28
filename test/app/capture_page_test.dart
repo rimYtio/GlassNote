@@ -70,6 +70,102 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('capture clears missing API error after settings are saved', (
+    tester,
+  ) async {
+    secrets = InMemorySecureKeyValueStore();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          audioInputServiceProvider.overrideWithValue(_FakeAudioInputService()),
+          realtimeTranscriptionClientProvider.overrideWithValue(
+            _EmptyRealtimeTranscriptionClient(),
+          ),
+          captureAnalyzerProvider.overrideWithValue(_FakeCaptureAnalyzer()),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    final button = find.byKey(const ValueKey('capture-mic-button'));
+    final gesture = await tester.startGesture(tester.getCenter(button));
+    await gesture.up();
+    await _pumpUi(tester);
+    expect(find.text('捕获失败'), findsOneWidget);
+    expect(find.textContaining('请先在 API 设置中填写'), findsOneWidget);
+
+    await tester.tap(find.text('设置').last);
+    await _pumpUi(tester);
+    await tester.tap(find.text('API 设置'));
+    await _pumpUi(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('ai-volc-app-key-field')),
+      'app',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('ai-volc-access-key-field')),
+      'access',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('ai-deepseek-key-field')),
+      'deepseek',
+    );
+    await tester.tap(find.text('保存 API 设置'));
+    await _pumpUi(tester);
+
+    await tester.tap(find.text('捕获').last);
+    await _pumpUi(tester);
+    expect(find.text('捕获失败'), findsNothing);
+    expect(find.text('语音捕获'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('mic button scales down and shows halo while pressed', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          audioInputServiceProvider.overrideWithValue(_FakeAudioInputService()),
+          realtimeTranscriptionClientProvider.overrideWithValue(
+            _EmptyRealtimeTranscriptionClient(),
+          ),
+          captureAnalyzerProvider.overrideWithValue(_FakeCaptureAnalyzer()),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    final button = find.byKey(const ValueKey('capture-mic-button'));
+    final gesture = await tester.startGesture(tester.getCenter(button));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final pressedScale = tester.widget<AnimatedScale>(
+      find.byKey(const ValueKey('capture-mic-scale')),
+    );
+    final halo = tester.widget<AnimatedOpacity>(
+      find.byKey(const ValueKey('capture-mic-halo')),
+    );
+    expect(pressedScale.scale, lessThan(1));
+    expect(halo.opacity, greaterThan(0));
+
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 50));
+    final releasedScale = tester.widget<AnimatedScale>(
+      find.byKey(const ValueKey('capture-mic-scale')),
+    );
+    expect(releasedScale.scale, 1);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
 
 class _FakeAudioInputService implements AudioInputService {
@@ -93,6 +189,15 @@ class _FakeRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
     yield const TranscriptionEvent.delta('记录一个想法');
     yield const TranscriptionEvent.completed('记录一个想法');
   }
+}
+
+class _EmptyRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
+  @override
+  Stream<TranscriptionEvent> transcribe({
+    required Stream<List<int>> audio,
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async* {}
 }
 
 class _FakeCaptureAnalyzer implements CaptureAnalyzer {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/capture_draft_preview.dart';
+import '../../../infrastructure/providers/infrastructure_providers.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'capture_controller.dart';
@@ -16,6 +17,16 @@ class CapturePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(captureControllerProvider);
     final controller = ref.read(captureControllerProvider.notifier);
+    final secrets = ref.watch(aiSecretsProvider);
+    if (state.status == CaptureStatus.error &&
+        state.errorType == CaptureErrorType.configuration &&
+        (secrets.asData?.value.hasCaptureKeys ?? false)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          controller.clearConfigurationError();
+        }
+      });
+    }
 
     return GlassScaffold(
       title: '捕获',
@@ -194,7 +205,7 @@ class _WaveformPainter extends CustomPainter {
   }
 }
 
-class _GlassMicButton extends StatelessWidget {
+class _GlassMicButton extends StatefulWidget {
   const _GlassMicButton({
     required this.active,
     required this.onDown,
@@ -206,45 +217,115 @@ class _GlassMicButton extends StatelessWidget {
   final VoidCallback onUp;
 
   @override
+  State<_GlassMicButton> createState() => _GlassMicButtonState();
+}
+
+class _GlassMicButtonState extends State<_GlassMicButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (_pressed == value) {
+      return;
+    }
+    setState(() => _pressed = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final lit = widget.active || _pressed;
 
     return GestureDetector(
-      onTapDown: (_) => onDown(),
-      onTapUp: (_) => onUp(),
-      onTapCancel: onUp,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(36),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-          child: DecoratedBox(
-            key: const ValueKey('capture-mic-button'),
-            decoration: BoxDecoration(
-              color:
-                  (active ? colorScheme.primaryContainer : colorScheme.surface)
-                      .withValues(alpha: active ? 0.42 : 0.30),
-              borderRadius: BorderRadius.circular(36),
-              border: Border.all(
-                color: colorScheme.onSurface.withValues(alpha: 0.14),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.12),
-                  blurRadius: 30,
-                  offset: const Offset(0, 14),
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) {
+        _setPressed(true);
+        widget.onDown();
+      },
+      onTapUp: (_) {
+        _setPressed(false);
+        widget.onUp();
+      },
+      onTapCancel: () {
+        _setPressed(false);
+        widget.onUp();
+      },
+      child: SizedBox(
+        width: 132,
+        height: 132,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedOpacity(
+              key: const ValueKey('capture-mic-halo'),
+              opacity: _pressed ? 1 : 0,
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.28),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.primary.withValues(alpha: 0.28),
+                          blurRadius: 24,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const SizedBox(width: 122, height: 122),
+                  ),
                 ),
-              ],
-            ),
-            child: SizedBox(
-              width: 92,
-              height: 92,
-              child: Icon(
-                active ? Icons.mic : Icons.mic_none,
-                size: 34,
-                color: colorScheme.onSurface,
               ),
             ),
-          ),
+            AnimatedScale(
+              key: const ValueKey('capture-mic-scale'),
+              scale: _pressed ? 0.88 : 1,
+              duration: Duration(milliseconds: _pressed ? 130 : 430),
+              curve: _pressed ? Curves.easeOutCubic : Curves.elasticOut,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                  child: DecoratedBox(
+                    key: const ValueKey('capture-mic-button'),
+                    decoration: BoxDecoration(
+                      color:
+                          (lit
+                                  ? colorScheme.primaryContainer
+                                  : colorScheme.surface)
+                              .withValues(alpha: lit ? 0.42 : 0.30),
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(
+                        color: colorScheme.onSurface.withValues(alpha: 0.14),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.12),
+                          blurRadius: 30,
+                          offset: const Offset(0, 14),
+                        ),
+                      ],
+                    ),
+                    child: SizedBox(
+                      width: 92,
+                      height: 92,
+                      child: Icon(
+                        lit ? Icons.mic : Icons.mic_none,
+                        size: 34,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

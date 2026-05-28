@@ -23,12 +23,21 @@ enum CaptureStatus {
   error,
 }
 
+enum CaptureErrorType {
+  configuration,
+  permission,
+  transcription,
+  emptyTranscript,
+  analysis,
+}
+
 class CaptureState {
   const CaptureState({
     required this.status,
     required this.transcript,
     this.preview,
     this.errorMessage,
+    this.errorType,
   });
 
   factory CaptureState.initial() {
@@ -39,12 +48,14 @@ class CaptureState {
   final String transcript;
   final CaptureDraftPreview? preview;
   final String? errorMessage;
+  final CaptureErrorType? errorType;
 
   CaptureState copyWith({
     CaptureStatus? status,
     String? transcript,
     CaptureDraftPreview? preview,
     String? errorMessage,
+    CaptureErrorType? errorType,
     bool clearPreview = false,
     bool clearError = false,
   }) {
@@ -53,6 +64,7 @@ class CaptureState {
       transcript: transcript ?? this.transcript,
       preview: clearPreview ? null : preview ?? this.preview,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      errorType: clearError ? null : errorType ?? this.errorType,
     );
   }
 }
@@ -80,6 +92,7 @@ class CaptureController extends Notifier<CaptureState> {
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: '请先在 API 设置中填写火山引擎和 DeepSeek Key',
+        errorType: CaptureErrorType.configuration,
         clearPreview: true,
       );
       return;
@@ -94,6 +107,7 @@ class CaptureController extends Notifier<CaptureState> {
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: '未获得麦克风权限',
+        errorType: CaptureErrorType.permission,
         clearPreview: true,
       );
       return;
@@ -137,6 +151,7 @@ class CaptureController extends Notifier<CaptureState> {
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: '没有识别到语音内容',
+        errorType: CaptureErrorType.emptyTranscript,
       );
       return;
     }
@@ -144,6 +159,7 @@ class CaptureController extends Notifier<CaptureState> {
     state = state.copyWith(
       status: CaptureStatus.analyzing,
       transcript: transcript,
+      clearError: true,
     );
     try {
       final preview =
@@ -157,6 +173,7 @@ class CaptureController extends Notifier<CaptureState> {
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: 'AI 分析失败: $error',
+        errorType: CaptureErrorType.analysis,
       );
     }
   }
@@ -182,6 +199,13 @@ class CaptureController extends Notifier<CaptureState> {
     state = CaptureState.initial();
   }
 
+  void clearConfigurationError() {
+    if (state.status == CaptureStatus.error &&
+        state.errorType == CaptureErrorType.configuration) {
+      state = CaptureState.initial();
+    }
+  }
+
   void _handleTranscriptionEvent(TranscriptionEvent event) {
     switch (event.type) {
       case TranscriptionEventType.delta:
@@ -193,18 +217,12 @@ class CaptureController extends Notifier<CaptureState> {
         state = state.copyWith(
           status: CaptureStatus.error,
           errorMessage: event.text,
+          errorType: CaptureErrorType.transcription,
         );
     }
   }
 
   Future<AiSecrets> _loadSecrets() async {
-    final store = ref.read(secureKeyValueStoreProvider);
-    return AiSecrets(
-      volcAppKey: await store.readSecret(AiConfig.volcAppKeySecretKey) ?? '',
-      volcAccessKey:
-          await store.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
-      deepSeekApiKey:
-          await store.readSecret(AiConfig.deepSeekApiKeySecretKey) ?? '',
-    );
+    return ref.read(aiSecretsProvider.future);
   }
 }

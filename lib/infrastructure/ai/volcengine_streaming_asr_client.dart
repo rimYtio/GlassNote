@@ -11,7 +11,7 @@ import '../../domain/services/realtime_transcription_client.dart';
 
 class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
   VolcengineStreamingAsrClient({WebSocketConnector? connector})
-    : _connector = connector ?? _defaultConnector;
+    : _connector = connector ?? defaultVolcengineConnector;
 
   final WebSocketConnector _connector;
 
@@ -61,7 +61,7 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
 typedef WebSocketConnector =
     Future<WebSocketChannel> Function(AiConfig config, AiSecrets secrets);
 
-Future<WebSocketChannel> _defaultConnector(
+Future<WebSocketChannel> defaultVolcengineConnector(
   AiConfig config,
   AiSecrets secrets,
 ) async {
@@ -74,6 +74,18 @@ Future<WebSocketChannel> _defaultConnector(
       'X-Api-Connect-Id': const Uuid().v4(),
     },
   );
+}
+
+Uint8List buildVolcengineFullClientRequest(AiConfig config, String requestId) {
+  return _buildFullClientRequest(config, requestId);
+}
+
+Uint8List buildVolcengineAudioRequest(List<int> audio, {bool isLast = false}) {
+  return _buildAudioRequest(audio, isLast: isLast);
+}
+
+TranscriptionEvent decodeVolcengineServerMessage(Object message) {
+  return _decodeServerMessage(message);
 }
 
 class VolcengineAsrEventParser {

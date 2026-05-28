@@ -1,15 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/entities/ai_config.dart';
 import '../../domain/repositories/ai_config_repository.dart';
 import '../../domain/repositories/folder_repository.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/timeline_task_repository.dart';
+import '../../domain/services/ai_connection_tester.dart';
 import '../../domain/services/audio_input_service.dart';
 import '../../domain/services/capture_analyzer.dart';
 import '../../domain/services/data_protection_service.dart';
 import '../../domain/services/realtime_transcription_client.dart';
 import '../ai/deepseek_capture_analyzer.dart';
+import '../ai/network_ai_connection_tester.dart';
 import '../ai/volcengine_streaming_asr_client.dart';
 import '../audio/record_audio_input_service.dart';
 import '../database/app_database.dart';
@@ -36,6 +39,21 @@ final aiConfigRepositoryProvider = Provider<AiConfigRepository>((ref) {
 
 final secureKeyValueStoreProvider = Provider<SecureKeyValueStore>((ref) {
   return FlutterSecureKeyValueStore();
+});
+
+final aiSecretsProvider = FutureProvider<AiSecrets>((ref) async {
+  final store = ref.watch(secureKeyValueStoreProvider);
+  return AiSecrets(
+    volcAppKey: await store.readSecret(AiConfig.volcAppKeySecretKey) ?? '',
+    volcAccessKey:
+        await store.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
+    deepSeekApiKey:
+        await store.readSecret(AiConfig.deepSeekApiKeySecretKey) ?? '',
+  );
+});
+
+final aiConnectionTesterProvider = Provider<AiConnectionTester>((ref) {
+  return NetworkAiConnectionTester();
 });
 
 final audioInputServiceProvider = Provider<AudioInputService>((ref) {

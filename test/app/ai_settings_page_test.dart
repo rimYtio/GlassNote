@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glass_note/app/app.dart';
+import 'package:glass_note/domain/entities/ai_config.dart';
+import 'package:glass_note/domain/services/ai_connection_tester.dart';
 import 'package:glass_note/infrastructure/database/app_database.dart';
 import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
 import 'package:glass_note/infrastructure/security/in_memory_secure_key_value_store.dart';
@@ -10,10 +12,12 @@ import 'package:glass_note/infrastructure/security/in_memory_secure_key_value_st
 void main() {
   late AppDatabase database;
   late InMemorySecureKeyValueStore secrets;
+  late _FakeAiConnectionTester connectionTester;
 
   setUp(() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
     secrets = InMemorySecureKeyValueStore();
+    connectionTester = _FakeAiConnectionTester();
   });
 
   tearDown(() async {
@@ -28,6 +32,7 @@ void main() {
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
           secureKeyValueStoreProvider.overrideWithValue(secrets),
+          aiConnectionTesterProvider.overrideWithValue(connectionTester),
         ],
         child: const GlassNoteApp(),
       ),
@@ -65,6 +70,67 @@ void main() {
     expect(find.text('volc-access-secret'), findsNothing);
     expect(find.text('deepseek-secret'), findsNothing);
     expect(find.text('已保存'), findsWidgets);
+    expect(find.text('API 设置已保存'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('ai-volc-app-key-saved-chip')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('ai-volc-access-key-saved-chip')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('ai-deepseek-key-saved-chip')),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('API settings tests Volcengine and DeepSeek separately', (
+    tester,
+  ) async {
+    connectionTester.deepSeekResult = const AiConnectionTestResult.failure(
+      'DeepSeek 连接失败: invalid model',
+    );
+    await secrets.writeSecret(key: 'volc_app_key', value: 'app');
+    await secrets.writeSecret(key: 'volc_access_key', value: 'access');
+    await secrets.writeSecret(key: 'deepseek_api_key', value: 'deepseek');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          aiConnectionTesterProvider.overrideWithValue(connectionTester),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    await tester.tap(find.text('设置').last);
+    await _pumpUi(tester);
+    await tester.tap(find.text('API 设置'));
+    await _pumpUi(tester);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('ai-test-volc-button')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ai-test-volc-button')));
+    await _pumpUi(tester);
+    expect(connectionTester.volcCalls, 1);
+    expect(find.text('火山 ASR 连接成功'), findsWidgets);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('ai-test-deepseek-button')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ai-test-deepseek-button')));
+    await _pumpUi(tester);
+    expect(connectionTester.deepSeekCalls, 1);
+    expect(find.textContaining('DeepSeek 连接失败: invalid model'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -73,5 +139,34 @@ void main() {
 Future<void> _pumpUi(WidgetTester tester) async {
   for (var i = 0; i < 5; i += 1) {
     await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+class _FakeAiConnectionTester implements AiConnectionTester {
+  AiConnectionTestResult volcResult = const AiConnectionTestResult.success(
+    '火山 ASR 连接成功',
+  );
+  AiConnectionTestResult deepSeekResult = const AiConnectionTestResult.success(
+    'DeepSeek 连接成功',
+  );
+  int volcCalls = 0;
+  int deepSeekCalls = 0;
+
+  @override
+  Future<AiConnectionTestResult> testVolcAsr({
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    volcCalls += 1;
+    return volcResult;
+  }
+
+  @override
+  Future<AiConnectionTestResult> testDeepSeek({
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    deepSeekCalls += 1;
+    return deepSeekResult;
   }
 }
