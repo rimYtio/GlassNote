@@ -4,6 +4,10 @@ import '../../domain/entities/timeline_task.dart';
 class CaptureDraftPreviewParser {
   const CaptureDraftPreviewParser._();
 
+  static List<CaptureDraftPreview> parseList(List<Map<String, Object?>> items) {
+    return items.map(parse).toList();
+  }
+
   static CaptureDraftPreview parse(Map<String, Object?> json) {
     final title = _string(json['title']) ?? '语音捕获';
     final content = _string(json['content']) ?? '';

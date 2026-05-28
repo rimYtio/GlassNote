@@ -95,7 +95,7 @@ class _JellySwipeActionRowState extends State<JellySwipeActionRow> {
             duration: _isDragging
                 ? Duration.zero
                 : const Duration(milliseconds: 430),
-            curve: Curves.elasticOut,
+            curve: Curves.easeOutCubic,
             transform: Matrix4.identity()
               ..setEntry(0, 3, offset)
               ..setEntry(1, 1, scaleY),

@@ -35,7 +35,7 @@ class CaptureState {
   const CaptureState({
     required this.status,
     required this.transcript,
-    this.preview,
+    this.previews = const [],
     this.errorMessage,
     this.errorType,
   });
@@ -46,23 +46,23 @@ class CaptureState {
 
   final CaptureStatus status;
   final String transcript;
-  final CaptureDraftPreview? preview;
+  final List<CaptureDraftPreview> previews;
   final String? errorMessage;
   final CaptureErrorType? errorType;
 
   CaptureState copyWith({
     CaptureStatus? status,
     String? transcript,
-    CaptureDraftPreview? preview,
+    List<CaptureDraftPreview>? previews,
     String? errorMessage,
     CaptureErrorType? errorType,
-    bool clearPreview = false,
+    bool clearPreviews = false,
     bool clearError = false,
   }) {
     return CaptureState(
       status: status ?? this.status,
       transcript: transcript ?? this.transcript,
-      preview: clearPreview ? null : preview ?? this.preview,
+      previews: clearPreviews ? const [] : previews ?? this.previews,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       errorType: clearError ? null : errorType ?? this.errorType,
     );
@@ -93,7 +93,7 @@ class CaptureController extends Notifier<CaptureState> {
         status: CaptureStatus.error,
         errorMessage: '请先在 API 设置中填写火山引擎和 DeepSeek Key',
         errorType: CaptureErrorType.configuration,
-        clearPreview: true,
+        clearPreviews: true,
       );
       return;
     }
@@ -108,7 +108,7 @@ class CaptureController extends Notifier<CaptureState> {
         status: CaptureStatus.error,
         errorMessage: '未获得麦克风权限',
         errorType: CaptureErrorType.permission,
-        clearPreview: true,
+        clearPreviews: true,
       );
       return;
     }
@@ -159,17 +159,20 @@ class CaptureController extends Notifier<CaptureState> {
     state = state.copyWith(
       status: CaptureStatus.analyzing,
       transcript: transcript,
-      clearError: true,
-    );
-    try {
-      final preview =
-          await AnalyzeCaptureTextUseCase(ref.read(captureAnalyzerProvider))(
-            transcript: transcript,
-            config: await ref.read(aiConfigRepositoryProvider).load(),
-            secrets: await _loadSecrets(),
-          );
-      state = state.copyWith(status: CaptureStatus.preview, preview: preview);
-    } on Object catch (error) {
+        clearError: true,
+      );
+      try {
+        final previews =
+            await AnalyzeCaptureTextUseCase(ref.read(captureAnalyzerProvider))(
+              transcript: transcript,
+              config: await ref.read(aiConfigRepositoryProvider).load(),
+              secrets: await _loadSecrets(),
+            );
+        state = state.copyWith(
+          status: CaptureStatus.preview,
+          previews: previews,
+        );
+      } on Object catch (error) {
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: 'AI 分析失败: $error',
@@ -179,20 +182,27 @@ class CaptureController extends Notifier<CaptureState> {
   }
 
   Future<void> confirmPreview() async {
-    final preview = state.preview;
-    if (preview == null) {
+    if (state.previews.isEmpty) {
       return;
     }
     state = state.copyWith(status: CaptureStatus.saving);
-    await ConfirmCapturePreviewUseCase(
-      notes: ref.read(noteRepositoryProvider),
-      folders: ref.read(folderRepositoryProvider),
-      tasks: ref.read(timelineTaskRepositoryProvider),
-    )(preview);
-    state = CaptureState(
-      status: CaptureStatus.success,
-      transcript: state.transcript,
-    );
+    try {
+      await ConfirmCapturePreviewUseCase(
+        notes: ref.read(noteRepositoryProvider),
+        folders: ref.read(folderRepositoryProvider),
+        tasks: ref.read(timelineTaskRepositoryProvider),
+      )(state.previews);
+      state = CaptureState(
+        status: CaptureStatus.success,
+        transcript: state.transcript,
+      );
+    } on Object catch (error) {
+      state = state.copyWith(
+        status: CaptureStatus.error,
+        errorMessage: '创建失败: $error',
+        errorType: CaptureErrorType.analysis,
+      );
+    }
   }
 
   void cancelPreview() {

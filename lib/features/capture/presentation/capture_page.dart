@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/capture_draft_preview.dart';
+import '../../../domain/entities/timeline_task.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
@@ -36,20 +37,39 @@ class CapturePage extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: 168),
             children: [
               _CaptionCard(state: state),
-              if (state.preview == null) ...[
+              if (state.previews.isEmpty &&
+                  state.status != CaptureStatus.preview) ...[
                 const SizedBox(height: 24),
                 _VoiceWaveform(active: state.status == CaptureStatus.recording),
                 const SizedBox(height: 24),
               ] else
                 const SizedBox(height: 16),
-              if (state.preview != null)
-                _PreviewCard(
-                  preview: state.preview!,
-                  saving: state.status == CaptureStatus.saving,
-                  onConfirm: controller.confirmPreview,
-                  onCancel: controller.cancelPreview,
-                )
-              else
+              if (state.previews.isNotEmpty) ...[
+                for (final preview in state.previews)
+                  _PreviewItem(preview: preview),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: state.status == CaptureStatus.saving
+                          ? null
+                          : controller.cancelPreview,
+                      child: const Text('取消'),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: state.status == CaptureStatus.saving
+                          ? null
+                          : () => controller.confirmPreview(),
+                      child: Text(
+                        state.status == CaptureStatus.saving
+                            ? '创建中...'
+                            : '确认创建全部 (${state.previews.length})',
+                      ),
+                    ),
+                  ],
+                ),
+              ] else
                 GlassCard(
                   child: Text(
                     state.status == CaptureStatus.success
@@ -287,7 +307,7 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
               key: const ValueKey('capture-mic-scale'),
               scale: _pressed ? 0.88 : 1,
               duration: Duration(milliseconds: _pressed ? 130 : 430),
-              curve: _pressed ? Curves.easeOutCubic : Curves.elasticOut,
+              curve: _pressed ? Curves.easeOutCubic : Curves.easeOutBack,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(36),
                 child: BackdropFilter(
@@ -332,52 +352,92 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
   }
 }
 
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({
-    required this.preview,
-    required this.saving,
-    required this.onConfirm,
-    required this.onCancel,
-  });
+class _PreviewItem extends StatelessWidget {
+  const _PreviewItem({required this.preview});
 
   final CaptureDraftPreview preview;
-  final bool saving;
-  final VoidCallback onConfirm;
-  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      key: const ValueKey('capture-preview-card'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            preview.type == CaptureDraftType.task ? '任务预览' : '笔记预览',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-          Text(preview.title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(preview.content),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              TextButton(
-                onPressed: saving ? null : onCancel,
-                child: const Text('取消'),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    preview.type == CaptureDraftType.task ? '任务' : '笔记',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(preview.title,
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(preview.content),
+            if (preview.type == CaptureDraftType.task &&
+                preview.taskDate != null) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _Tag(label: '📅 ${_fmtDate(preview.taskDate!)}'),
+                  if (preview.startTime != null)
+                    _Tag(
+                      label: '⏰ ${_fmtTime(preview.startTime!)}'
+                          '${preview.endTime != null ? ' - ${_fmtTime(preview.endTime!)}' : ''}',
+                    ),
+                  if (preview.importance != null)
+                    _Tag(label: _importanceLabel(preview.importance!)),
+                ],
               ),
-              const Spacer(),
-              FilledButton(
-                onPressed: saving ? null : onConfirm,
-                child: Text(saving ? '创建中...' : '确认创建'),
+            ] else if (preview.type == CaptureDraftType.note &&
+                preview.folderName != null &&
+                preview.folderName!.trim().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _Tag(label: '📁 ${preview.folderName}'),
               ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+String _fmtDate(DateTime d) {
+  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
+String _fmtTime(CaptureClockTime t) {
+  return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+}
+
+String _importanceLabel(TimelineImportance i) {
+  return switch (i) {
+    TimelineImportance.high => '🔴 高优先级',
+    TimelineImportance.medium => '🟡 中等',
+    TimelineImportance.low => '🟢 低优先级',
+  };
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
     );
   }
 }

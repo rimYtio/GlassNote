@@ -19,11 +19,17 @@ class ConfirmCapturePreviewUseCase {
   final FolderRepository folders;
   final TimelineTaskRepository tasks;
 
-  Future<Object> call(CaptureDraftPreview preview) {
-    return switch (preview.type) {
-      CaptureDraftType.note => _createNote(preview),
-      CaptureDraftType.task => _createTask(preview),
-    };
+  Future<void> call(List<CaptureDraftPreview> previews) async {
+    for (final preview in previews) {
+      try {
+        await switch (preview.type) {
+          CaptureDraftType.note => _createNote(preview),
+          CaptureDraftType.task => _createTask(preview),
+        };
+      } on Object {
+        // Continue with remaining items on partial failure.
+      }
+    }
   }
 
   Future<Note> _createNote(CaptureDraftPreview preview) async {
@@ -39,7 +45,10 @@ class ConfirmCapturePreviewUseCase {
   }
 
   Future<TimelineTask> _createTask(CaptureDraftPreview preview) {
-    final taskDate = preview.taskDate!;
+    final taskDate = preview.taskDate;
+    if (taskDate == null) {
+      throw StateError('任务日期缺失，无法创建');
+    }
     return tasks.create(
       TimelineTaskDraft(
         title: preview.title,

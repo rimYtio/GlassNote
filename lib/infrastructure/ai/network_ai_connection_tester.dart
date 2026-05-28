@@ -108,8 +108,8 @@ class NetworkAiConnectionTester implements AiConnectionTester {
     final configured = config.timeoutSeconds;
     final seconds = configured < 1
         ? 1
-        : configured > 8
-        ? 8
+        : configured > 15
+        ? 15
         : configured;
     return Duration(seconds: seconds);
   }

@@ -14,6 +14,31 @@ import 'app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+Page<void> _transitionPage(Widget child) {
+  return CustomTransitionPage<void>(
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0.12, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        )),
+        child: FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0, 0.3, curve: Curves.easeOut),
+          ).drive(Tween(begin: 0.0, end: 1.0)),
+          child: child,
+        ),
+      );
+    },
+    transitionDuration: const Duration(milliseconds: 220),
+  );
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -23,14 +48,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/notes/new',
-        builder: (context, state) =>
-            NoteEditorPage(folderId: state.uri.queryParameters['folderId']),
+        pageBuilder: (context, state) => _transitionPage(
+          NoteEditorPage(folderId: state.uri.queryParameters['folderId']),
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/notes/:id/edit',
-        builder: (context, state) =>
-            NoteEditorPage(noteId: state.pathParameters['id']),
+        pageBuilder: (context, state) => _transitionPage(
+          NoteEditorPage(noteId: state.pathParameters['id']),
+        ),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -51,11 +78,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/notes',
                 builder: (context, state) => const NotesPage(),
                 routes: [
-                  GoRoute(
-                    path: 'folder/:folderId',
-                    builder: (context, state) =>
-                        NotesPage(folderId: state.pathParameters['folderId']),
-                  ),
+              GoRoute(
+                path: 'folder/:folderId',
+                pageBuilder: (context, state) => _transitionPage(
+                  NotesPage(folderId: state.pathParameters['folderId']),
+                ),
+              ),
                 ],
               ),
             ],
@@ -74,14 +102,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/settings',
                 builder: (context, state) => const SettingsPage(),
                 routes: [
-                  GoRoute(
-                    path: 'ai',
-                    builder: (context, state) => const AiSettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'security',
-                    builder: (context, state) => const SecuritySettingsPage(),
-                  ),
+              GoRoute(
+                path: 'ai',
+                pageBuilder: (context, state) =>
+                    _transitionPage(const AiSettingsPage()),
+              ),
+              GoRoute(
+                path: 'security',
+                pageBuilder: (context, state) =>
+                    _transitionPage(const SecuritySettingsPage()),
+              ),
                 ],
               ),
             ],

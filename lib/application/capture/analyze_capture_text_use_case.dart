@@ -7,7 +7,7 @@ class AnalyzeCaptureTextUseCase {
 
   final CaptureAnalyzer _analyzer;
 
-  Future<CaptureDraftPreview> call({
+  Future<List<CaptureDraftPreview>> call({
     required String transcript,
     required AiConfig config,
     required AiSecrets secrets,

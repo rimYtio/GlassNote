@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/ai_config.dart';
@@ -73,147 +74,161 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   Widget build(BuildContext context) {
     return GlassScaffold(
       title: 'API 设置',
+      actions: [
+        _SpringSaveButton(
+          saving: _saving,
+          onPressed: _save,
+        ),
+      ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : Stack(
               children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    children: [
-                      GlassCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '火山引擎豆包 2.0 流式语音转文字',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 14),
-                            _field(
-                              key: 'ai-volc-endpoint-field',
-                              controller: _volcEndpointController,
-                              label: 'Endpoint',
-                            ),
-                            _field(
-                              key: 'ai-volc-resource-field',
-                              controller: _volcResourceController,
-                              label: 'Resource ID',
-                            ),
-                            _field(
-                              key: 'ai-volc-language-field',
-                              controller: _volcLanguageController,
-                              label: '语言',
-                            ),
-                            _secretField(
-                              key: 'ai-volc-app-key-field',
-                              controller: _volcAppKeyController,
-                              label: 'APP ID',
-                              saved: _volcAppKeySaved,
-                              onEditStart: () {
-                                _volcAppKeyEdited = true;
-                              },
-                            ),
-                            _secretField(
-                              key: 'ai-volc-access-key-field',
-                              controller: _volcAccessKeyController,
-                              label: 'Access Token',
-                              saved: _volcAccessKeySaved,
-                              onEditStart: () {
-                                _volcAccessKeyEdited = true;
-                              },
-                            ),
-                            _testButton(
-                              key: 'ai-test-volc-button',
-                              label: _testingVolc ? '测试中...' : '测试火山 ASR',
-                              onPressed: _testingVolc || _saving
-                                  ? null
-                                  : _testVolcAsr,
-                              message: _volcTestMessage,
-                              messageVisible: _volcTestVisible,
-                              onMessageCleared: () {
-                                _volcTestMessage = null;
-                              },
-                            ),
-                          ],
+                Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).padding.bottom + 98,
                         ),
+                        children: [
+                          GlassCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '火山引擎豆包 2.0 流式语音转文字',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 14),
+                                _field(
+                                  key: 'ai-volc-endpoint-field',
+                                  controller: _volcEndpointController,
+                                  label: 'Endpoint',
+                                ),
+                                _field(
+                                  key: 'ai-volc-resource-field',
+                                  controller: _volcResourceController,
+                                  label: 'Resource ID',
+                                ),
+                                _field(
+                                  key: 'ai-volc-language-field',
+                                  controller: _volcLanguageController,
+                                  label: '语言',
+                                ),
+                                _secretField(
+                                  key: 'ai-volc-app-key-field',
+                                  controller: _volcAppKeyController,
+                                  label: 'APP ID',
+                                  saved: _volcAppKeySaved,
+                                  onEditStart: () {
+                                    _volcAppKeyEdited = true;
+                                  },
+                                ),
+                                _secretField(
+                                  key: 'ai-volc-access-key-field',
+                                  controller: _volcAccessKeyController,
+                                  label: 'Access Token',
+                                  saved: _volcAccessKeySaved,
+                                  onEditStart: () {
+                                    _volcAccessKeyEdited = true;
+                                  },
+                                ),
+                                _testButton(
+                                  key: 'ai-test-volc-button',
+                                  label: _testingVolc ? '测试中...' : '测试火山 ASR',
+                                  onPressed: _testingVolc || _saving
+                                      ? null
+                                      : _testVolcAsr,
+                                  message: _volcTestMessage,
+                                  messageVisible: _volcTestVisible,
+                                  onMessageCleared: () {
+                                    _volcTestMessage = null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          GlassCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'DeepSeek V4 Flash',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 14),
+                                _field(
+                                  key: 'ai-deepseek-base-url-field',
+                                  controller: _deepSeekBaseUrlController,
+                                  label: 'Base URL',
+                                ),
+                                _field(
+                                  key: 'ai-deepseek-model-field',
+                                  controller: _deepSeekModelController,
+                                  label: '模型',
+                                ),
+                                _field(
+                                  key: 'ai-temperature-field',
+                                  controller: _temperatureController,
+                                  label: '温度',
+                                  keyboardType: TextInputType.number,
+                                ),
+                                _field(
+                                  key: 'ai-timeout-field',
+                                  controller: _timeoutController,
+                                  label: '超时秒数',
+                                  keyboardType: TextInputType.number,
+                                ),
+                                _secretField(
+                                  key: 'ai-deepseek-key-field',
+                                  controller: _deepSeekKeyController,
+                                  label: 'DeepSeek API Key',
+                                  saved: _deepSeekKeySaved,
+                                  onEditStart: () {
+                                    _deepSeekKeyEdited = true;
+                                  },
+                                ),
+                                _testButton(
+                                  key: 'ai-test-deepseek-button',
+                                  label: _testingDeepSeek
+                                      ? '测试中...'
+                                      : '测试 DeepSeek',
+                                  onPressed: _testingDeepSeek || _saving
+                                      ? null
+                                      : _testDeepSeek,
+                                  message: _deepSeekTestMessage,
+                                  messageVisible: _deepSeekTestVisible,
+                                  onMessageCleared: () {
+                                    _deepSeekTestMessage = null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      GlassCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'DeepSeek V4 Flash',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 14),
-                            _field(
-                              key: 'ai-deepseek-base-url-field',
-                              controller: _deepSeekBaseUrlController,
-                              label: 'Base URL',
-                            ),
-                            _field(
-                              key: 'ai-deepseek-model-field',
-                              controller: _deepSeekModelController,
-                              label: '模型',
-                            ),
-                            _field(
-                              key: 'ai-temperature-field',
-                              controller: _temperatureController,
-                              label: '温度',
-                              keyboardType: TextInputType.number,
-                            ),
-                            _field(
-                              key: 'ai-timeout-field',
-                              controller: _timeoutController,
-                              label: '超时秒数',
-                              keyboardType: TextInputType.number,
-                            ),
-                            _secretField(
-                              key: 'ai-deepseek-key-field',
-                              controller: _deepSeekKeyController,
-                              label: 'DeepSeek API Key',
-                              saved: _deepSeekKeySaved,
-                              onEditStart: () {
-                                _deepSeekKeyEdited = true;
-                              },
-                            ),
-                            _testButton(
-                              key: 'ai-test-deepseek-button',
-                              label: _testingDeepSeek
-                                  ? '测试中...'
-                                  : '测试 DeepSeek',
-                              onPressed: _testingDeepSeek || _saving
-                                  ? null
-                                  : _testDeepSeek,
-                              message: _deepSeekTestMessage,
-                              messageVisible: _deepSeekTestVisible,
-                              onMessageCleared: () {
-                                _deepSeekTestMessage = null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 if (_saveMessage != null)
-                  AnimatedOpacity(
-                    opacity: _saveVisible ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 400),
-                    onEnd: () {
-                      if (!_saveVisible && mounted) {
-                        setState(() {
-                          _saveMessage = null;
-                        });
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 16,
+                    child: AnimatedOpacity(
+                      opacity: _saveVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 400),
+                      onEnd: () {
+                        if (!_saveVisible && mounted) {
+                          setState(() {
+                            _saveMessage = null;
+                          });
+                        }
+                      },
                       child: GlassCard(
                         key: const ValueKey('ai-save-feedback'),
                         padding: const EdgeInsets.symmetric(
@@ -237,13 +252,6 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                       ),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 132),
-                  child: FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: Text(_saving ? '保存中...' : '保存 API 设置'),
-                  ),
-                ),
               ],
             ),
     );
@@ -578,5 +586,66 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       });
       _scheduleDismiss();
     }
+  }
+}
+
+class _SpringSaveButton extends StatefulWidget {
+  const _SpringSaveButton({required this.onPressed, required this.saving});
+  final VoidCallback? onPressed;
+  final bool saving;
+
+  @override
+  State<_SpringSaveButton> createState() => _SpringSaveButtonState();
+}
+
+class _SpringSaveButtonState extends State<_SpringSaveButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, value: 1.0);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _bounce() {
+    _ctrl.value = 0.85;
+    _ctrl.animateWith(
+      SpringSimulation(
+        const SpringDescription(mass: 1, stiffness: 500, damping: 20),
+        0.85,
+        1.0,
+        0.0,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _ctrl,
+      child: IconButton(
+        onPressed: widget.saving
+            ? null
+            : () {
+                _bounce();
+                widget.onPressed?.call();
+              },
+        icon: widget.saving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.save),
+        tooltip: '保存',
+      ),
+    );
   }
 }
