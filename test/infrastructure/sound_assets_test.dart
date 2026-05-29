@@ -10,7 +10,7 @@ void main() {
 
     expect(wav.durationMs, lessThanOrEqualTo(140));
     expect(wav.zeroCrossingHz, lessThanOrEqualTo(500));
-    expect(wav.peak, lessThanOrEqualTo(1.0));
+    expect(wav.peak, lessThanOrEqualTo(0.75));
   });
 }
 

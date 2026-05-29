@@ -15,7 +15,6 @@ import '../../../domain/entities/attachment.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
-import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'notes_controller.dart';
 import 'widgets/audio_player_bar.dart';
 import 'widgets/audio_recorder_panel.dart';
@@ -181,14 +180,11 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final effectiveId = _effectiveNoteId;
 
-    return GlassScaffold(
-      title: widget.noteId == null ? '新建笔记' : '编辑笔记',
-      leading: IconButton(
-        tooltip: '返回',
-        icon: const Icon(Icons.chevron_left),
-        onPressed: _finish,
-      ),
-      actions: [
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.noteId == null ? '新建笔记' : '编辑笔记'),
+        leading: IconButton(icon: const Icon(Icons.chevron_left), onPressed: _finish),
+        actions: [
         if (_saveStatus.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -223,7 +219,7 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           onPressed: _saving ? null : _finish,
           child: const Text('完成'),
         ),
-      ],
+      ], ),
       body: Column(
         children: [
           // Title field
