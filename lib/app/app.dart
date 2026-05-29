@@ -45,8 +45,8 @@ class _GlassNoteAppState extends ConsumerState<GlassNoteApp> {
       darkTheme: AppTheme.dark(),
       themeMode: settings.when(
         data: (value) => value.themeMode.materialThemeMode,
-        error: (error, stackTrace) => ThemeMode.system,
-        loading: () => ThemeMode.system,
+        error: (_, __) => ThemeMode.light,
+        loading: () => ThemeMode.light,
       ),
       routerConfig: router,
     );
