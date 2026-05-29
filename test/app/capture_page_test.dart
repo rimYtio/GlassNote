@@ -10,6 +10,8 @@ import 'package:glass_note/domain/entities/capture_draft_preview.dart';
 import 'package:glass_note/domain/services/audio_input_service.dart';
 import 'package:glass_note/domain/services/capture_analyzer.dart';
 import 'package:glass_note/domain/services/realtime_transcription_client.dart';
+import 'package:glass_note/features/capture/presentation/capture_controller.dart';
+import 'package:glass_note/infrastructure/audio/sound_service.dart';
 import 'package:glass_note/infrastructure/database/app_database.dart';
 import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
 import 'package:glass_note/infrastructure/security/in_memory_secure_key_value_store.dart';
@@ -19,6 +21,7 @@ void main() {
   late InMemorySecureKeyValueStore secrets;
 
   setUp(() async {
+    SoundService.enabled = false;
     database = AppDatabase.forTesting(NativeDatabase.memory());
     secrets = InMemorySecureKeyValueStore();
     await secrets.writeSecret(key: 'volc_app_key', value: 'app');
@@ -27,6 +30,7 @@ void main() {
   });
 
   tearDown(() async {
+    SoundService.enabled = true;
     await database.close();
   });
 
@@ -155,6 +159,31 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  test('capture waits for final transcript after microphone stops', () async {
+    final container = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        secureKeyValueStoreProvider.overrideWithValue(secrets),
+        audioInputServiceProvider.overrideWithValue(
+          _StopCompletingAudioInputService(),
+        ),
+        realtimeTranscriptionClientProvider.overrideWithValue(
+          _CompletesAfterAudioStopsTranscriptionClient(),
+        ),
+        captureAnalyzerProvider.overrideWithValue(_FakeCaptureAnalyzer()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final controller = container.read(captureControllerProvider.notifier);
+    await controller.startRecording();
+    await controller.stopRecording();
+
+    final state = container.read(captureControllerProvider);
+    expect(state.status, CaptureStatus.preview);
+    expect(state.previews.single.content, '松手后的最终语音');
+  });
+
   testWidgets('capture clears missing API error after settings are saved', (
     tester,
   ) async {
@@ -276,6 +305,29 @@ class _FakeAudioInputService implements AudioInputService {
   }
 }
 
+class _StopCompletingAudioInputService implements AudioInputService {
+  final _audio = StreamController<List<int>>();
+  final _amplitudes = StreamController<double>.broadcast();
+
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Stream<List<int>> startPcm16Stream() {
+    _audio.add([0, 1, 2, 3]);
+    return _audio.stream;
+  }
+
+  @override
+  Stream<double> get amplitudeStream => _amplitudes.stream;
+
+  @override
+  Future<void> stop() async {
+    _amplitudes.add(0);
+    unawaited(_audio.close());
+  }
+}
+
 class _FakeRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
   @override
   Stream<TranscriptionEvent> transcribe({
@@ -295,6 +347,19 @@ class _EmptyRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
     required AiConfig config,
     required AiSecrets secrets,
   }) async* {}
+}
+
+class _CompletesAfterAudioStopsTranscriptionClient
+    implements RealtimeTranscriptionClient {
+  @override
+  Stream<TranscriptionEvent> transcribe({
+    required Stream<List<int>> audio,
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async* {
+    await for (final _ in audio) {}
+    yield const TranscriptionEvent.completed('松手后的最终语音');
+  }
 }
 
 class _FakeCaptureAnalyzer implements CaptureAnalyzer {

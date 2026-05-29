@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../ui_system/widgets/glass_bottom_navigation.dart';
@@ -16,6 +17,9 @@ class _AppShellState extends State<AppShell> {
   int get _currentIndex => widget.navigationShell.currentIndex;
 
   void _onTabTap(int index) {
+    if (index != _currentIndex) {
+      HapticFeedback.selectionClick();
+    }
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == _currentIndex,

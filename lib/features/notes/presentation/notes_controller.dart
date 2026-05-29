@@ -103,6 +103,14 @@ class NotesActions {
         .update(note.copyWith(isStarred: !note.isStarred));
   }
 
+  Future<void> migrateNote(Note note, String targetFolderId) async {
+    await _ref
+        .read(noteRepositoryProvider)
+        .update(note.copyWith(folderId: targetFolderId));
+    _ref.invalidate(notesByFolderProvider(note.folderId));
+    _ref.invalidate(notesByFolderProvider(targetFolderId));
+  }
+
   Future<void> deleteNote(Note note) {
     return _ref.read(noteRepositoryProvider).delete(note.id);
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class GlassScaffold extends StatelessWidget {
   const GlassScaffold({
@@ -22,7 +23,10 @@ class GlassScaffold extends StatelessWidget {
         (Navigator.of(context).canPop()
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop();
+                },
               )
             : null);
 

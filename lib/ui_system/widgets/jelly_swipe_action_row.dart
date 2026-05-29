@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum JellySwipeSide { leading, trailing }
 
@@ -183,6 +184,7 @@ class _ActionRail extends StatelessWidget {
               child: _SwipeActionButton(
                 action: action,
                 onPressed: () {
+                  HapticFeedback.selectionClick();
                   onActionPressed();
                   action.onPressed();
                 },

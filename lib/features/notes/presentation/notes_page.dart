@@ -603,6 +603,47 @@ class _NotesList extends ConsumerWidget {
   }
 }
 
+Future<void> _showMigrateNoteDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Note note,
+) async {
+  final folders = await ref.read(allFoldersProvider.future);
+  final targets = folders.where(
+    (f) => !f.isSystem && f.id != note.folderId,
+  );
+  if (!context.mounted) return;
+
+  if (targets.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('没有可迁移的文件夹')),
+    );
+    return;
+  }
+
+  final selected = await showDialog<String>(
+    context: context,
+    builder: (ctx) => SimpleDialog(
+      title: const Text('迁移到文件夹'),
+      children: [
+        for (final folder in targets)
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(ctx).pop(folder.id),
+            child: Row(
+              children: [
+                const Icon(Icons.folder_outlined, size: 20),
+                const SizedBox(width: 12),
+                Text(folder.name),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
+  if (selected == null || !context.mounted) return;
+  await ref.read(notesActionsProvider).migrateNote(note, selected);
+}
+
 class _NoteTile extends ConsumerWidget {
   const _NoteTile({
     required this.note,
@@ -627,6 +668,15 @@ class _NoteTile extends ConsumerWidget {
       openSide: openSide,
       onOpen: (side) => onOpenActions(_noteRowId(note), side),
       onClose: onCloseActions,
+      leadingActions: [
+        JellySwipeAction(
+          label: '迁移',
+          icon: Icons.drive_file_move_outlined,
+          onPressed: () {
+            _showMigrateNoteDialog(context, ref, note);
+          },
+        ),
+      ],
       trailingActions: [
         JellySwipeAction(
           label: note.isStarred ? '取消星标' : '星标',

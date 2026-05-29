@@ -86,51 +86,59 @@ class CaptureController extends Notifier<CaptureState> {
     if (state.status == CaptureStatus.recording) {
       return;
     }
-    final config = await ref.read(aiConfigRepositoryProvider).load();
-    final secrets = await _loadSecrets();
-    if (!secrets.hasCaptureKeys) {
-      state = state.copyWith(
-        status: CaptureStatus.error,
-        errorMessage: '请先在 API 设置中填写火山引擎和 DeepSeek Key',
-        errorType: CaptureErrorType.configuration,
-        clearPreviews: true,
-      );
-      return;
-    }
-
-    final voice = RunVoiceCaptureUseCase(
-      ref.read(audioInputServiceProvider),
-      ref.read(realtimeTranscriptionClientProvider),
-    );
-    final granted = await voice.requestPermission();
-    if (!granted) {
-      state = state.copyWith(
-        status: CaptureStatus.error,
-        errorMessage: '未获得麦克风权限',
-        errorType: CaptureErrorType.permission,
-        clearPreviews: true,
-      );
-      return;
-    }
-
     _finalTranscript = '';
     _transcriptionDone = Completer<void>();
     state = const CaptureState(status: CaptureStatus.recording, transcript: '');
-    _subscription = voice
-        .start(config: config, secrets: secrets)
-        .listen(
-          _handleTranscriptionEvent,
-          onDone: () {
-            if (!(_transcriptionDone?.isCompleted ?? true)) {
-              _transcriptionDone?.complete();
-            }
-          },
-          onError: (Object error) {
-            if (!(_transcriptionDone?.isCompleted ?? true)) {
-              _transcriptionDone?.completeError(error);
-            }
-          },
+    try {
+      final config = await ref.read(aiConfigRepositoryProvider).load();
+      final secrets = await _loadSecrets();
+      if (!secrets.hasCaptureKeys) {
+        state = state.copyWith(
+          status: CaptureStatus.error,
+          errorMessage: '请先在 API 设置中填写火山引擎和 DeepSeek Key',
+          errorType: CaptureErrorType.configuration,
+          clearPreviews: true,
         );
+        return;
+      }
+
+      final voice = RunVoiceCaptureUseCase(
+        ref.read(audioInputServiceProvider),
+        ref.read(realtimeTranscriptionClientProvider),
+      );
+      final granted = await voice.requestPermission();
+      if (!granted) {
+        state = state.copyWith(
+          status: CaptureStatus.error,
+          errorMessage: '未获得麦克风权限',
+          errorType: CaptureErrorType.permission,
+          clearPreviews: true,
+        );
+        return;
+      }
+
+      _subscription = voice
+          .start(config: config, secrets: secrets)
+          .listen(
+            _handleTranscriptionEvent,
+            onDone: () {
+              if (!(_transcriptionDone?.isCompleted ?? true)) {
+                _transcriptionDone?.complete();
+              }
+            },
+            onError: (Object error) {
+              if (!(_transcriptionDone?.isCompleted ?? true)) {
+                _transcriptionDone?.completeError(error);
+              }
+            },
+          );
+    } on Object catch (error) {
+      state = state.copyWith(
+        status: CaptureStatus.error,
+        errorMessage: '启动录音失败: $error',
+        errorType: CaptureErrorType.transcription,
+      );
+    }
   }
 
   Future<void> stopRecording() async {
@@ -147,32 +155,31 @@ class CaptureController extends Notifier<CaptureState> {
     final transcript = _finalTranscript.trim().isEmpty
         ? state.transcript.trim()
         : _finalTranscript.trim();
+    final subscription = _subscription;
+    _subscription = null;
+    _transcriptionDone = null;
+    if (subscription != null) {
+      unawaited(subscription.cancel().catchError((_) {}));
+    }
     if (transcript.isEmpty) {
-      state = state.copyWith(
-        status: CaptureStatus.error,
-        errorMessage: '没有识别到语音内容',
-        errorType: CaptureErrorType.emptyTranscript,
-      );
+      state = state.copyWith(status: CaptureStatus.idle, clearError: true);
       return;
     }
 
     state = state.copyWith(
       status: CaptureStatus.analyzing,
       transcript: transcript,
-        clearError: true,
-      );
-      try {
-        final previews =
-            await AnalyzeCaptureTextUseCase(ref.read(captureAnalyzerProvider))(
-              transcript: transcript,
-              config: await ref.read(aiConfigRepositoryProvider).load(),
-              secrets: await _loadSecrets(),
-            );
-        state = state.copyWith(
-          status: CaptureStatus.preview,
-          previews: previews,
-        );
-      } on Object catch (error) {
+      clearError: true,
+    );
+    try {
+      final previews =
+          await AnalyzeCaptureTextUseCase(ref.read(captureAnalyzerProvider))(
+            transcript: transcript,
+            config: await ref.read(aiConfigRepositoryProvider).load(),
+            secrets: await _loadSecrets(),
+          );
+      state = state.copyWith(status: CaptureStatus.preview, previews: previews);
+    } on Object catch (error) {
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: 'AI 分析失败: $error',

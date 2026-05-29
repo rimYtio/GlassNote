@@ -3,10 +3,12 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/capture_draft_preview.dart';
 import '../../../domain/entities/timeline_task.dart';
+import '../../../infrastructure/audio/sound_service.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
@@ -471,14 +473,18 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
       onTap: widget.active ? null : _showLongPressHint,
       onLongPressStart: (_) {
         _setPressed(true);
+        HapticFeedback.heavyImpact();
+        unawaited(SoundService.micArm());
         widget.onStart();
       },
       onLongPressEnd: (_) {
         _setPressed(false);
+        HapticFeedback.lightImpact();
         widget.onStop();
       },
       onLongPressCancel: () {
         _setPressed(false);
+        HapticFeedback.lightImpact();
         widget.onStop();
       },
       child: SizedBox(
