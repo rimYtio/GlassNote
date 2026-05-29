@@ -15,6 +15,7 @@ import '../../../domain/entities/attachment.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
+import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'notes_controller.dart';
 import 'widgets/audio_player_bar.dart';
 import 'widgets/audio_recorder_panel.dart';
@@ -180,46 +181,39 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final effectiveId = _effectiveNoteId;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.noteId == null ? '新建笔记' : '编辑笔记'),
-        leading: IconButton(icon: const Icon(Icons.chevron_left), onPressed: _finish),
-        actions: [
-        if (_saveStatus.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Center(
-              child: Text(
-                _saveStatus,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ),
-        if (effectiveId != null)
+    return GlassScaffold(
+      title: widget.noteId == null ? '新建笔记' : '编辑笔记',
+      leading: IconButton(
+        tooltip: '返回',
+        icon: const Icon(Icons.chevron_left),
+        onPressed: _finish,
+      ),
+      actions: [
+        if (effectiveId != null) ...[
           IconButton(
-            tooltip: '标签',
-            icon: const Icon(Icons.local_offer_outlined),
-            onPressed: () => showTagPicker(context, ref, effectiveId),
-          ),
-        if (effectiveId != null)
-          IconButton(
+            key: const ValueKey('btn-reminder'),
             tooltip: '设置提醒',
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => _showReminderPicker(effectiveId),
           ),
-        if (_hasContent)
           IconButton(
-            tooltip: '导出',
-            icon: const Icon(Icons.ios_share),
-            onPressed: _showExportSheet,
+            key: const ValueKey('btn-tags'),
+            tooltip: '标签',
+            icon: const Icon(Icons.local_offer_outlined),
+            onPressed: () => showTagPicker(context, ref, effectiveId),
           ),
+        ],
+        IconButton(
+          key: const ValueKey('btn-export'),
+          tooltip: '导出',
+          icon: const Icon(Icons.ios_share),
+          onPressed: _hasContent ? _showExportSheet : null,
+        ),
         TextButton(
           onPressed: _saving ? null : _finish,
           child: const Text('完成'),
         ),
-      ], ),
+      ],
       body: Column(
         children: [
           // Title field
@@ -239,48 +233,8 @@ child: TextField(
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          // Quill toolbar - clipped to prevent touch bleed
-          ClipRect(
-            child: SizedBox(
-              height: 44,
-              child: QuillSimpleToolbar(
-            controller: _quillController,
-            config: const QuillSimpleToolbarConfig(
-              showFontSize: false,
-              showFontFamily: false,
-              showSearchButton: false,
-              showSubscript: false,
-              showSuperscript: false,
-              showStrikeThrough: false,
-              showInlineCode: false,
-              showColorButton: false,
-              showBackgroundColorButton: false,
-              showClearFormat: false,
-              showRedo: false,
-              showUndo: false,
-              showIndent: false,
-              showJustifyAlignment: false,
-              showAlignmentButtons: false,
-              showLeftAlignment: false,
-              showCenterAlignment: false,
-              showRightAlignment: false,
-              showQuote: true,
-              showHeaderStyle: true,
-              showListNumbers: true,
-              showListBullets: true,
-              showListCheck: true,
-              showCodeBlock: false,
-              showDirection: false,
-              showLink: false,
-              showUnderLineButton: true,
-              showLineHeightButton: false,
-              multiRowsDisplay: false,
-            ),
-          ),
-        ),
-      ),
-      const Divider(height: 1),
+          // Quill toolbar removed — flutter_quill 11.x has touch bleed bug
+          const Divider(height: 1),
           // Tag display row (if note has tags)
           if (effectiveId != null) _tagRow(effectiveId),
           // Rich editor
