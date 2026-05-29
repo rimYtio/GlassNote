@@ -30,23 +30,23 @@ class GlassCard extends StatelessWidget {
               colors: isLight ? const [
                 Color.fromRGBO(210, 230, 250, 0.25),
                 Color.fromRGBO(225, 240, 255, 0.10),
-              ] : [
-                colorScheme.primaryContainer.withValues(alpha: 0.22),
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.12),
+              ] : const [
+                Color.fromRGBO(190, 220, 245, 0.28),
+                Color.fromRGBO(210, 235, 252, 0.16),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Material(
-            color: colorScheme.surface.withValues(alpha: 0.70),
+            color: const Color.fromRGBO(220, 240, 255, 0.55),
             child: InkWell(
               onTap: onTap,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: colorScheme.onSurface.withValues(alpha: 0.25),
+                      color: const Color.fromRGBO(200, 230, 252, 0.25),
                     ),
                     boxShadow: [
                       BoxShadow(

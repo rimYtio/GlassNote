@@ -16,7 +16,6 @@ class GlassSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
 
     return ClipRRect(
@@ -27,18 +26,18 @@ class GlassSearchField extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isLight ? const [
-                Color.fromRGBO(215, 235, 252, 0.45),
-                Color.fromRGBO(235, 245, 255, 0.60),
-              ] : [
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.50),
-                colorScheme.surface.withValues(alpha: 0.35),
+                Color.fromRGBO(215, 238, 255, 0.55),
+                Color.fromRGBO(235, 245, 255, 0.65),
+              ] : const [
+                Color.fromRGBO(190, 220, 245, 0.65),
+                Color.fromRGBO(210, 235, 252, 0.45),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.22),
+              color: const Color.fromRGBO(200, 230, 252, 0.25),
             ),
           ),
           child: TextField(

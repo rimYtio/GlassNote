@@ -34,9 +34,9 @@ class GlassBottomNavigation extends StatelessWidget {
                       colors: isLight ? const [
                         Color.fromRGBO(200, 225, 252, 0.28),
                         Color.fromRGBO(0, 0, 0, 0),
-                      ] : [
-                        colorScheme.primaryContainer.withValues(alpha: 0.20),
-                        colorScheme.surfaceContainerHighest.withValues(alpha: 0.10),
+                      ] : const [
+                        Color.fromRGBO(190, 220, 245, 0.26),
+                        Color.fromRGBO(210, 235, 252, 0.13),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -45,12 +45,10 @@ class GlassBottomNavigation extends StatelessWidget {
                   child: DecoratedBox(
                     key: const ValueKey('glass-bottom-navigation-surface'),
                     decoration: BoxDecoration(
-                      color: colorScheme.surface.withValues(
-                        alpha: isLight ? 0.55 : 0.45,
-                      ),
+                    color: Color.fromRGBO(210, 235, 255, isLight ? 0.55 : 0.38),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                        color: colorScheme.onSurface.withValues(alpha: 0.25),
+                        color: const Color.fromRGBO(190, 220, 250, 0.28),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -131,7 +129,7 @@ class _GlassNavItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
                 color: selected
-                    ?                     colorScheme.primaryContainer.withValues(alpha: 0.65)
+                    ?                     const Color.fromRGBO(190, 225, 255, 0.55)
                     : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected
