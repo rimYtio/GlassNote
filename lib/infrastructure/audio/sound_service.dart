@@ -12,7 +12,7 @@ class SoundService {
   }
 
   static Future<void> micArm() {
-    return _playOneShot('sounds/mic_arm.wav', volume: 0.55);
+    return _playOneShot('sounds/mic_arm.wav', volume: 1.0);
   }
 
   static Future<void> _playOneShot(String asset, {double volume = 0.5}) async {

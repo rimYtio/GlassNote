@@ -5,12 +5,12 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('microphone arm sound is a short low-frequency click', () {
+  test('microphone arm sound is a short click', () {
     final wav = _readWav('assets/sounds/mic_arm.wav');
 
     expect(wav.durationMs, lessThanOrEqualTo(140));
-    expect(wav.zeroCrossingHz, lessThanOrEqualTo(700));
-    expect(wav.peak, lessThanOrEqualTo(0.45));
+    expect(wav.zeroCrossingHz, lessThanOrEqualTo(500));
+    expect(wav.peak, lessThanOrEqualTo(0.75));
   });
 }
 

@@ -26,16 +26,10 @@ Page<void> _transitionPage(Widget child) {
           parent: animation,
           curve: Curves.easeOutCubic,
         )),
-        child: FadeTransition(
-          opacity: CurvedAnimation(
-            parent: animation,
-            curve: const Interval(0, 0.3, curve: Curves.easeOut),
-          ).drive(Tween(begin: 0.0, end: 1.0)),
-          child: child,
-        ),
+        child: child,
       );
     },
-    transitionDuration: const Duration(milliseconds: 220),
+    transitionDuration: const Duration(milliseconds: 150),
   );
 }
 
