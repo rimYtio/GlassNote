@@ -25,6 +25,7 @@ class AppTheme {
         brightness: Brightness.dark,
       ),
       useMaterial3: true,
+      scaffoldBackgroundColor: const Color(0xFF0F1118),
     );
   }
 }

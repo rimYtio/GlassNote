@@ -36,7 +36,6 @@ class NoteRichEditorPage extends ConsumerStatefulWidget {
 class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   final _titleController = TextEditingController();
   final _quillController = QuillController.basic();
-  final _exportKey = GlobalKey();
   bool _loadedExistingNote = false;
   bool _saving = false;
   Timer? _autoSaveTimer;
@@ -292,15 +291,14 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           if (effectiveId != null) _tagRow(effectiveId),
           // Rich editor
           Expanded(
-            child: RepaintBoundary(
-              key: _exportKey,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
-                child: QuillEditor.basic(
-                  controller: _quillController,
-                  config: const QuillEditorConfig(
-                    placeholder: '开始输入',
-                  ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
+              child: QuillEditor.basic(
+                controller: _quillController,
+                config: const QuillEditorConfig(
+                  placeholder: '开始输入',
+                  expands: true,
+                  autoFocus: false,
                 ),
               ),
             ),
@@ -554,15 +552,6 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
                 _exportPdf();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.image),
-              title: const Text('导出 PNG'),
-              subtitle: const Text('将笔记保存为图片'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _exportPng();
-              },
-            ),
             const SizedBox(height: 12),
           ],
         ),
@@ -610,36 +599,6 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     }
   }
 
-  Future<void> _exportPng() async {
-    if (!mounted) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final pngExporter = ref.read(pngExporterProvider);
-      final title = _titleController.text.trim();
-      final fileName = title.isNotEmpty ? title : 'note';
-      final file = await pngExporter.exportFromWidget(_exportKey, fileName);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: fileName,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PNG 已导出')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PNG 导出失败: $e')),
-      );
-    }
-  }
   Future<void> _finish() async {
     if (_saving) return;
     setState(() => _saving = true);

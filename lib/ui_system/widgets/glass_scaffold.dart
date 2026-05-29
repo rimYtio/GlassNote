@@ -32,6 +32,9 @@ class GlassScaffold extends StatelessWidget {
               )
             : null);
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -79,17 +82,23 @@ class GlassScaffold extends StatelessWidget {
           // Layer 3: Ethereal gradient overlay
           DecoratedBox(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
+                colors: isLight ? const [
                   Color.fromRGBO(215, 235, 252, 0.32),
                   Color.fromRGBO(235, 245, 255, 0.15),
                   Color.fromRGBO(255, 255, 255, 0.05),
+                ] : [
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
+                  colorScheme.surface.withValues(alpha: 0.08),
+                  colorScheme.surfaceContainerLowest.withValues(alpha: 0.03),
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.22),
+                color: isLight 
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : colorScheme.outlineVariant.withValues(alpha: 0.12),
                 width: 1.0,
               ),
             ),

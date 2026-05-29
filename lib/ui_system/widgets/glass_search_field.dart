@@ -17,6 +17,7 @@ class GlassSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
@@ -24,10 +25,13 @@ class GlassSearchField extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [
+            gradient: LinearGradient(
+              colors: isLight ? const [
                 Color.fromRGBO(215, 235, 252, 0.45),
                 Color.fromRGBO(235, 245, 255, 0.60),
+              ] : [
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
+                colorScheme.surface.withValues(alpha: 0.20),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

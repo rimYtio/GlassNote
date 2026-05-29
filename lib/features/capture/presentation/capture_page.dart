@@ -10,7 +10,6 @@ import '../../../domain/entities/capture_draft_preview.dart';
 import '../../../domain/entities/timeline_task.dart';
 import '../../../infrastructure/audio/sound_service.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
-import '../../../ui_system/animations/rive_controller.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'capture_controller.dart';
@@ -72,18 +71,6 @@ class CapturePage extends ConsumerWidget {
           ),
           if (state.status != CaptureStatus.preview &&
               state.status != CaptureStatus.saving) ...[
-            // Rive state machine overlay — drives visual state for the voice button area
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 72,
-              child: Center(
-                child: VoiceButtonRive(
-                  state: _captureStatusToVoiceButtonState(state.status),
-                  size: 180,
-                ),
-              ),
-            ),
             Positioned(
               left: 0,
               right: 0,
@@ -644,18 +631,6 @@ class _PreviewItem extends StatelessWidget {
       ),
     );
   }
-}
-
-VoiceButtonState _captureStatusToVoiceButtonState(CaptureStatus status) {
-  return switch (status) {
-    CaptureStatus.idle => VoiceButtonState.idle,
-    CaptureStatus.recording => VoiceButtonState.recording,
-    CaptureStatus.analyzing => VoiceButtonState.processing,
-    CaptureStatus.preview => VoiceButtonState.success,
-    CaptureStatus.saving => VoiceButtonState.processing,
-    CaptureStatus.success => VoiceButtonState.success,
-    CaptureStatus.error => VoiceButtonState.error,
-  };
 }
 
 String _fmtDate(DateTime d) {

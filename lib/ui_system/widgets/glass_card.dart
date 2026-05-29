@@ -17,18 +17,22 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.all(Radius.circular(24)),
             gradient: LinearGradient(
-              colors: [
+              colors: isLight ? const [
                 Color.fromRGBO(210, 230, 250, 0.25),
                 Color.fromRGBO(225, 240, 255, 0.10),
+              ] : [
+                colorScheme.primaryContainer.withValues(alpha: 0.08),
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.05),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
