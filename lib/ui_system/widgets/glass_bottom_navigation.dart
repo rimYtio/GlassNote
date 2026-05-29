@@ -114,7 +114,7 @@ class _GlassNavItem extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '${destination.label}\nTab ${index + 1} of 5',
+      label: '${destination.label}\nTab ${index + 1} of 4',
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
         onTap: onTap,
@@ -180,11 +180,6 @@ class _NavDestination {
 }
 
 const _destinations = [
-  _NavDestination(
-    label: '总览',
-    icon: Icons.dashboard_outlined,
-    selectedIcon: Icons.dashboard,
-  ),
   _NavDestination(label: '捕获', icon: Icons.mic_none, selectedIcon: Icons.mic),
   _NavDestination(
     label: '笔记',

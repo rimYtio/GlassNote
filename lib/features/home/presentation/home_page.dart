@@ -69,7 +69,11 @@ class _HomePageState extends ConsumerState<HomePage>
     final topFolders = ref.watch(topFoldersProvider);
 
     return GlassScaffold(
-      title: "GlassNote",
+      title: "总览",
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => context.go('/capture'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 108),
         child: Column(

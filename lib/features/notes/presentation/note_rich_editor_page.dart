@@ -46,20 +46,17 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   void initState() {
     super.initState();
     _titleController.addListener(_onContentChanged);
-    _quillController.addListener(_onContentChanged);
   }
 
   @override
   void dispose() {
     _titleController.removeListener(_onContentChanged);
-    _quillController.removeListener(_onContentChanged);
     _autoSaveTimer?.cancel();
     _titleController.dispose();
     super.dispose();
   }
 
   void _onContentChanged() {
-    setState(() {});
     _scheduleAutoSave();
   }
 
@@ -238,8 +235,9 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           // Title field
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
-            child: TextField(
-              controller: _titleController,
+child: TextField(
+            key: const ValueKey('note-title-field'),
+            controller: _titleController,
               decoration: const InputDecoration(
                 hintText: '标题',
                 border: InputBorder.none,

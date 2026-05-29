@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../domain/entities/capture_draft_preview.dart';
 import '../../../domain/entities/timeline_task.dart';
@@ -34,6 +35,13 @@ class CapturePage extends ConsumerWidget {
 
     return GlassScaffold(
       title: '捕获',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.dashboard_outlined),
+          tooltip: '总览',
+          onPressed: () => context.go('/home'),
+        ),
+      ],
       body: Stack(
         children: [
           ListView(

@@ -41,9 +41,10 @@ Page<void> _transitionPage(Widget child) {
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/home',
+    initialLocation: '/capture',
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/trash',
@@ -68,14 +69,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return AppShell(navigationShell: navigationShell);
         },
         branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/home',
-                builder: (context, state) => const HomePage(),
-              ),
-            ],
-          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
