@@ -35,6 +35,7 @@ class NoteRichEditorPage extends ConsumerStatefulWidget {
 
 class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   final _titleController = TextEditingController();
+  final _titleFocusNode = FocusNode();
   final _quillController = QuillController.basic();
   bool _loadedExistingNote = false;
   bool _saving = false;
@@ -53,6 +54,7 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     _titleController.removeListener(_onContentChanged);
     _autoSaveTimer?.cancel();
     _titleController.dispose();
+    _titleFocusNode.dispose();
     super.dispose();
   }
 
@@ -160,25 +162,17 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   @override
   Widget build(BuildContext context) {
     final noteId = widget.noteId;
-    final note = noteId == null ? null : ref.watch(noteByIdProvider(noteId));
 
-    if (noteId != null) {
-      return note!.when(
-        data: (value) {
-          if (value != null && !_loadedExistingNote) {
-            _titleController.text = value.title;
-            _loadContent(value);
-            _loadedExistingNote = true;
-          }
-          return _editor(context);
-        },
-        error: (error, _) => GlassScaffold(
-          title: '编辑笔记',
-          body: Center(child: Text('笔记加载失败: $error')),
-        ),
-        loading: () =>
-            const GlassScaffold(title: '编辑笔记', body: SizedBox()),
-      );
+    // Load existing note content once
+    if (noteId != null && !_loadedExistingNote) {
+      final noteAsync = ref.watch(noteByIdProvider(noteId));
+      noteAsync.whenData((note) {
+        if (note != null && !_loadedExistingNote) {
+          _titleController.text = note.title;
+          _loadContent(note);
+          _loadedExistingNote = true;
+        }
+      });
     }
 
     return _editor(context);
@@ -237,12 +231,12 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
             padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
 child: TextField(
             key: const ValueKey('note-title-field'),
+            focusNode: _titleFocusNode,
             controller: _titleController,
               decoration: const InputDecoration(
                 hintText: '标题',
                 border: InputBorder.none,
               ),
-              maxLines: null,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: colorScheme.onSurface,
