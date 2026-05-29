@@ -33,6 +33,7 @@ void main() {
   testWidgets('capture records transcript and confirms note preview', (
     tester,
   ) async {
+    _useTallViewport(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -52,9 +53,13 @@ void main() {
     final button = find.byKey(const ValueKey('capture-mic-button'));
     expect(button, findsOneWidget);
 
-    final gesture = await tester.startGesture(tester.getCenter(button));
+    final gesture = await _startLongPress(tester, button);
     await _pumpUi(tester);
-    expect(find.text('正在聆听'), findsOneWidget);
+    expect(find.byKey(const ValueKey('capture-voice-orb')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('capture-transcript-glass')),
+      findsOneWidget,
+    );
     expect(find.textContaining('记录一个想法'), findsOneWidget);
 
     await gesture.up();
@@ -62,11 +67,90 @@ void main() {
     expect(find.byKey(const ValueKey('capture-preview-card')), findsOneWidget);
     expect(find.text('语音想法'), findsOneWidget);
 
-    await tester.tap(find.text('确认创建'));
+    final confirmButton = find.widgetWithText(FilledButton, '确认创建全部 (1)');
+    await tester.ensureVisible(confirmButton);
+    await tester.tap(confirmButton);
     await _pumpUi(tester);
 
     final notes = await database.notesDao.search('语音想法');
     expect(notes.single.plainText, '记录一个想法');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('capture page keeps voice orb above transcript glass at idle', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          audioInputServiceProvider.overrideWithValue(_FakeAudioInputService()),
+          realtimeTranscriptionClientProvider.overrideWithValue(
+            _EmptyRealtimeTranscriptionClient(),
+          ),
+          captureAnalyzerProvider.overrideWithValue(_FakeCaptureAnalyzer()),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    final orb = find.byKey(const ValueKey('capture-voice-orb'));
+    final transcriptGlass = find.byKey(
+      const ValueKey('capture-transcript-glass'),
+    );
+    expect(orb, findsOneWidget);
+    expect(transcriptGlass, findsOneWidget);
+    expect(
+      tester.getBottomLeft(orb).dy,
+      lessThan(tester.getTopLeft(transcriptGlass).dy),
+    );
+    expect(find.text('字幕会在你说话时出现在这里。'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('voice orb grows from microphone amplitude while recording', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    final audio = _FakeAudioInputService();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          audioInputServiceProvider.overrideWithValue(audio),
+          realtimeTranscriptionClientProvider.overrideWithValue(
+            _EmptyRealtimeTranscriptionClient(),
+          ),
+          captureAnalyzerProvider.overrideWithValue(_FakeCaptureAnalyzer()),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    final button = find.byKey(const ValueKey('capture-mic-button'));
+    final gesture = await _startLongPress(tester, button);
+    await _pumpUi(tester);
+
+    audio.emitAmplitude(0.85);
+    await tester.pump(const Duration(milliseconds: 120));
+    final loudScale = tester.widget<AnimatedScale>(
+      find.byKey(const ValueKey('capture-voice-orb-scale')),
+    );
+    expect(loudScale.scale, greaterThan(1.08));
+
+    await gesture.up();
+    await _pumpUi(tester);
+    final idleScale = tester.widget<AnimatedScale>(
+      find.byKey(const ValueKey('capture-voice-orb-scale')),
+    );
+    expect(idleScale.scale, lessThan(loudScale.scale));
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -93,7 +177,7 @@ void main() {
     await _pumpUi(tester);
 
     final button = find.byKey(const ValueKey('capture-mic-button'));
-    final gesture = await tester.startGesture(tester.getCenter(button));
+    final gesture = await _startLongPress(tester, button);
     await gesture.up();
     await _pumpUi(tester);
     expect(find.text('捕获失败'), findsOneWidget);
@@ -115,7 +199,7 @@ void main() {
       find.byKey(const ValueKey('ai-deepseek-key-field')),
       'deepseek',
     );
-    await tester.tap(find.text('保存 API 设置'));
+    await tester.tap(find.byTooltip('保存'));
     await _pumpUi(tester);
 
     await tester.tap(find.text('捕获').last);
@@ -129,6 +213,7 @@ void main() {
   testWidgets('mic button scales down and shows halo while pressed', (
     tester,
   ) async {
+    _useTallViewport(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -146,7 +231,7 @@ void main() {
     await _pumpUi(tester);
 
     final button = find.byKey(const ValueKey('capture-mic-button'));
-    final gesture = await tester.startGesture(tester.getCenter(button));
+    final gesture = await _startLongPress(tester, button);
     await tester.pump(const Duration(milliseconds: 50));
 
     final pressedScale = tester.widget<AnimatedScale>(
@@ -170,6 +255,8 @@ void main() {
 }
 
 class _FakeAudioInputService implements AudioInputService {
+  final _amplitudes = StreamController<double>.broadcast();
+
   @override
   Future<bool> requestPermission() async => true;
 
@@ -177,7 +264,16 @@ class _FakeAudioInputService implements AudioInputService {
   Stream<List<int>> startPcm16Stream() => Stream.value([0, 1, 2, 3]);
 
   @override
-  Future<void> stop() async {}
+  Stream<double> get amplitudeStream => _amplitudes.stream;
+
+  void emitAmplitude(double value) {
+    _amplitudes.add(value);
+  }
+
+  @override
+  Future<void> stop() async {
+    emitAmplitude(0);
+  }
 }
 
 class _FakeRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
@@ -203,12 +299,12 @@ class _EmptyRealtimeTranscriptionClient implements RealtimeTranscriptionClient {
 
 class _FakeCaptureAnalyzer implements CaptureAnalyzer {
   @override
-  Future<CaptureDraftPreview> analyze({
+  Future<List<CaptureDraftPreview>> analyze({
     required String transcript,
     required AiConfig config,
     required AiSecrets secrets,
   }) async {
-    return CaptureDraftPreview.note(title: '语音想法', content: transcript);
+    return [CaptureDraftPreview.note(title: '语音想法', content: transcript)];
   }
 }
 
@@ -216,6 +312,12 @@ Future<void> _pumpUi(WidgetTester tester) async {
   for (var i = 0; i < 5; i += 1) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+Future<TestGesture> _startLongPress(WidgetTester tester, Finder target) async {
+  final gesture = await tester.startGesture(tester.getCenter(target));
+  await tester.pump(const Duration(milliseconds: 650));
+  return gesture;
 }
 
 void _useTallViewport(WidgetTester tester) {

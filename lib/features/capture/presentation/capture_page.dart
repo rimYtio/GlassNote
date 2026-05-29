@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -36,16 +37,8 @@ class CapturePage extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.only(bottom: 168),
             children: [
-              _CaptionCard(state: state),
-              if (state.previews.isEmpty &&
-                  state.status != CaptureStatus.preview) ...[
-                const SizedBox(height: 24),
-                if (state.status == CaptureStatus.recording ||
-                    state.status == CaptureStatus.analyzing)
-                  const SizedBox(height: 140),
-                const SizedBox(height: 24),
-              ] else
-                const SizedBox(height: 16),
+              _VoiceCaptureStage(state: state),
+              const SizedBox(height: 16),
               if (state.previews.isNotEmpty) ...[
                 for (final preview in state.previews)
                   _PreviewItem(preview: preview),
@@ -71,13 +64,9 @@ class CapturePage extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ] else if (state.status != CaptureStatus.recording &&
-                  state.status != CaptureStatus.analyzing)
-                const _IdleFlow(),
+              ],
             ],
           ),
-          if (state.status == CaptureStatus.recording)
-            const _VoiceBall(),
           if (state.status != CaptureStatus.preview &&
               state.status != CaptureStatus.saving)
             Positioned(
@@ -98,14 +87,32 @@ class CapturePage extends ConsumerWidget {
   }
 }
 
-class _CaptionCard extends StatelessWidget {
-  const _CaptionCard({required this.state});
+class _VoiceCaptureStage extends StatelessWidget {
+  const _VoiceCaptureStage({required this.state});
 
   final CaptureState state;
 
   @override
   Widget build(BuildContext context) {
-    final text = state.errorMessage ?? state.transcript;
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+        _VoiceOrb(status: state.status, transcript: state.transcript),
+        const SizedBox(height: 18),
+        _TranscriptGlass(state: state),
+      ],
+    );
+  }
+}
+
+class _TranscriptGlass extends StatelessWidget {
+  const _TranscriptGlass({required this.state});
+
+  final CaptureState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final title = switch (state.status) {
       CaptureStatus.recording => '正在聆听',
       CaptureStatus.analyzing => '正在整理',
@@ -114,177 +121,177 @@ class _CaptionCard extends StatelessWidget {
       CaptureStatus.success => '创建完成',
       _ => '语音捕获',
     };
+    final text = state.errorMessage ?? state.transcript;
 
-    return GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+    return ClipRRect(
+      key: const ValueKey('capture-transcript-glass'),
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.28),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: colorScheme.onSurface.withValues(alpha: 0.10),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.08),
+                blurRadius: 26,
+                offset: const Offset(0, 14),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(text.isEmpty ? '字幕会在你说话时出现在这里。' : text),
-        ],
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  text.isEmpty ? '字幕会在你说话时出现在这里。' : text,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _IdleFlow extends StatefulWidget {
-  const _IdleFlow();
+class _VoiceOrb extends ConsumerStatefulWidget {
+  const _VoiceOrb({required this.status, required this.transcript});
+
+  final CaptureStatus status;
+  final String transcript;
 
   @override
-  State<_IdleFlow> createState() => _IdleFlowState();
+  ConsumerState<_VoiceOrb> createState() => _VoiceOrbState();
 }
 
-class _IdleFlowState extends State<_IdleFlow>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 200,
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, _) {
-          return CustomPaint(
-            painter: _IdleFlowPainter(phase: _ctrl.value),
-            child: const SizedBox.expand(),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _IdleFlowPainter extends CustomPainter {
-  _IdleFlowPainter({required this.phase});
-  final double phase;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final baseRadius = math.min(size.width, size.height) * 0.28;
-    final outerPaint = Paint()
-      ..color = const Color(0x885B8DEF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
-
-    for (var r = 0; r < 3; r++) {
-      final path = Path();
-      final radius = baseRadius + r * 14;
-      final circles = r == 0 ? 11 : r == 1 ? 17 : 23;
-      for (var i = 0; i <= circles; i++) {
-        final a = i / circles * math.pi * 2;
-        final wave =
-            math.sin(a * 3 + phase * math.pi * 2 * (1 + r * 0.4)) * 4;
-        final x = center.dx + math.cos(a) * (radius + wave);
-        final y = center.dy + math.sin(a) * (radius + wave);
-        if (i == 0) {
-          path.moveTo(x, y);
-        } else {
-          path.lineTo(x, y);
-        }
-      }
-      path.close();
-      outerPaint.color = const Color(0x335B8DEF).withValues(
-        alpha: 0.15 + r * 0.08,
-      );
-      canvas.drawPath(path, outerPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _IdleFlowPainter oldDelegate) =>
-      oldDelegate.phase != phase;
-}
-
-class _VoiceBall extends ConsumerStatefulWidget {
-  const _VoiceBall();
-
-  @override
-  ConsumerState<_VoiceBall> createState() => _VoiceBallState();
-}
-
-class _VoiceBallState extends ConsumerState<_VoiceBall>
+class _VoiceOrbState extends ConsumerState<_VoiceOrb>
     with TickerProviderStateMixin {
-  late final AnimationController _entryCtrl;
-  late final Animation<double> _entryAnimation;
   late final AnimationController _waveCtrl;
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _speechPulse;
+  StreamSubscription<double>? _amplitudeSub;
   double _amplitude = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _entryCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _entryAnimation = CurvedAnimation(
-      parent: _entryCtrl,
-      curve: Curves.easeOutBack,
-    );
-    _entryCtrl.forward();
     _waveCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 4),
     )..repeat();
-    _startAmplitudeListener();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _speechPulse = CurvedAnimation(
+      parent: _pulseCtrl,
+      curve: Curves.easeOutCubic,
+    );
+    _syncAmplitudeSubscription();
+  }
+
+  @override
+  void didUpdateWidget(covariant _VoiceOrb oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.status != oldWidget.status) {
+      _syncAmplitudeSubscription();
+    }
+    if (widget.transcript != oldWidget.transcript &&
+        widget.transcript.length > oldWidget.transcript.length) {
+      _pulseCtrl.forward(from: 0);
+    }
   }
 
   @override
   void dispose() {
-    _entryCtrl.dispose();
+    _amplitudeSub?.cancel();
     _waveCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
-  void _startAmplitudeListener() {
-    ref.read(audioInputServiceProvider).amplitudeStream.listen((a) {
-      if (mounted) {
-        setState(() => _amplitude = a);
+  double get _targetScale {
+    return switch (widget.status) {
+      CaptureStatus.recording => 1.12 + _amplitude * 0.16,
+      CaptureStatus.analyzing => 1.08,
+      CaptureStatus.preview => 1.04,
+      CaptureStatus.success => 1.04,
+      CaptureStatus.error => 0.98,
+      _ => 1.0,
+    };
+  }
+
+  void _syncAmplitudeSubscription() {
+    if (widget.status != CaptureStatus.recording) {
+      _amplitudeSub?.cancel();
+      _amplitudeSub = null;
+      if (_amplitude != 0 && mounted) {
+        setState(() => _amplitude = 0);
+      } else {
+        _amplitude = 0;
       }
+      return;
+    }
+    if (_amplitudeSub != null) {
+      return;
+    }
+    _amplitudeSub = ref.read(audioInputServiceProvider).amplitudeStream.listen((
+      value,
+    ) {
+      if (!mounted) return;
+      setState(() {
+        _amplitude = value.clamp(0.0, 1.0);
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final activeLevel = widget.status == CaptureStatus.recording
+        ? _amplitude
+        : widget.status == CaptureStatus.analyzing
+        ? 0.22
+        : 0.04;
 
-    return Positioned.fill(
+    return SizedBox(
+      key: const ValueKey('capture-voice-orb'),
+      height: 220,
       child: Center(
-        child: ScaleTransition(
-          scale: _entryAnimation,
+        child: AnimatedScale(
+          key: const ValueKey('capture-voice-orb-scale'),
+          scale: _targetScale,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutBack,
           child: AnimatedBuilder(
-            animation: _waveCtrl,
-            builder: (context, _) {
-              return CustomPaint(
-                size: const Size(200, 200),
-                painter: _VoiceBallPainter(
-                  fillColor: colorScheme.primaryContainer
-                      .withValues(alpha: 0.22),
-                  ringColor: colorScheme.primary.withValues(alpha: 0.55),
-                  amplitude: _amplitude,
-                  wavePhase: _waveCtrl.value,
+            animation: Listenable.merge([_waveCtrl, _pulseCtrl]),
+            builder: (context, child) {
+              return RepaintBoundary(
+                child: CustomPaint(
+                  size: const Size(176, 176),
+                  painter: _VoiceOrbPainter(
+                    phase: _waveCtrl.value,
+                    amplitude: activeLevel,
+                    speechPulse: _speechPulse.value,
+                    status: widget.status,
+                    primary: colorScheme.primary,
+                    secondary: colorScheme.secondary,
+                    surface: colorScheme.surface,
+                  ),
                 ),
               );
             },
@@ -295,63 +302,128 @@ class _VoiceBallState extends ConsumerState<_VoiceBall>
   }
 }
 
-class _VoiceBallPainter extends CustomPainter {
-  _VoiceBallPainter({
-    required this.fillColor,
-    required this.ringColor,
+class _VoiceOrbPainter extends CustomPainter {
+  _VoiceOrbPainter({
+    required this.phase,
     required this.amplitude,
-    required this.wavePhase,
+    required this.speechPulse,
+    required this.status,
+    required this.primary,
+    required this.secondary,
+    required this.surface,
   });
 
-  final Color fillColor;
-  final Color ringColor;
+  final double phase;
   final double amplitude;
-  final double wavePhase;
+  final double speechPulse;
+  final CaptureStatus status;
+  final Color primary;
+  final Color secondary;
+  final Color surface;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final baseRadius = size.width / 2 - 6;
-    final distortion = amplitude * 14;
-    final linearPhase = wavePhase * math.pi * 2;
+    final baseRadius = size.width * 0.34;
+    final phaseRadians = phase * math.pi * 2;
+    final energy = (amplitude + speechPulse * 0.42).clamp(0.0, 1.0);
+    final tint = status == CaptureStatus.error ? Colors.redAccent : primary;
 
+    final glowPaint = Paint()
+      ..shader =
+          RadialGradient(
+            colors: [
+              tint.withValues(alpha: 0.26 + energy * 0.16),
+              secondary.withValues(alpha: 0.14),
+              surface.withValues(alpha: 0.02),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: center, radius: size.width * 0.47),
+          );
+    canvas.drawCircle(center, size.width * (0.40 + energy * 0.06), glowPaint);
+
+    for (var i = 0; i < 3; i += 1) {
+      final ring = Paint()
+        ..color = tint.withValues(alpha: 0.11 - i * 0.02 + energy * 0.06)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2;
+      canvas.drawPath(
+        _blobPath(
+          center,
+          baseRadius + 16 + i * 11,
+          phaseRadians * (0.7 + i * 0.25),
+          4 + energy * 14,
+        ),
+        ring,
+      );
+    }
+
+    final fillPaint = Paint()
+      ..shader =
+          RadialGradient(
+            center: const Alignment(-0.35, -0.42),
+            colors: [
+              Colors.white.withValues(alpha: 0.52),
+              tint.withValues(alpha: 0.34 + energy * 0.16),
+              secondary.withValues(alpha: 0.28),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: center, radius: baseRadius * 1.25),
+          );
+    canvas.drawPath(
+      _blobPath(center, baseRadius, phaseRadians, 5 + energy * 18),
+      fillPaint,
+    );
+
+    final edgePaint = Paint()
+      ..color = tint.withValues(alpha: 0.48 + energy * 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(
+      _blobPath(center, baseRadius + 1, phaseRadians * 1.2, 5 + energy * 18),
+      edgePaint,
+    );
+  }
+
+  Path _blobPath(
+    Offset center,
+    double radius,
+    double phase,
+    double distortion,
+  ) {
     final path = Path();
-    const segments = 50;
-    for (var i = 0; i <= segments; i++) {
+    const segments = 72;
+    for (var i = 0; i <= segments; i += 1) {
       final a = i / segments * math.pi * 2;
       final wave =
-          math.sin(a * 5 + linearPhase) * distortion * 0.8 +
-          math.sin(a * 3 + linearPhase * 1.6) * distortion * 0.5 +
-          math.sin(a * 8 + linearPhase * 0.3) * distortion * 0.3;
-      final r = baseRadius + wave;
-      final x = center.dx + math.cos(a) * r;
-      final y = center.dy + math.sin(a) * r;
+          math.sin(a * 3 + phase) * distortion * 0.55 +
+          math.sin(a * 5 - phase * 1.4) * distortion * 0.28 +
+          math.sin(a * 9 + phase * 0.6) * distortion * 0.17;
+      final r = radius + wave;
+      final point = Offset(
+        center.dx + math.cos(a) * r,
+        center.dy + math.sin(a) * r,
+      );
       if (i == 0) {
-        path.moveTo(x, y);
+        path.moveTo(point.dx, point.dy);
       } else {
-        path.lineTo(x, y);
+        path.lineTo(point.dx, point.dy);
       }
     }
     path.close();
-
-    final fillPaint = Paint()
-      ..color = fillColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, baseRadius - 2, fillPaint);
-    canvas.drawPath(path, fillPaint);
-
-    final ringPaint = Paint()
-      ..color = ringColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, ringPaint);
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant _VoiceBallPainter oldDelegate) {
+  bool shouldRepaint(covariant _VoiceOrbPainter oldDelegate) {
     return oldDelegate.amplitude != amplitude ||
-        oldDelegate.wavePhase != wavePhase;
+        oldDelegate.phase != phase ||
+        oldDelegate.speechPulse != speechPulse ||
+        oldDelegate.status != status ||
+        oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.surface != surface;
   }
 }
 
@@ -398,13 +470,13 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
       behavior: HitTestBehavior.opaque,
       onTap: widget.active ? null : _showLongPressHint,
       onLongPressStart: (_) {
-              _setPressed(true);
-              widget.onStart();
-            },
+        _setPressed(true);
+        widget.onStart();
+      },
       onLongPressEnd: (_) {
-              _setPressed(false);
-              widget.onStop();
-            },
+        _setPressed(false);
+        widget.onStop();
+      },
       onLongPressCancel: () {
         _setPressed(false);
         widget.onStop();
@@ -502,6 +574,7 @@ class _PreviewItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
+        key: const ValueKey('capture-preview-card'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -510,15 +583,15 @@ class _PreviewItem extends StatelessWidget {
                 Expanded(
                   child: Text(
                     preview.type == CaptureDraftType.task ? '任务' : '笔记',
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(preview.title,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(preview.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 6),
             Text(preview.content),
             if (preview.type == CaptureDraftType.task &&
@@ -531,7 +604,8 @@ class _PreviewItem extends StatelessWidget {
                   _Tag(label: '📅 ${_fmtDate(preview.taskDate!)}'),
                   if (preview.startTime != null)
                     _Tag(
-                      label: '⏰ ${_fmtTime(preview.startTime!)}'
+                      label:
+                          '⏰ ${_fmtTime(preview.startTime!)}'
                           '${preview.endTime != null ? ' - ${_fmtTime(preview.endTime!)}' : ''}',
                     ),
                   if (preview.importance != null)

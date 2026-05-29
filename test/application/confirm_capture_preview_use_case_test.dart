@@ -19,13 +19,13 @@ void main() {
       tasks: tasks,
     );
 
-    await useCase(
+    await useCase([
       CaptureDraftPreview.note(
         title: '项目想法',
         content: '把捕获页做成语音入口。',
         folderName: '灵感',
       ),
-    );
+    ]);
 
     expect(folders.createdNames, ['灵感']);
     expect(notes.notes.single.title, '项目想法');
@@ -43,7 +43,7 @@ void main() {
       tasks: tasks,
     );
 
-    await useCase(
+    await useCase([
       CaptureDraftPreview.task(
         title: '提交周报',
         content: '周报发给团队。',
@@ -51,7 +51,7 @@ void main() {
         startTime: const CaptureClockTime(hour: 9, minute: 30),
         importance: TimelineImportance.high,
       ),
-    );
+    ]);
 
     expect(notes.notes, isEmpty);
     expect(tasks.tasks.single.title, '提交周报');

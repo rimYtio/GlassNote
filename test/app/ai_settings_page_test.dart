@@ -61,7 +61,7 @@ void main() {
       find.byKey(const ValueKey('ai-deepseek-model-field')),
       'deepseek-v4-flash',
     );
-    await tester.tap(find.text('保存 API 设置'));
+    await tester.tap(find.byTooltip('保存'));
     await _pumpUi(tester);
 
     expect(await secrets.readSecret('volc_app_key'), 'volc-app-secret');

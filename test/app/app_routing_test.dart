@@ -23,7 +23,7 @@ void main() {
   ) async {
     await _pumpApp(tester, database);
 
-    expect(find.text('长按下方话筒，说出想法、笔记或任务。'), findsOneWidget);
+    expect(find.byKey(const ValueKey('capture-voice-orb')), findsOneWidget);
     expect(find.text('捕获'), findsWidgets);
     expect(find.text('笔记'), findsOneWidget);
     expect(find.text('时间线'), findsOneWidget);
