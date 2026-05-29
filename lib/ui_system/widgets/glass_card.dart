@@ -22,25 +22,43 @@ class GlassCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Material(
-          color: colorScheme.surface.withValues(alpha: 0.34),
-          child: InkWell(
-            onTap: onTap,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: colorScheme.onSurface.withValues(alpha: 0.10),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(230, 240, 255, 0.25),
+                Color.fromRGBO(240, 245, 255, 0.08),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Material(
+            color: colorScheme.surface.withValues(alpha: 0.58),
+            child: InkWell(
+              onTap: onTap,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: colorScheme.onSurface.withValues(alpha: 0.20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.shadow.withValues(alpha: 0.06),
+                        blurRadius: 32,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: colorScheme.shadow.withValues(alpha: 0.12),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(alpha: 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
+                child: Padding(padding: padding, child: child),
               ),
-              child: Padding(padding: padding, child: child),
             ),
           ),
         ),

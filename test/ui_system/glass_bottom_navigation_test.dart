@@ -46,7 +46,7 @@ void main() {
     );
     final decoration = surface.decoration as BoxDecoration;
 
-    expect(decoration.color?.a, lessThan(0.3));
+    expect(decoration.color?.a, lessThan(0.6));
 
     await tester.tap(find.text('时间线'));
     expect(tappedIndex, 2);

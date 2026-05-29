@@ -25,29 +25,44 @@ class GlassBottomNavigation extends StatelessWidget {
           height: 78,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-              child: DecoratedBox(
-                key: const ValueKey('glass-bottom-navigation-surface'),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface.withValues(
-                    alpha: isLight ? 0.24 : 0.20,
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: colorScheme.onSurface.withValues(
-                      alpha: isLight ? 0.16 : 0.22,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(30)),
+                    gradient: LinearGradient(
+                      colors: [
+                        Color.fromRGBO(210, 230, 255, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.shadow.withValues(alpha: 0.10),
-                      blurRadius: 28,
-                      offset: const Offset(0, 12),
+                  child: DecoratedBox(
+                    key: const ValueKey('glass-bottom-navigation-surface'),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface.withValues(
+                        alpha: isLight ? 0.50 : 0.35,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: colorScheme.onSurface.withValues(alpha: 0.20),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.08),
+                          blurRadius: 32,
+                          offset: const Offset(0, -4),
+                        ),
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.12),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Padding(
+                    child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 8,
@@ -71,7 +86,8 @@ class GlassBottomNavigation extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -111,9 +127,9 @@ class _GlassNavItem extends StatelessWidget {
             height: selected ? 62 : 58,
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
-              color: selected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.42)
-                  : Colors.transparent,
+                color: selected
+                    ?                     colorScheme.primaryContainer.withValues(alpha: 0.60)
+                    : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected
                   ? Border.all(

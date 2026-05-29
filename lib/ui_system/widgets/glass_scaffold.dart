@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,7 +19,6 @@ class GlassScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final effectiveLeading =
         leading ??
         (Navigator.of(context).canPop()
@@ -32,34 +33,41 @@ class GlassScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primaryContainer.withValues(alpha: 0.54),
-              colorScheme.surface,
-              colorScheme.secondaryContainer.withValues(alpha: 0.38),
-            ],
+      body: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.fromRGBO(220, 235, 255, 0.25),
+                Color.fromRGBO(240, 245, 250, 0.12),
+                Color.fromRGBO(255, 255, 255, 0.05),
+              ],
+            ),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.18),
+              width: 1.0,
+            ),
           ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              GlassToolbar(
-                title: title,
-                leading: effectiveLeading,
-                actions: actions,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: body,
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                GlassToolbar(
+                  title: title,
+                  leading: effectiveLeading,
+                  actions: actions,
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: body,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

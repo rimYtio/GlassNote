@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class GlassSearchField extends StatelessWidget {
@@ -16,15 +18,26 @@ class GlassSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.onSurface.withValues(alpha: 0.08),
-        ),
-      ),
-      child: TextField(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color.fromRGBO(230, 240, 255, 0.35),
+                Color.fromRGBO(245, 248, 252, 0.50),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: colorScheme.onSurface.withValues(alpha: 0.18),
+            ),
+          ),
+          child: TextField(
         controller: controller,
         onChanged: onChanged,
         textInputAction: TextInputAction.search,
@@ -42,6 +55,8 @@ class GlassSearchField extends StatelessWidget {
                     onChanged('');
                   },
                 ),
+        ),
+      ),
         ),
       ),
     );
