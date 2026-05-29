@@ -1,15 +1,10 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../app/di/note_folder_use_case_providers.dart';
 import '../../../domain/entities/folder.dart';
-import '../../notes/presentation/widgets/reminder_picker.dart';
 import 'notes_controller.dart';
 
 class NoteEditorPage extends ConsumerStatefulWidget {
@@ -24,35 +19,32 @@ class NoteEditorPage extends ConsumerStatefulWidget {
 
 class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   final _titleController = TextEditingController();
-  final _quillController = QuillController.basic();
+  final _bodyController = TextEditingController();
   final _exportKey = GlobalKey();
   bool _loadedExistingNote = false;
   bool _saving = false;
-  Timer? _autoSaveTimer;
-  String _saveStatus = '';
 
   @override
   void initState() {
     super.initState();
     _titleController.addListener(_onContentChanged);
-    _quillController.addListener(_onContentChanged);
+    _bodyController.addListener(_onContentChanged);
   }
 
   void _onContentChanged() {
     setState(() {});
-    _scheduleAutoSave();
   }
 
   bool get _hasContent =>
       _titleController.text.trim().isNotEmpty ||
-      _quillController.document.toPlainText().trim().isNotEmpty;
+      _bodyController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
     _titleController.removeListener(_onContentChanged);
-    _quillController.removeListener(_onContentChanged);
-    _autoSaveTimer?.cancel();
+    _bodyController.removeListener(_onContentChanged);
     _titleController.dispose();
+    _bodyController.dispose();
     super.dispose();
   }
 
@@ -66,7 +58,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         data: (value) {
           if (value != null && !_loadedExistingNote) {
             _titleController.text = value.title;
-            _loadContent(value);
+            _bodyController.text = value.plainText;
             _loadedExistingNote = true;
           }
           return _editor(context, existingNoteId: noteId);
@@ -94,24 +86,6 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         onPressed: _finish,
       ),
       actions: [
-        if (_saveStatus.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Center(
-              child: Text(
-                _saveStatus,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ),
-        if (existingNoteId != null)
-          IconButton(
-            tooltip: '设置提醒',
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => _showReminderPicker(existingNoteId),
-          ),
         if (_hasContent)
           IconButton(
             tooltip: '导出',
@@ -125,86 +99,37 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       ],
       child: RepaintBoundary(
         key: _exportKey,
-        child: Column(
+        child: ListView(
           key: const ValueKey('note-editor-content'),
+          padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 8, 22, 4),
-              child: TextField(
-                key: const ValueKey('note-title-field'),
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: '标题',
-                  border: InputBorder.none,
-                ),
-                maxLines: null,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
+            TextField(
+              key: const ValueKey('note-title-field'),
+              controller: _titleController,
+              decoration: const InputDecoration(
+                hintText: '标题',
+                border: InputBorder.none,
+              ),
+              maxLines: null,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
               ),
             ),
-            QuillSimpleToolbar(
-              controller: _quillController,
-              config: const QuillSimpleToolbarConfig(
-                showFontSize: false,
-                showFontFamily: false,
-                showSearchButton: false,
-                showSubscript: false,
-                showSuperscript: false,
-                showStrikeThrough: false,
-                showInlineCode: false,
-                showColorButton: false,
-                showBackgroundColorButton: false,
-                showClearFormat: false,
-                showRedo: false,
-                showUndo: false,
-                showIndent: false,
-                showJustifyAlignment: false,
-                showAlignmentButtons: false,
-                showLeftAlignment: false,
-                showCenterAlignment: false,
-                showRightAlignment: false,
-                showQuote: true,
-                showHeaderStyle: true,
-                showListNumbers: true,
-                showListBullets: true,
-                showListCheck: true,
-                showCodeBlock: false,
-                showDirection: false,
-                showLink: false,
-                showUnderLineButton: false,
-                showLineHeightButton: false,
-                multiRowsDisplay: false,
+            TextField(
+              key: const ValueKey('note-body-field'),
+              controller: _bodyController,
+              decoration: const InputDecoration(
+                hintText: '开始输入',
+                border: InputBorder.none,
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
-                child: QuillEditor.basic(
-                  controller: _quillController,
-                  config: const QuillEditorConfig(
-                    placeholder: '开始输入',
-                  ),
-                ),
-              ),
+              keyboardType: TextInputType.multiline,
+              minLines: 18,
+              maxLines: null,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.45),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showReminderPicker(String noteId) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => ReminderPicker(
-        targetType: 'note',
-        targetId: noteId,
-        targetTitle: _titleController.text.trim(),
       ),
     );
   }
