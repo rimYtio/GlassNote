@@ -5,6 +5,7 @@ import '../../domain/repositories/ai_config_repository.dart';
 import '../../domain/repositories/attachment_repository.dart';
 import '../../domain/repositories/folder_repository.dart';
 import '../../domain/repositories/note_repository.dart';
+import '../../domain/repositories/reminder_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/tag_repository.dart';
 import '../../domain/repositories/timeline_task_repository.dart';
@@ -22,10 +23,12 @@ import '../ai/volcengine_streaming_asr_client.dart';
 import '../audio/record_audio_input_service.dart';
 import '../database/app_database.dart';
 import '../file_system/attachment_file_store.dart';
+import '../notifications/local_notification_service.dart';
 import '../repositories/ai_config_repository_impl.dart';
 import '../repositories/attachment_repository_impl.dart';
 import '../repositories/folder_repository_impl.dart';
 import '../repositories/note_repository_impl.dart';
+import '../repositories/reminder_repository_impl.dart';
 import '../repositories/settings_repository_impl.dart';
 import '../repositories/tag_repository_impl.dart';
 import '../repositories/timeline_task_repository_impl.dart';
@@ -114,5 +117,19 @@ final appLockServiceProvider = Provider<AppLockService>((ref) {
   return AppLockService(
     settingsRepository: ref.watch(settingsRepositoryProvider),
     secureStore: ref.watch(secureKeyValueStoreProvider),
+  );
+});
+
+final localNotificationServiceProvider =
+    Provider<LocalNotificationService>((ref) {
+  throw UnimplementedError(
+    'localNotificationServiceProvider must be overridden in bootstrap',
+  );
+});
+
+final reminderRepositoryProvider = Provider<ReminderRepository>((ref) {
+  return ReminderRepositoryImpl(
+    database: ref.watch(appDatabaseProvider),
+    notificationService: ref.watch(localNotificationServiceProvider),
   );
 });

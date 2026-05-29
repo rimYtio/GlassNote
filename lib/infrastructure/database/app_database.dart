@@ -10,6 +10,7 @@ import '../../domain/entities/ai_config.dart';
 import '../../domain/entities/attachment.dart';
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
+import '../../domain/entities/reminder.dart';
 import '../../domain/entities/tag.dart';
 import '../../domain/entities/timeline_task.dart';
 
@@ -139,6 +140,19 @@ class NoteTags extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {noteId, tagId};
+}
+
+class ReminderRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get targetType => text().named('target_type')();
+  TextColumn get targetId => text().named('target_id')();
+  DateTimeColumn get triggerTime => dateTime().named('trigger_time')();
+  IntColumn get notificationId => integer().named('notification_id')();
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime().named('created_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
 }
 
 @DriftAccessor(tables: [TagRows, NoteTags, NoteRows])
@@ -832,6 +846,67 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
+@DriftAccessor(tables: [ReminderRows])
+class RemindersDao extends DatabaseAccessor<AppDatabase>
+    with _$RemindersDaoMixin {
+  RemindersDao(super.db);
+
+  Future<Reminder> create(ReminderRowsCompanion reminder) async {
+    await into(reminderRows).insertOnConflictUpdate(reminder);
+    final created = await findById(reminder.id.value);
+    return created!;
+  }
+
+  Future<Reminder?> findById(String id) async {
+    final row = await (select(reminderRows)
+      ..where((table) => table.id.equals(id))).getSingleOrNull();
+    return row == null ? null : _rowToDomain(row);
+  }
+
+  Future<List<Reminder>> listByTarget(String targetId) async {
+    final rows = await (select(reminderRows)
+      ..where((table) => table.targetId.equals(targetId))
+      ..orderBy([(table) => OrderingTerm.asc(table.triggerTime)])).get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Future<List<Reminder>> listPending() async {
+    final now = DateTime.now();
+    final rows = await (select(reminderRows)
+      ..where((table) =>
+          table.triggerTime.isBiggerOrEqualValue(now) &
+          table.enabled.equals(true))
+      ..orderBy([(table) => OrderingTerm.asc(table.triggerTime)])).get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Future<void> cancelByNotificationId(int notificationId) async {
+    await (delete(reminderRows)
+      ..where((table) => table.notificationId.equals(notificationId))).go();
+  }
+
+  Future<void> cancelByTarget(String targetId) async {
+    await (delete(reminderRows)
+      ..where((table) => table.targetId.equals(targetId))).go();
+  }
+
+  Future<void> deleteById(String id) async {
+    await (delete(reminderRows)..where((table) => table.id.equals(id))).go();
+  }
+
+  Reminder _rowToDomain(ReminderRow row) {
+    return Reminder(
+      id: row.id,
+      targetType: row.targetType,
+      targetId: row.targetId,
+      triggerTime: row.triggerTime,
+      notificationId: row.notificationId,
+      enabled: row.enabled,
+      createdAt: row.createdAt,
+    );
+  }
+}
+
 @DriftDatabase(
   tables: [
     AppSettingsRows,
@@ -842,6 +917,7 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     TimelineTaskRows,
     TagRows,
     NoteTags,
+    ReminderRows,
   ],
   daos: [
     SettingsDao,
@@ -851,6 +927,7 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     AttachmentsDao,
     TimelineTasksDao,
     TagsDao,
+    RemindersDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -859,7 +936,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -889,6 +966,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8) {
         await migrator.createTable(tagRows);
         await migrator.createTable(noteTags);
+      }
+      if (from < 9) {
+        await migrator.createTable(reminderRows);
       }
     },
   );

@@ -118,7 +118,8 @@ class NotesActions {
     _ref.invalidate(notesByFolderProvider(targetFolderId));
   }
 
-  Future<void> deleteNote(Note note) {
+  Future<void> deleteNote(Note note) async {
+    await _ref.read(reminderRepositoryProvider).cancelByTarget(note.id);
     return _ref.read(noteRepositoryProvider).delete(note.id);
   }
 

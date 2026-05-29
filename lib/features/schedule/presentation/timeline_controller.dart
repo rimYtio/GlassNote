@@ -47,7 +47,8 @@ class TimelineActions {
     return update(task.copyWith(isStarred: !task.isStarred));
   }
 
-  Future<void> delete(TimelineTask task) {
+  Future<void> delete(TimelineTask task) async {
+    await _ref.read(reminderRepositoryProvider).cancelByTarget(task.id);
     return _ref.read(timelineTaskRepositoryProvider).delete(task.id);
   }
 }

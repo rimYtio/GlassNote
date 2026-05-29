@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/capture/presentation/capture_page.dart';
 import '../features/home/presentation/home_page.dart';
-import '../features/notes/presentation/note_editor_page.dart';
+// import '../features/notes/presentation/note_editor_page.dart'; // fallback
+import '../features/notes/presentation/note_rich_editor_page.dart';
 import '../features/notes/presentation/notes_page.dart';
 import '../features/schedule/presentation/schedule_page.dart';
 import '../features/settings/presentation/ai_settings_page.dart';
@@ -56,14 +57,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/notes/new',
         pageBuilder: (context, state) => _transitionPage(
-          NoteEditorPage(folderId: state.uri.queryParameters['folderId']),
+          NoteRichEditorPage(folderId: state.uri.queryParameters['folderId']),
         ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/notes/:id/edit',
         pageBuilder: (context, state) => _transitionPage(
-          NoteEditorPage(noteId: state.pathParameters['id']),
+          NoteRichEditorPage(noteId: state.pathParameters['id']),
         ),
       ),
       StatefulShellRoute.indexedStack(

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/timeline_task.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
+import '../../notes/presentation/widgets/reminder_picker.dart';
 import 'timeline_controller.dart';
 
 const _timelineTodaySliverKey = ValueKey<String>('timeline-today-sliver');
@@ -1528,6 +1529,15 @@ class _TimelineTaskEditorSheetState
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _showReminderPicker,
+                  icon: const Icon(Icons.notifications_outlined),
+                  label: const Text('设置提醒'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
                 child: FilledButton(
                   onPressed: _save,
                   child: const Text('保存任务'),
@@ -1650,6 +1660,27 @@ class _TimelineTaskEditorSheetState
     if (mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  void _showReminderPicker() {
+    final taskId = widget.task?.id;
+    if (taskId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先保存任务再设置提醒')),
+      );
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      useRootNavigator: true,
+      builder: (_) => ReminderPicker(
+        targetType: 'schedule',
+        targetId: taskId,
+        targetTitle: _titleController.text.trim(),
+      ),
+    );
   }
 
   DateTime? _dateTimeFor(TimeOfDay? time) {
