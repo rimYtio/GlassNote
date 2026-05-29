@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/ai_config.dart';
+import '../../domain/entities/attachment.dart';
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/entities/timeline_task.dart';
@@ -77,6 +78,23 @@ class NoteRows extends Table {
       boolean().named('is_deleted').withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().named('created_at')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class AttachmentRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get noteId => text().named('note_id')();
+  IntColumn get type => integer().named('type')();
+  TextColumn get fileName => text().named('file_name')();
+  TextColumn get localPath => text().named('local_path')();
+  TextColumn get mimeType => text().named('mime_type')();
+  IntColumn get sizeBytes => integer().named('size_bytes')();
+  IntColumn get width => integer().named('width').nullable()();
+  IntColumn get height => integer().named('height').nullable()();
+  IntColumn get durationMs => integer().named('duration_ms').nullable()();
+  DateTimeColumn get createdAt => dateTime().named('created_at')();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -422,10 +440,19 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   }
 
   Future<void> permanentlyDelete(String id) async {
+    await db.attachmentsDao.deleteAllByNote(id);
     await (delete(noteRows)..where((table) => table.id.equals(id))).go();
   }
 
   Future<void> emptyTrash() async {
+    final noteIds = await (selectOnly(noteRows)
+          ..addColumns([noteRows.id])
+          ..where(noteRows.isDeleted.equals(true)))
+        .map((row) => row.read(noteRows.id)!)
+        .get();
+    for (final id in noteIds) {
+      await db.attachmentsDao.deleteAllByNote(id);
+    }
     await (delete(noteRows)..where((table) => table.isDeleted.equals(true)))
         .go();
   }
@@ -458,6 +485,79 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
       isDeleted: row.isDeleted,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+    );
+  }
+}
+
+@DriftAccessor(tables: [AttachmentRows])
+class AttachmentsDao extends DatabaseAccessor<AppDatabase>
+    with _$AttachmentsDaoMixin {
+  AttachmentsDao(super.db);
+
+  Future<Attachment> save(Attachment attachment) async {
+    await into(attachmentRows).insertOnConflictUpdate(
+      AttachmentRowsCompanion(
+        id: Value(attachment.id),
+        noteId: Value(attachment.noteId),
+        type: Value(attachment.type.index),
+        fileName: Value(attachment.fileName),
+        localPath: Value(attachment.localPath),
+        mimeType: Value(attachment.mimeType),
+        sizeBytes: Value(attachment.sizeBytes),
+        width: Value(attachment.width),
+        height: Value(attachment.height),
+        durationMs: Value(attachment.durationMs),
+        createdAt: Value(attachment.createdAt),
+      ),
+    );
+    final row =
+        await (select(attachmentRows)..where((t) => t.id.equals(attachment.id)))
+            .getSingle();
+    return _rowToDomain(row);
+  }
+
+  Future<List<Attachment>> listByNote(String noteId) async {
+    final rows =
+        await (select(attachmentRows)..where((t) => t.noteId.equals(noteId)))
+            .get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Future<void> deleteAttachment(String id) async {
+    await (delete(attachmentRows)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> deleteAllByNote(String noteId) async {
+    await (delete(attachmentRows)..where((t) => t.noteId.equals(noteId))).go();
+  }
+
+  Stream<List<Attachment>> watchByNote(String noteId) {
+    return (select(attachmentRows)..where((t) => t.noteId.equals(noteId)))
+        .watch()
+        .map((rows) => rows.map(_rowToDomain).toList());
+  }
+
+  Future<List<Attachment>> listByType(String noteId, AttachmentType type) async {
+    final rows = await (select(attachmentRows)
+      ..where((t) =>
+          t.noteId.equals(noteId) & t.type.equals(type.index))
+      ..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Attachment _rowToDomain(AttachmentRow row) {
+    return Attachment(
+      id: row.id,
+      noteId: row.noteId,
+      type: AttachmentType.values[row.type],
+      fileName: row.fileName,
+      localPath: row.localPath,
+      mimeType: row.mimeType,
+      sizeBytes: row.sizeBytes,
+      width: row.width,
+      height: row.height,
+      durationMs: row.durationMs,
+      createdAt: row.createdAt,
     );
   }
 }
@@ -595,9 +695,17 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     AiConfigRows,
     FolderRows,
     NoteRows,
+    AttachmentRows,
     TimelineTaskRows,
   ],
-  daos: [SettingsDao, AiConfigDao, FoldersDao, NotesDao, TimelineTasksDao],
+  daos: [
+    SettingsDao,
+    AiConfigDao,
+    FoldersDao,
+    NotesDao,
+    AttachmentsDao,
+    TimelineTasksDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -605,7 +713,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -628,6 +736,9 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(aiConfigRows, aiConfigRows.providerType);
         await migrator.addColumn(aiConfigRows, aiConfigRows.apiBaseUrl);
         await migrator.addColumn(aiConfigRows, aiConfigRows.apiModelName);
+      }
+      if (from < 7) {
+        await migrator.createTable(attachmentRows);
       }
     },
   );

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/note_folder_use_case_providers.dart';
 import '../../../application/notes/create_note_use_case.dart';
+import '../../../domain/entities/attachment.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
@@ -42,6 +43,11 @@ final noteSearchProvider = FutureProvider.family<List<Note>, String>((
 
 final noteByIdProvider = FutureProvider.family<Note?, String>((ref, noteId) {
   return ref.watch(noteRepositoryProvider).findById(noteId);
+});
+
+final attachmentsByNoteProvider =
+    StreamProvider.family<List<Attachment>, String>((ref, noteId) {
+  return ref.watch(attachmentRepositoryProvider).watchByNote(noteId);
 });
 
 final notesActionsProvider = Provider<NotesActions>((ref) {

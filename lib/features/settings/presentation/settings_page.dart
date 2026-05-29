@@ -49,7 +49,7 @@ class SettingsPage extends ConsumerWidget {
               icon: Icons.api,
               onTap: () => context.push('/settings/ai'),
             ),
-            _SettingsEntry(title: '数据导出', icon: Icons.ios_share, onTap: () {}),
+            _SettingsEntry(title: '数据导出', icon: Icons.ios_share, onTap: () => context.push('/settings/export')),
             _SettingsEntry(
               title: '数据导入',
               icon: Icons.download_rounded,

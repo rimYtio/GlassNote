@@ -7,6 +7,7 @@ import '../features/notes/presentation/note_editor_page.dart';
 import '../features/notes/presentation/notes_page.dart';
 import '../features/schedule/presentation/schedule_page.dart';
 import '../features/settings/presentation/ai_settings_page.dart';
+import '../features/settings/presentation/export_settings_page.dart';
 import '../features/settings/presentation/security_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/splash/presentation/splash_page.dart';
@@ -111,6 +112,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'security',
                 pageBuilder: (context, state) =>
                     _transitionPage(const SecuritySettingsPage()),
+              ),
+              GoRoute(
+                path: 'export',
+                pageBuilder: (context, state) =>
+                    _transitionPage(const ExportSettingsPage()),
               ),
                 ],
               ),

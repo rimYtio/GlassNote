@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/ai_config.dart';
 import '../../domain/repositories/ai_config_repository.dart';
+import '../../domain/repositories/attachment_repository.dart';
 import '../../domain/repositories/folder_repository.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
@@ -19,7 +20,9 @@ import '../ai/network_ai_connection_tester.dart';
 import '../ai/volcengine_streaming_asr_client.dart';
 import '../audio/record_audio_input_service.dart';
 import '../database/app_database.dart';
+import '../file_system/attachment_file_store.dart';
 import '../repositories/ai_config_repository_impl.dart';
+import '../repositories/attachment_repository_impl.dart';
 import '../repositories/folder_repository_impl.dart';
 import '../repositories/note_repository_impl.dart';
 import '../repositories/settings_repository_impl.dart';
@@ -90,4 +93,12 @@ final noteRepositoryProvider = Provider<NoteRepository>((ref) {
 
 final timelineTaskRepositoryProvider = Provider<TimelineTaskRepository>((ref) {
   return TimelineTaskRepositoryImpl(ref.watch(appDatabaseProvider));
+});
+
+final attachmentRepositoryProvider = Provider<AttachmentRepository>((ref) {
+  return AttachmentRepositoryImpl(ref.watch(appDatabaseProvider));
+});
+
+final attachmentFileStoreProvider = Provider<AttachmentFileStore>((ref) {
+  return const AttachmentFileStore();
 });
