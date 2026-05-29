@@ -30,8 +30,8 @@ class GlassSearchField extends StatelessWidget {
                 Color.fromRGBO(215, 235, 252, 0.45),
                 Color.fromRGBO(235, 245, 255, 0.60),
               ] : [
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
-                colorScheme.surface.withValues(alpha: 0.20),
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.50),
+                colorScheme.surface.withValues(alpha: 0.35),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

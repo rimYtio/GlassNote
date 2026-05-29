@@ -31,8 +31,8 @@ class GlassCard extends StatelessWidget {
                 Color.fromRGBO(210, 230, 250, 0.25),
                 Color.fromRGBO(225, 240, 255, 0.10),
               ] : [
-                colorScheme.primaryContainer.withValues(alpha: 0.08),
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.05),
+                colorScheme.primaryContainer.withValues(alpha: 0.22),
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.12),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

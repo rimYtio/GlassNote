@@ -90,9 +90,9 @@ class GlassScaffold extends StatelessWidget {
                   Color.fromRGBO(235, 245, 255, 0.15),
                   Color.fromRGBO(255, 255, 255, 0.05),
                 ] : [
+                  colorScheme.primaryContainer.withValues(alpha: 0.25),
                   colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
                   colorScheme.surface.withValues(alpha: 0.08),
-                  colorScheme.surfaceContainerLowest.withValues(alpha: 0.03),
                 ],
               ),
               border: Border.all(

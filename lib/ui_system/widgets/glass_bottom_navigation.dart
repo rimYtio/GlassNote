@@ -28,12 +28,15 @@ class GlassBottomNavigation extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
                 child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(30)),
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(Radius.circular(30)),
                     gradient: LinearGradient(
-                      colors: [
+                      colors: isLight ? const [
                         Color.fromRGBO(200, 225, 252, 0.28),
                         Color.fromRGBO(0, 0, 0, 0),
+                      ] : [
+                        colorScheme.primaryContainer.withValues(alpha: 0.20),
+                        colorScheme.surfaceContainerHighest.withValues(alpha: 0.10),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
