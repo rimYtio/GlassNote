@@ -235,10 +235,10 @@ class _CreateMenuOverlay extends StatelessWidget {
                     child: DecoratedBox(
                       key: const ValueKey('notes-create-glass-menu-surface'),
                       decoration: BoxDecoration(
-                        color: colorScheme.surface.withValues(alpha: 0.32),
+                        color: colorScheme.surface.withValues(alpha: 0.42),
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: colorScheme.onSurface.withValues(alpha: 0.12),
+                          color: colorScheme.onSurface.withValues(alpha: 0.18),
                         ),
                         boxShadow: [
                           BoxShadow(

@@ -26,15 +26,15 @@ class GlassSearchField extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [
-                Color.fromRGBO(230, 240, 255, 0.35),
-                Color.fromRGBO(245, 248, 252, 0.50),
+                Color.fromRGBO(215, 235, 252, 0.45),
+                Color.fromRGBO(235, 245, 255, 0.60),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.18),
+              color: colorScheme.onSurface.withValues(alpha: 0.22),
             ),
           ),
           child: TextField(

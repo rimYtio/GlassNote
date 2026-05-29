@@ -132,7 +132,7 @@ class _TranscriptGlass extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.28),
+            color: colorScheme.surface.withValues(alpha: 0.38),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
               color: colorScheme.onSurface.withValues(alpha: 0.10),
@@ -504,13 +504,13 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      color: colorScheme.primary.withValues(alpha: 0.22),
                       border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.28),
+                        color: colorScheme.primary.withValues(alpha: 0.38),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: colorScheme.primary.withValues(alpha: 0.28),
+                          color: colorScheme.primary.withValues(alpha: 0.38),
                           blurRadius: 24,
                           spreadRadius: 5,
                         ),
@@ -537,10 +537,10 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
                           (lit
                                   ? colorScheme.primaryContainer
                                   : colorScheme.surface)
-                              .withValues(alpha: lit ? 0.42 : 0.30),
+                              .withValues(alpha: lit ? 0.52 : 0.40),
                       borderRadius: BorderRadius.circular(36),
                       border: Border.all(
-                        color: colorScheme.onSurface.withValues(alpha: 0.14),
+                        color: colorScheme.onSurface.withValues(alpha: 0.22),
                       ),
                       boxShadow: [
                         BoxShadow(

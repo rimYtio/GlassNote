@@ -27,22 +27,22 @@ class GlassCard extends StatelessWidget {
             borderRadius: BorderRadius.all(Radius.circular(24)),
             gradient: LinearGradient(
               colors: [
-                Color.fromRGBO(230, 240, 255, 0.25),
-                Color.fromRGBO(240, 245, 255, 0.08),
+                Color.fromRGBO(210, 230, 250, 0.25),
+                Color.fromRGBO(225, 240, 255, 0.10),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Material(
-            color: colorScheme.surface.withValues(alpha: 0.58),
+            color: colorScheme.surface.withValues(alpha: 0.70),
             child: InkWell(
               onTap: onTap,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: colorScheme.onSurface.withValues(alpha: 0.20),
+                      color: colorScheme.onSurface.withValues(alpha: 0.25),
                     ),
                     boxShadow: [
                       BoxShadow(

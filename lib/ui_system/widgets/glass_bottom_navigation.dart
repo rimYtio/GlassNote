@@ -32,7 +32,7 @@ class GlassBottomNavigation extends StatelessWidget {
                     borderRadius: BorderRadius.all(Radius.circular(30)),
                     gradient: LinearGradient(
                       colors: [
-                        Color.fromRGBO(210, 230, 255, 0.22),
+                        Color.fromRGBO(200, 225, 252, 0.28),
                         Color.fromRGBO(0, 0, 0, 0),
                       ],
                       begin: Alignment.topCenter,
@@ -43,11 +43,11 @@ class GlassBottomNavigation extends StatelessWidget {
                     key: const ValueKey('glass-bottom-navigation-surface'),
                     decoration: BoxDecoration(
                       color: colorScheme.surface.withValues(
-                        alpha: isLight ? 0.50 : 0.35,
+                        alpha: isLight ? 0.55 : 0.45,
                       ),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                        color: colorScheme.onSurface.withValues(alpha: 0.20),
+                        color: colorScheme.onSurface.withValues(alpha: 0.25),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -128,7 +128,7 @@ class _GlassNavItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
                 color: selected
-                    ?                     colorScheme.primaryContainer.withValues(alpha: 0.60)
+                    ?                     colorScheme.primaryContainer.withValues(alpha: 0.65)
                     : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected

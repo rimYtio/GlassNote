@@ -222,7 +222,7 @@ class _GlassFloatingActionButton extends StatelessWidget {
           child: DecoratedBox(
             key: const ValueKey('timeline-glass-fab-surface'),
             decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.34),
+              color: colorScheme.primaryContainer.withValues(alpha: 0.44),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: colorScheme.onPrimaryContainer.withValues(alpha: 0.12),
@@ -336,6 +336,7 @@ class _TimelineDayListState extends State<_TimelineDayList> {
         controller: _scrollController,
         center: _timelineTodaySliverKey,
         physics: const BouncingScrollPhysics(
+          decelerationRate: ScrollDecelerationRate.fast,
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
@@ -563,7 +564,7 @@ class _DaySection extends StatelessWidget {
           ),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: colorScheme.surface.withValues(alpha: 0.24),
+              color: colorScheme.surface.withValues(alpha: 0.34),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
@@ -928,7 +929,7 @@ class _TimelineSearchBar extends StatelessWidget {
             color: colorScheme.surface.withValues(alpha: 0.34),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.12),
+              color: colorScheme.onSurface.withValues(alpha: 0.18),
             ),
             boxShadow: [
               BoxShadow(
@@ -997,10 +998,10 @@ class _TimelineSearchResults extends StatelessWidget {
         child: DecoratedBox(
           key: const ValueKey('timeline-search-results'),
           decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.30),
+            color: colorScheme.surface.withValues(alpha: 0.40),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.10),
+              color: colorScheme.onSurface.withValues(alpha: 0.16),
             ),
           ),
           child: Padding(
@@ -1088,12 +1089,12 @@ class _TimelineCalendarDialogState
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.surface.withValues(alpha: 0.42),
+              ).colorScheme.surface.withValues(alpha: 0.52),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.10),
+                ).colorScheme.onSurface.withValues(alpha: 0.16),
               ),
             ),
             child: Padding(

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -33,25 +34,74 @@ class GlassScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.fromRGBO(220, 235, 255, 0.25),
-                Color.fromRGBO(240, 245, 250, 0.12),
-                Color.fromRGBO(255, 255, 255, 0.05),
-              ],
-            ),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.18),
-              width: 1.0,
+      body: Stack(
+        children: [
+          // Layer 1: Warm pink/lavender orb (top-right, 300×300, blur 200, 15% opacity)
+          Positioned(
+            top: -80,
+            right: -60,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 200, sigmaY: 200),
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x26F0D0E0),
+                  ),
+                ),
+              ),
             ),
           ),
-          child: SafeArea(
+
+          // Layer 2: Sky blue orb (bottom-center, 350×350, blur 200, 15% opacity)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Transform.translate(
+              offset: const Offset(0, 120),
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 200, sigmaY: 200),
+                  child: Container(
+                    width: 350,
+                    height: 350,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x26B0D8F0),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Layer 3: Ethereal gradient overlay
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.fromRGBO(215, 235, 252, 0.32),
+                  Color.fromRGBO(235, 245, 255, 0.15),
+                  Color.fromRGBO(255, 255, 255, 0.05),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.22),
+                width: 1.0,
+              ),
+            ),
+          ),
+
+          // Layer 4: Grain texture (1.5% opacity)
+          Positioned.fill(
+            child: CustomPaint(painter: _GrainPainter()),
+          ),
+
+          // Layer 5: Content
+          SafeArea(
             bottom: false,
             child: Column(
               children: [
@@ -69,7 +119,7 @@ class GlassScaffold extends StatelessWidget {
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -109,4 +159,24 @@ class GlassToolbar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GrainPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.black.withValues(alpha: 0.015);
+    final rng = math.Random(42); // fixed seed for consistency
+    final area = size.width * size.height;
+    final numDots = (area * 0.08).toInt().clamp(0, 8000);
+    for (int i = 0; i < numDots; i++) {
+      final x = rng.nextDouble() * size.width;
+      final y = rng.nextDouble() * size.height;
+      final alpha = 0.005 + rng.nextDouble() * 0.01;
+      paint.color = Colors.black.withValues(alpha: alpha);
+      canvas.drawCircle(Offset(x, y), 0.5, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GrainPainter oldDelegate) => false;
 }
