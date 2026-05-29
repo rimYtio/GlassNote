@@ -240,8 +240,11 @@ child: TextField(
             ),
           ),
           const SizedBox(height: 12),
-          // Quill toolbar
-          QuillSimpleToolbar(
+          // Quill toolbar - clipped to prevent touch bleed
+          ClipRect(
+            child: SizedBox(
+              height: 44,
+              child: QuillSimpleToolbar(
             controller: _quillController,
             config: const QuillSimpleToolbarConfig(
               showFontSize: false,
@@ -275,7 +278,9 @@ child: TextField(
               multiRowsDisplay: false,
             ),
           ),
-          const Divider(height: 1),
+        ),
+      ),
+      const Divider(height: 1),
           // Tag display row (if note has tags)
           if (effectiveId != null) _tagRow(effectiveId),
           // Rich editor
