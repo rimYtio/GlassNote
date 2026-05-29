@@ -10,6 +10,7 @@ import '../../domain/entities/ai_config.dart';
 import '../../domain/entities/attachment.dart';
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
+import '../../domain/entities/tag.dart';
 import '../../domain/entities/timeline_task.dart';
 
 part 'app_database.g.dart';
@@ -120,6 +121,131 @@ class TimelineTaskRows extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+class TagRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  IntColumn get color => integer()();
+  DateTimeColumn get createdAt => dateTime().named('created_at')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class NoteTags extends Table {
+  TextColumn get noteId => text().named('note_id')();
+  TextColumn get tagId => text().named('tag_id')();
+
+  @override
+  Set<Column<Object>> get primaryKey => {noteId, tagId};
+}
+
+@DriftAccessor(tables: [TagRows, NoteTags, NoteRows])
+class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
+  TagsDao(super.db);
+
+  Future<Tag> createTag(TagRowsCompanion tag) async {
+    await into(tagRows).insertOnConflictUpdate(tag);
+    final created = await findById(tag.id.value);
+    return created!;
+  }
+
+  Future<Tag?> findById(String id) async {
+    final row = await (select(tagRows)
+      ..where((table) => table.id.equals(id))).getSingleOrNull();
+    return row == null ? null : _rowToDomain(row);
+  }
+
+  Future<List<Tag>> listAll() async {
+    final rows = await _allTagsQuery().get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Stream<List<Tag>> watchAll() {
+    return _allTagsQuery()
+        .watch()
+        .map((rows) => rows.map(_rowToDomain).toList());
+  }
+
+  Future<void> deleteTag(String id) async {
+    await (delete(noteTags)..where((t) => t.tagId.equals(id))).go();
+    await (delete(tagRows)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> renameTag(String id, String name) async {
+    await (update(tagRows)..where((t) => t.id.equals(id)))
+        .write(TagRowsCompanion(name: Value(name)));
+  }
+
+  Future<List<Tag>> listByNote(String noteId) async {
+    final query = select(tagRows).join([
+      innerJoin(noteTags, noteTags.tagId.equalsExp(tagRows.id)),
+    ])..where(noteTags.noteId.equals(noteId));
+    final rows = await query.get();
+    return rows.map((row) => _rowToDomain(row.readTable(tagRows))).toList();
+  }
+
+  Stream<List<Tag>> watchByNote(String noteId) {
+    final query = select(tagRows).join([
+      innerJoin(noteTags, noteTags.tagId.equalsExp(tagRows.id)),
+    ])..where(noteTags.noteId.equals(noteId));
+    return query.watch().map(
+      (rows) => rows.map((row) => _rowToDomain(row.readTable(tagRows))).toList(),
+    );
+  }
+
+  Future<void> addTagToNote(String noteId, String tagId) async {
+    await into(noteTags).insertOnConflictUpdate(
+      NoteTagsCompanion(noteId: Value(noteId), tagId: Value(tagId)),
+    );
+  }
+
+  Future<void> removeTagFromNote(String noteId, String tagId) async {
+    await (delete(noteTags)
+      ..where((t) => t.noteId.equals(noteId) & t.tagId.equals(tagId)))
+        .go();
+  }
+
+  Future<List<Note>> listNotesByTag(String tagId) async {
+    final query = select(noteRows).join([
+      innerJoin(noteTags, noteTags.noteId.equalsExp(noteRows.id)),
+    ])
+      ..where(noteTags.tagId.equals(tagId) & noteRows.isDeleted.equals(false))
+      ..orderBy([
+        OrderingTerm.desc(noteRows.isStarred),
+        OrderingTerm.desc(noteRows.createdAt),
+      ]);
+    final rows = await query.get();
+    return rows.map((row) {
+      final r = row.readTable(noteRows);
+      return Note(
+        id: r.id,
+        title: r.title,
+        plainText: r.plainText,
+        richContentJson: r.richContentJson,
+        folderId: r.folderId,
+        isStarred: r.isStarred,
+        isDeleted: r.isDeleted,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      );
+    }).toList();
+  }
+
+  SimpleSelectStatement<$TagRowsTable, TagRow> _allTagsQuery() {
+    return select(tagRows)
+      ..orderBy([(table) => OrderingTerm.asc(table.name)]);
+  }
+
+  Tag _rowToDomain(TagRow row) {
+    return Tag(
+      id: row.id,
+      name: row.name,
+      color: row.color,
+      createdAt: row.createdAt,
+    );
+  }
 }
 
 @DriftAccessor(tables: [AppSettingsRows])
@@ -419,6 +545,23 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
         .map((rows) => rows.map(_rowToDomain).toList());
   }
 
+  Stream<List<Note>> watchRecent({int limit = 5}) {
+    return (select(noteRows)
+          ..where((table) => table.isDeleted.equals(false))
+          ..orderBy([
+            (table) => OrderingTerm.desc(table.updatedAt),
+          ])
+          ..limit(limit))
+        .watch()
+        .map((rows) => rows.map(_rowToDomain).toList());
+  }
+
+  Stream<List<Note>> watchAll() {
+    return _activeNotesQuery()
+        .watch()
+        .map((rows) => rows.map(_rowToDomain).toList());
+  }
+
   Future<List<Note>> listDeleted() async {
     final rows = await (_deletedNotesQuery()).get();
     return rows.map(_rowToDomain).toList();
@@ -697,6 +840,8 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     NoteRows,
     AttachmentRows,
     TimelineTaskRows,
+    TagRows,
+    NoteTags,
   ],
   daos: [
     SettingsDao,
@@ -705,6 +850,7 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     NotesDao,
     AttachmentsDao,
     TimelineTasksDao,
+    TagsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -713,7 +859,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -739,6 +885,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) {
         await migrator.createTable(attachmentRows);
+      }
+      if (from < 8) {
+        await migrator.createTable(tagRows);
+        await migrator.createTable(noteTags);
       }
     },
   );

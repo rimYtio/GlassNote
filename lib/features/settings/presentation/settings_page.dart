@@ -70,6 +70,11 @@ class SettingsPage extends ConsumerWidget {
               icon: Icons.delete_outline,
               onTap: () => context.push('/trash'),
             ),
+            _SettingsEntry(
+              title: '标签管理',
+              icon: Icons.label_outline_rounded,
+              onTap: () => context.push('/settings/tags'),
+            ),
           ],
         ),
         error: (error, _) =>

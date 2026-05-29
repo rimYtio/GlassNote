@@ -6,6 +6,7 @@ import '../../domain/repositories/attachment_repository.dart';
 import '../../domain/repositories/folder_repository.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/repositories/tag_repository.dart';
 import '../../domain/repositories/timeline_task_repository.dart';
 import '../../domain/services/ai_connection_tester.dart';
 import '../../domain/services/audio_input_service.dart';
@@ -26,7 +27,9 @@ import '../repositories/attachment_repository_impl.dart';
 import '../repositories/folder_repository_impl.dart';
 import '../repositories/note_repository_impl.dart';
 import '../repositories/settings_repository_impl.dart';
+import '../repositories/tag_repository_impl.dart';
 import '../repositories/timeline_task_repository_impl.dart';
+import '../security/app_lock_service.dart';
 import '../security/flutter_secure_key_value_store.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -99,6 +102,17 @@ final attachmentRepositoryProvider = Provider<AttachmentRepository>((ref) {
   return AttachmentRepositoryImpl(ref.watch(appDatabaseProvider));
 });
 
+final tagRepositoryProvider = Provider<TagRepository>((ref) {
+  return TagRepositoryImpl(ref.watch(appDatabaseProvider));
+});
+
 final attachmentFileStoreProvider = Provider<AttachmentFileStore>((ref) {
   return const AttachmentFileStore();
+});
+
+final appLockServiceProvider = Provider<AppLockService>((ref) {
+  return AppLockService(
+    settingsRepository: ref.watch(settingsRepositoryProvider),
+    secureStore: ref.watch(secureKeyValueStoreProvider),
+  );
 });

@@ -5,6 +5,7 @@ import '../../../application/notes/create_note_use_case.dart';
 import '../../../domain/entities/attachment.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
+import '../../../domain/entities/tag.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
 
 final ensureUncategorizedProvider = FutureProvider<Folder>((ref) {
@@ -126,3 +127,26 @@ class NotesActions {
     _ref.invalidate(allFoldersProvider);
   }
 }
+
+final allTagsProvider = StreamProvider<List<Tag>>((ref) {
+  return ref.watch(tagRepositoryProvider).watchAll();
+});
+
+final tagsByNoteProvider = StreamProvider.family<List<Tag>, String>((
+  ref,
+  noteId,
+) {
+  final repo = ref.watch(tagRepositoryProvider);
+  final allTags = ref.watch(allTagsProvider).asData?.value ?? [];
+  return repo.listByNote(noteId).asStream().map(
+    (tags) => tags.where((t) => allTags.any((a) => a.id == t.id)).toList(),
+  );
+});
+
+final notesByTagProvider = FutureProvider.family<List<Note>, String?>((
+  ref,
+  tagId,
+) async {
+  if (tagId == null) return const [];
+  return ref.watch(tagRepositoryProvider).listNotesByTag(tagId);
+});

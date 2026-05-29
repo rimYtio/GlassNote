@@ -75,6 +75,14 @@ class TimelineTaskRepositoryImpl implements TimelineTaskRepository {
       endDate: endDate,
     );
   }
+
+  @override
+  Stream<List<TimelineTask>> watchByDate(DateTime date) {
+    return _database.timelineTasksDao.watchRange(
+      startDate: _dateOnly(date),
+      endDate: _dateOnly(date),
+    );
+  }
 }
 
 DateTime _dateOnly(DateTime value) {

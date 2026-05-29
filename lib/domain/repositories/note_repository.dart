@@ -25,4 +25,8 @@ abstract interface class NoteRepository {
   Future<void> restore(String id);
 
   Future<void> permanentlyDelete(String id);
+
+  Stream<List<Note>> watchRecent({int limit = 5});
+
+  Stream<List<Note>> watchAll();
 }

@@ -13,6 +13,8 @@ import '../../../ui_system/widgets/glass_scaffold.dart';
 import '../../../ui_system/widgets/glass_search_field.dart';
 import '../../../ui_system/widgets/jelly_swipe_action_row.dart';
 import 'notes_controller.dart';
+import 'widgets/tag_chip_display.dart';
+import 'widgets/tag_picker.dart';
 
 class NotesPage extends ConsumerStatefulWidget {
   const NotesPage({super.key, this.folderId});
@@ -28,6 +30,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
   String _query = '';
   String? _openActionRowId;
   JellySwipeSide? _openActionSide;
+  String? _selectedFilterTag;
 
   @override
   void dispose() {
@@ -72,6 +75,12 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             onChanged: (value) => setState(() => _query = value),
           ),
           const SizedBox(height: 18),
+          _TagFilterBar(
+            selectedTag: _selectedFilterTag,
+            onTagSelected: (tagId) {
+              setState(() => _selectedFilterTag = tagId);
+            },
+          ),
           if (query.isNotEmpty)
             _SearchResults(
               query: query,
@@ -96,6 +105,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             ],
             _NotesList(
               folderId: activeFolderId,
+              filterTagId: _selectedFilterTag,
               openActionRowId: _openActionRowId,
               openActionSide: _openActionSide,
               onOpenActions: _openActions,
@@ -557,6 +567,7 @@ class _FolderTile extends ConsumerWidget {
 class _NotesList extends ConsumerWidget {
   const _NotesList({
     required this.folderId,
+    required this.filterTagId,
     required this.openActionRowId,
     required this.openActionSide,
     required this.onOpenActions,
@@ -564,6 +575,7 @@ class _NotesList extends ConsumerWidget {
   });
 
   final String folderId;
+  final String? filterTagId;
   final String? openActionRowId;
   final JellySwipeSide? openActionSide;
   final void Function(String rowId, JellySwipeSide side) onOpenActions;
@@ -575,16 +587,24 @@ class _NotesList extends ConsumerWidget {
 
     return notes.when(
       data: (items) {
-        if (items.isEmpty) {
-          return const LottieEmptyState(
+        List<Note> filtered = items;
+        if (filterTagId != null) {
+          final taggedNotes =
+              ref.watch(notesByTagProvider(filterTagId)).asData?.value ?? [];
+          final taggedIds = taggedNotes.map((n) => n.id).toSet();
+          filtered = items.where((n) => taggedIds.contains(n.id)).toList();
+        }
+
+        if (filtered.isEmpty) {
+          return LottieEmptyState(
             asset: 'assets/lottie/empty_search.json',
-            message: '暂无笔记',
+            message: filterTagId != null ? '该标签下暂无笔记' : '暂无笔记',
           );
         }
 
         return Column(
           children: [
-            for (final note in items) ...[
+            for (final note in filtered) ...[
               _NoteTile(
                 note: note,
                 isActionOpen: openActionRowId == _noteRowId(note),
@@ -664,6 +684,8 @@ class _NoteTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final noteTags = ref.watch(tagsByNoteProvider(note.id));
+
     return JellySwipeActionRow(
       isOpen: isActionOpen,
       openSide: openSide,
@@ -675,6 +697,13 @@ class _NoteTile extends ConsumerWidget {
           icon: Icons.drive_file_move_outlined,
           onPressed: () {
             _showMigrateNoteDialog(context, ref, note);
+          },
+        ),
+        JellySwipeAction(
+          label: '标签',
+          icon: Icons.label_outline_rounded,
+          onPressed: () {
+            showTagPicker(context, ref, note.id);
           },
         ),
       ],
@@ -705,30 +734,46 @@ class _NoteTile extends ConsumerWidget {
           }
           context.go('/notes/${note.id}/edit');
         },
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (note.isStarred) ...[
-              const Icon(Icons.star_rounded, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    note.title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  if (note.plainText.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      note.plainText,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+            Row(
+              children: [
+                if (note.isStarred) ...[
+                  const Icon(Icons.star_rounded, size: 20),
+                  const SizedBox(width: 8),
                 ],
-              ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        note.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      if (note.plainText.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          note.plainText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            noteTags.when(
+              data: (tags) {
+                if (tags.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: TagChipDisplay(tags: tags, compact: true),
+                );
+              },
+              error: (_, _) => const SizedBox.shrink(),
+              loading: () => const SizedBox.shrink(),
             ),
           ],
         ),
@@ -761,3 +806,54 @@ class _SectionTitle extends StatelessWidget {
 }
 
 enum _CreateAction { note, folder }
+
+class _TagFilterBar extends ConsumerWidget {
+  const _TagFilterBar({required this.selectedTag, required this.onTagSelected});
+
+  final String? selectedTag;
+  final void Function(String?) onTagSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allTags = ref.watch(allTagsProvider);
+
+    return allTags.when(
+      data: (tags) {
+        if (tags.isEmpty) return const SizedBox(height: 8);
+
+        return SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: FilterChip(
+                  selected: selectedTag == null,
+                  onSelected: (_) => onTagSelected(null),
+                  label: const Text('全部'),
+                ),
+              ),
+              for (final tag in tags)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    selected: selectedTag == tag.id,
+                    onSelected: (_) => onTagSelected(tag.id),
+                    avatar: CircleAvatar(
+                      radius: 6,
+                      backgroundColor: Color(tag.color),
+                    ),
+                    label: Text(tag.name),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+      error: (_, _) => const SizedBox.shrink(),
+      loading: () => const SizedBox.shrink(),
+    );
+  }
+}

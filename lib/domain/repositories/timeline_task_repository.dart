@@ -20,4 +20,6 @@ abstract interface class TimelineTaskRepository {
     required DateTime startDate,
     required DateTime endDate,
   });
+
+  Stream<List<TimelineTask>> watchByDate(DateTime date);
 }

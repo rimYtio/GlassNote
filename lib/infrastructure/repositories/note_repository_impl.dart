@@ -82,4 +82,14 @@ class NoteRepositoryImpl implements NoteRepository {
   Future<void> permanentlyDelete(String id) {
     return _database.notesDao.permanentlyDelete(id);
   }
+
+  @override
+  Stream<List<Note>> watchRecent({int limit = 5}) {
+    return _database.notesDao.watchRecent(limit: limit);
+  }
+
+  @override
+  Stream<List<Note>> watchAll() {
+    return _database.notesDao.watchAll();
+  }
 }
