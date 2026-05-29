@@ -1,0 +1,5 @@
+RIVE_PLACEHOLDER
+Version: 7.0
+State Machine: voice_button
+Inputs: idle, recording, processing, success, error
+Note: This placeholder will be replaced by Flutter fallback (VoiceButtonRive)

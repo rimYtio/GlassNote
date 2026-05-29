@@ -773,6 +773,40 @@ class $AiConfigRowsTable extends AiConfigRows
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _providerTypeMeta = const VerificationMeta(
+    'providerType',
+  );
+  @override
+  late final GeneratedColumn<String> providerType = GeneratedColumn<String>(
+    'provider_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('deepSeek'),
+  );
+  static const VerificationMeta _apiBaseUrlMeta = const VerificationMeta(
+    'apiBaseUrl',
+  );
+  @override
+  late final GeneratedColumn<String> apiBaseUrl = GeneratedColumn<String>(
+    'api_base_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _apiModelNameMeta = const VerificationMeta(
+    'apiModelName',
+  );
+  @override
+  late final GeneratedColumn<String> apiModelName = GeneratedColumn<String>(
+    'api_model_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -784,6 +818,9 @@ class $AiConfigRowsTable extends AiConfigRows
     temperature,
     timeoutSeconds,
     updatedAt,
+    providerType,
+    apiBaseUrl,
+    apiModelName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -887,6 +924,33 @@ class $AiConfigRowsTable extends AiConfigRows
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('provider_type')) {
+      context.handle(
+        _providerTypeMeta,
+        providerType.isAcceptableOrUnknown(
+          data['provider_type']!,
+          _providerTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('api_base_url')) {
+      context.handle(
+        _apiBaseUrlMeta,
+        apiBaseUrl.isAcceptableOrUnknown(
+          data['api_base_url']!,
+          _apiBaseUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('api_model_name')) {
+      context.handle(
+        _apiModelNameMeta,
+        apiModelName.isAcceptableOrUnknown(
+          data['api_model_name']!,
+          _apiModelNameMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -932,6 +996,18 @@ class $AiConfigRowsTable extends AiConfigRows
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      providerType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}provider_type'],
+      )!,
+      apiBaseUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_base_url'],
+      ),
+      apiModelName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_model_name'],
+      ),
     );
   }
 
@@ -951,6 +1027,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
   final double temperature;
   final int timeoutSeconds;
   final DateTime updatedAt;
+  final String providerType;
+  final String? apiBaseUrl;
+  final String? apiModelName;
   const AiConfigRow({
     required this.id,
     required this.volcAsrEndpoint,
@@ -961,6 +1040,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
     required this.temperature,
     required this.timeoutSeconds,
     required this.updatedAt,
+    required this.providerType,
+    this.apiBaseUrl,
+    this.apiModelName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -974,6 +1056,13 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
     map['temperature'] = Variable<double>(temperature);
     map['timeout_seconds'] = Variable<int>(timeoutSeconds);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['provider_type'] = Variable<String>(providerType);
+    if (!nullToAbsent || apiBaseUrl != null) {
+      map['api_base_url'] = Variable<String>(apiBaseUrl);
+    }
+    if (!nullToAbsent || apiModelName != null) {
+      map['api_model_name'] = Variable<String>(apiModelName);
+    }
     return map;
   }
 
@@ -988,6 +1077,13 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
       temperature: Value(temperature),
       timeoutSeconds: Value(timeoutSeconds),
       updatedAt: Value(updatedAt),
+      providerType: Value(providerType),
+      apiBaseUrl: apiBaseUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(apiBaseUrl),
+      apiModelName: apiModelName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(apiModelName),
     );
   }
 
@@ -1006,6 +1102,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
       temperature: serializer.fromJson<double>(json['temperature']),
       timeoutSeconds: serializer.fromJson<int>(json['timeoutSeconds']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      providerType: serializer.fromJson<String>(json['providerType']),
+      apiBaseUrl: serializer.fromJson<String?>(json['apiBaseUrl']),
+      apiModelName: serializer.fromJson<String?>(json['apiModelName']),
     );
   }
   @override
@@ -1021,6 +1120,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
       'temperature': serializer.toJson<double>(temperature),
       'timeoutSeconds': serializer.toJson<int>(timeoutSeconds),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'providerType': serializer.toJson<String>(providerType),
+      'apiBaseUrl': serializer.toJson<String?>(apiBaseUrl),
+      'apiModelName': serializer.toJson<String?>(apiModelName),
     };
   }
 
@@ -1034,6 +1136,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
     double? temperature,
     int? timeoutSeconds,
     DateTime? updatedAt,
+    String? providerType,
+    Value<String?> apiBaseUrl = const Value.absent(),
+    Value<String?> apiModelName = const Value.absent(),
   }) => AiConfigRow(
     id: id ?? this.id,
     volcAsrEndpoint: volcAsrEndpoint ?? this.volcAsrEndpoint,
@@ -1044,6 +1149,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
     temperature: temperature ?? this.temperature,
     timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
     updatedAt: updatedAt ?? this.updatedAt,
+    providerType: providerType ?? this.providerType,
+    apiBaseUrl: apiBaseUrl.present ? apiBaseUrl.value : this.apiBaseUrl,
+    apiModelName: apiModelName.present ? apiModelName.value : this.apiModelName,
   );
   AiConfigRow copyWithCompanion(AiConfigRowsCompanion data) {
     return AiConfigRow(
@@ -1070,6 +1178,15 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
           ? data.timeoutSeconds.value
           : this.timeoutSeconds,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      providerType: data.providerType.present
+          ? data.providerType.value
+          : this.providerType,
+      apiBaseUrl: data.apiBaseUrl.present
+          ? data.apiBaseUrl.value
+          : this.apiBaseUrl,
+      apiModelName: data.apiModelName.present
+          ? data.apiModelName.value
+          : this.apiModelName,
     );
   }
 
@@ -1084,7 +1201,10 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
           ..write('deepSeekModel: $deepSeekModel, ')
           ..write('temperature: $temperature, ')
           ..write('timeoutSeconds: $timeoutSeconds, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('providerType: $providerType, ')
+          ..write('apiBaseUrl: $apiBaseUrl, ')
+          ..write('apiModelName: $apiModelName')
           ..write(')'))
         .toString();
   }
@@ -1100,6 +1220,9 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
     temperature,
     timeoutSeconds,
     updatedAt,
+    providerType,
+    apiBaseUrl,
+    apiModelName,
   );
   @override
   bool operator ==(Object other) =>
@@ -1113,7 +1236,10 @@ class AiConfigRow extends DataClass implements Insertable<AiConfigRow> {
           other.deepSeekModel == this.deepSeekModel &&
           other.temperature == this.temperature &&
           other.timeoutSeconds == this.timeoutSeconds &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.providerType == this.providerType &&
+          other.apiBaseUrl == this.apiBaseUrl &&
+          other.apiModelName == this.apiModelName);
 }
 
 class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
@@ -1126,6 +1252,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
   final Value<double> temperature;
   final Value<int> timeoutSeconds;
   final Value<DateTime> updatedAt;
+  final Value<String> providerType;
+  final Value<String?> apiBaseUrl;
+  final Value<String?> apiModelName;
   final Value<int> rowid;
   const AiConfigRowsCompanion({
     this.id = const Value.absent(),
@@ -1137,6 +1266,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
     this.temperature = const Value.absent(),
     this.timeoutSeconds = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.providerType = const Value.absent(),
+    this.apiBaseUrl = const Value.absent(),
+    this.apiModelName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AiConfigRowsCompanion.insert({
@@ -1149,6 +1281,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
     required double temperature,
     required int timeoutSeconds,
     required DateTime updatedAt,
+    this.providerType = const Value.absent(),
+    this.apiBaseUrl = const Value.absent(),
+    this.apiModelName = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        volcAsrEndpoint = Value(volcAsrEndpoint),
@@ -1169,6 +1304,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
     Expression<double>? temperature,
     Expression<int>? timeoutSeconds,
     Expression<DateTime>? updatedAt,
+    Expression<String>? providerType,
+    Expression<String>? apiBaseUrl,
+    Expression<String>? apiModelName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1181,6 +1319,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
       if (temperature != null) 'temperature': temperature,
       if (timeoutSeconds != null) 'timeout_seconds': timeoutSeconds,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (providerType != null) 'provider_type': providerType,
+      if (apiBaseUrl != null) 'api_base_url': apiBaseUrl,
+      if (apiModelName != null) 'api_model_name': apiModelName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1195,6 +1336,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
     Value<double>? temperature,
     Value<int>? timeoutSeconds,
     Value<DateTime>? updatedAt,
+    Value<String>? providerType,
+    Value<String?>? apiBaseUrl,
+    Value<String?>? apiModelName,
     Value<int>? rowid,
   }) {
     return AiConfigRowsCompanion(
@@ -1207,6 +1351,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
       temperature: temperature ?? this.temperature,
       timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
       updatedAt: updatedAt ?? this.updatedAt,
+      providerType: providerType ?? this.providerType,
+      apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
+      apiModelName: apiModelName ?? this.apiModelName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1241,6 +1388,15 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (providerType.present) {
+      map['provider_type'] = Variable<String>(providerType.value);
+    }
+    if (apiBaseUrl.present) {
+      map['api_base_url'] = Variable<String>(apiBaseUrl.value);
+    }
+    if (apiModelName.present) {
+      map['api_model_name'] = Variable<String>(apiModelName.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1259,6 +1415,9 @@ class AiConfigRowsCompanion extends UpdateCompanion<AiConfigRow> {
           ..write('temperature: $temperature, ')
           ..write('timeoutSeconds: $timeoutSeconds, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('providerType: $providerType, ')
+          ..write('apiBaseUrl: $apiBaseUrl, ')
+          ..write('apiModelName: $apiModelName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3444,6 +3603,9 @@ typedef $$AiConfigRowsTableCreateCompanionBuilder =
       required double temperature,
       required int timeoutSeconds,
       required DateTime updatedAt,
+      Value<String> providerType,
+      Value<String?> apiBaseUrl,
+      Value<String?> apiModelName,
       Value<int> rowid,
     });
 typedef $$AiConfigRowsTableUpdateCompanionBuilder =
@@ -3457,6 +3619,9 @@ typedef $$AiConfigRowsTableUpdateCompanionBuilder =
       Value<double> temperature,
       Value<int> timeoutSeconds,
       Value<DateTime> updatedAt,
+      Value<String> providerType,
+      Value<String?> apiBaseUrl,
+      Value<String?> apiModelName,
       Value<int> rowid,
     });
 
@@ -3511,6 +3676,21 @@ class $$AiConfigRowsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get providerType => $composableBuilder(
+    column: $table.providerType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiBaseUrl => $composableBuilder(
+    column: $table.apiBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiModelName => $composableBuilder(
+    column: $table.apiModelName,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3568,6 +3748,21 @@ class $$AiConfigRowsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get providerType => $composableBuilder(
+    column: $table.providerType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiBaseUrl => $composableBuilder(
+    column: $table.apiBaseUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiModelName => $composableBuilder(
+    column: $table.apiModelName,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AiConfigRowsTableAnnotationComposer
@@ -3619,6 +3814,21 @@ class $$AiConfigRowsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get providerType => $composableBuilder(
+    column: $table.providerType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get apiBaseUrl => $composableBuilder(
+    column: $table.apiBaseUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get apiModelName => $composableBuilder(
+    column: $table.apiModelName,
+    builder: (column) => column,
+  );
 }
 
 class $$AiConfigRowsTableTableManager
@@ -3661,6 +3871,9 @@ class $$AiConfigRowsTableTableManager
                 Value<double> temperature = const Value.absent(),
                 Value<int> timeoutSeconds = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<String> providerType = const Value.absent(),
+                Value<String?> apiBaseUrl = const Value.absent(),
+                Value<String?> apiModelName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AiConfigRowsCompanion(
                 id: id,
@@ -3672,6 +3885,9 @@ class $$AiConfigRowsTableTableManager
                 temperature: temperature,
                 timeoutSeconds: timeoutSeconds,
                 updatedAt: updatedAt,
+                providerType: providerType,
+                apiBaseUrl: apiBaseUrl,
+                apiModelName: apiModelName,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3685,6 +3901,9 @@ class $$AiConfigRowsTableTableManager
                 required double temperature,
                 required int timeoutSeconds,
                 required DateTime updatedAt,
+                Value<String> providerType = const Value.absent(),
+                Value<String?> apiBaseUrl = const Value.absent(),
+                Value<String?> apiModelName = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AiConfigRowsCompanion.insert(
                 id: id,
@@ -3696,6 +3915,9 @@ class $$AiConfigRowsTableTableManager
                 temperature: temperature,
                 timeoutSeconds: timeoutSeconds,
                 updatedAt: updatedAt,
+                providerType: providerType,
+                apiBaseUrl: apiBaseUrl,
+                apiModelName: apiModelName,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

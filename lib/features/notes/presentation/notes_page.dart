@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/di/note_folder_use_case_providers.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
+import '../../../ui_system/animations/lottie_loader.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import '../../../ui_system/widgets/glass_search_field.dart';
@@ -354,9 +355,9 @@ class _SearchResults extends ConsumerWidget {
         notes.when(
           data: (items) {
             if (matchingFolders.isEmpty && items.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.only(top: 32),
-                child: Center(child: Text('未找到相关文件夹或笔记')),
+              return const LottieEmptyState(
+                asset: 'assets/lottie/empty_search.json',
+                message: '未找到相关文件夹或笔记',
               );
             }
 
@@ -575,9 +576,9 @@ class _NotesList extends ConsumerWidget {
     return notes.when(
       data: (items) {
         if (items.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.only(top: 32),
-            child: Center(child: Text('暂无笔记')),
+          return const LottieEmptyState(
+            asset: 'assets/lottie/empty_search.json',
+            message: '暂无笔记',
           );
         }
 

@@ -12,6 +12,9 @@ import '../../domain/services/capture_analyzer.dart';
 import '../../domain/services/data_protection_service.dart';
 import '../../domain/services/realtime_transcription_client.dart';
 import '../ai/deepseek_capture_analyzer.dart';
+import '../ai/openai_capture_analyzer.dart';
+import '../ai/siliconflow_capture_analyzer.dart';
+import '../ai/provider_selecting_capture_analyzer.dart';
 import '../ai/network_ai_connection_tester.dart';
 import '../ai/volcengine_streaming_asr_client.dart';
 import '../audio/record_audio_input_service.dart';
@@ -49,6 +52,10 @@ final aiSecretsProvider = FutureProvider<AiSecrets>((ref) async {
         await store.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
     deepSeekApiKey:
         await store.readSecret(AiConfig.deepSeekApiKeySecretKey) ?? '',
+    openAIApiKey:
+        await store.readSecret(AiConfig.openAIApiKeySecretKey) ?? '',
+    siliconFlowApiKey:
+        await store.readSecret(AiConfig.siliconFlowApiKeySecretKey) ?? '',
   );
 });
 
@@ -66,7 +73,11 @@ final realtimeTranscriptionClientProvider =
     });
 
 final captureAnalyzerProvider = Provider<CaptureAnalyzer>((ref) {
-  return DeepSeekCaptureAnalyzer();
+  return ProviderSelectingCaptureAnalyzer(
+    deepSeek: DeepSeekCaptureAnalyzer(),
+    openAI: OpenAICaptureAnalyzer(),
+    siliconFlow: SiliconFlowCaptureAnalyzer(),
+  );
 });
 
 final folderRepositoryProvider = Provider<FolderRepository>((ref) {

@@ -67,4 +67,19 @@ class NoteRepositoryImpl implements NoteRepository {
   Stream<List<Note>> watchByFolder(String folderId) {
     return _database.notesDao.watchByFolder(folderId);
   }
+
+  @override
+  Future<List<Note>> listDeleted() {
+    return _database.notesDao.listDeleted();
+  }
+
+  @override
+  Future<void> restore(String id) {
+    return _database.notesDao.restore(id);
+  }
+
+  @override
+  Future<void> permanentlyDelete(String id) {
+    return _database.notesDao.permanentlyDelete(id);
+  }
 }

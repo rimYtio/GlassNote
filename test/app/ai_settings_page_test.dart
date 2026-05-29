@@ -126,10 +126,10 @@ void main() {
     expect(find.text('火山 ASR 连接成功'), findsWidgets);
 
     await tester.ensureVisible(
-      find.byKey(const ValueKey('ai-test-deepseek-button')),
+      find.byKey(const ValueKey('ai-test-llm-button')),
     );
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('ai-test-deepseek-button')));
+    await tester.tap(find.byKey(const ValueKey('ai-test-llm-button')));
     await _pumpUi(tester);
     expect(connectionTester.deepSeekCalls, 1);
     expect(find.textContaining('DeepSeek 连接失败: invalid model'), findsWidgets);
@@ -160,8 +160,16 @@ class _FakeAiConnectionTester implements AiConnectionTester {
   AiConnectionTestResult deepSeekResult = const AiConnectionTestResult.success(
     'DeepSeek 连接成功',
   );
+  AiConnectionTestResult openAIResult = const AiConnectionTestResult.success(
+    'OpenAI 连接成功',
+  );
+  AiConnectionTestResult siliconFlowResult = const AiConnectionTestResult.success(
+    'SiliconFlow 连接成功',
+  );
   int volcCalls = 0;
   int deepSeekCalls = 0;
+  int openAICalls = 0;
+  int siliconFlowCalls = 0;
 
   @override
   Future<AiConnectionTestResult> testVolcAsr({
@@ -179,5 +187,23 @@ class _FakeAiConnectionTester implements AiConnectionTester {
   }) async {
     deepSeekCalls += 1;
     return deepSeekResult;
+  }
+
+  @override
+  Future<AiConnectionTestResult> testOpenAI({
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    openAICalls += 1;
+    return openAIResult;
+  }
+
+  @override
+  Future<AiConnectionTestResult> testSiliconFlow({
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    siliconFlowCalls += 1;
+    return siliconFlowResult;
   }
 }

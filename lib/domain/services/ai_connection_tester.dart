@@ -36,4 +36,14 @@ abstract interface class AiConnectionTester {
     required AiConfig config,
     required AiSecrets secrets,
   });
+
+  Future<AiConnectionTestResult> testOpenAI({
+    required AiConfig config,
+    required AiSecrets secrets,
+  });
+
+  Future<AiConnectionTestResult> testSiliconFlow({
+    required AiConfig config,
+    required AiSecrets secrets,
+  });
 }

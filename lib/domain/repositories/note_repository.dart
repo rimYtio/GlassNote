@@ -19,4 +19,10 @@ abstract interface class NoteRepository {
   });
 
   Stream<List<Note>> watchByFolder(String folderId);
+
+  Future<List<Note>> listDeleted();
+
+  Future<void> restore(String id);
+
+  Future<void> permanentlyDelete(String id);
 }

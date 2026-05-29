@@ -118,6 +118,15 @@ class _FakeNoteRepository implements NoteRepository {
 
   @override
   Stream<List<Note>> watchByFolder(String folderId) => const Stream.empty();
+
+  @override
+  Future<List<Note>> listDeleted() async => const [];
+
+  @override
+  Future<void> restore(String id) async {}
+
+  @override
+  Future<void> permanentlyDelete(String id) async {}
 }
 
 class _FakeFolderRepository implements FolderRepository {

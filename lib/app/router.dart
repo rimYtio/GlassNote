@@ -10,6 +10,7 @@ import '../features/settings/presentation/ai_settings_page.dart';
 import '../features/settings/presentation/security_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/splash/presentation/splash_page.dart';
+import '../features/trash/presentation/trash_page.dart';
 import 'app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -39,6 +40,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/capture',
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/trash',
+        pageBuilder: (context, state) => _transitionPage(const TrashPage()),
+      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/notes/new',

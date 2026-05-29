@@ -40,6 +40,11 @@ class AiConfigRows extends Table {
   RealColumn get temperature => real()();
   IntColumn get timeoutSeconds => integer().named('timeout_seconds')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
+  TextColumn get providerType => text()
+      .named('provider_type')
+      .withDefault(const Constant('deepSeek'))();
+  TextColumn get apiBaseUrl => text().named('api_base_url').nullable()();
+  TextColumn get apiModelName => text().named('api_model_name').nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -183,6 +188,9 @@ class AiConfigDao extends DatabaseAccessor<AppDatabase>
         temperature: Value(config.temperature),
         timeoutSeconds: Value(config.timeoutSeconds),
         updatedAt: Value(config.updatedAt),
+        providerType: Value(config.providerType.name),
+        apiBaseUrl: Value(config.apiBaseUrl),
+        apiModelName: Value(config.apiModelName),
       ),
     );
     return config;
@@ -199,6 +207,9 @@ class AiConfigDao extends DatabaseAccessor<AppDatabase>
       temperature: row.temperature,
       timeoutSeconds: row.timeoutSeconds,
       updatedAt: row.updatedAt,
+      providerType: AiProviderType.fromStorageValue(row.providerType),
+      apiBaseUrl: row.apiBaseUrl,
+      apiModelName: row.apiModelName,
     );
   }
 }
@@ -390,6 +401,43 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
         .map((rows) => rows.map(_rowToDomain).toList());
   }
 
+  Future<List<Note>> listDeleted() async {
+    final rows = await (_deletedNotesQuery()).get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Stream<List<Note>> watchDeletedNotes() {
+    return _deletedNotesQuery()
+        .watch()
+        .map((rows) => rows.map(_rowToDomain).toList());
+  }
+
+  Future<void> restore(String id) async {
+    await (update(noteRows)..where((table) => table.id.equals(id))).write(
+      NoteRowsCompanion(
+        isDeleted: const Value(false),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> permanentlyDelete(String id) async {
+    await (delete(noteRows)..where((table) => table.id.equals(id))).go();
+  }
+
+  Future<void> emptyTrash() async {
+    await (delete(noteRows)..where((table) => table.isDeleted.equals(true)))
+        .go();
+  }
+
+  SimpleSelectStatement<$NoteRowsTable, NoteRow> _deletedNotesQuery() {
+    return select(noteRows)
+      ..where((table) => table.isDeleted.equals(true))
+      ..orderBy([
+        (table) => OrderingTerm.desc(table.updatedAt),
+      ]);
+  }
+
   SimpleSelectStatement<$NoteRowsTable, NoteRow> _activeNotesQuery() {
     return select(noteRows)
       ..where((table) => table.isDeleted.equals(false))
@@ -557,7 +605,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -575,6 +623,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await migrator.createTable(aiConfigRows);
+      }
+      if (from < 6) {
+        await migrator.addColumn(aiConfigRows, aiConfigRows.providerType);
+        await migrator.addColumn(aiConfigRows, aiConfigRows.apiBaseUrl);
+        await migrator.addColumn(aiConfigRows, aiConfigRows.apiModelName);
       }
     },
   );

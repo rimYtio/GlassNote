@@ -65,6 +65,11 @@ class SettingsPage extends ConsumerWidget {
               icon: Icons.notifications_none,
               onTap: () {},
             ),
+            _SettingsEntry(
+              title: '回收站',
+              icon: Icons.delete_outline,
+              onTap: () => context.push('/trash'),
+            ),
           ],
         ),
         error: (error, _) =>

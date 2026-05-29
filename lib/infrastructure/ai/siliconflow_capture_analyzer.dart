@@ -8,11 +8,14 @@ import '../../domain/entities/capture_draft_preview.dart';
 import '../../domain/services/capture_analyzer.dart';
 import 'capture_prompt.dart';
 
-class DeepSeekCaptureAnalyzer implements CaptureAnalyzer {
-  DeepSeekCaptureAnalyzer({http.Client? client})
+class SiliconFlowCaptureAnalyzer implements CaptureAnalyzer {
+  SiliconFlowCaptureAnalyzer({http.Client? client})
     : _client = client ?? http.Client();
 
   final http.Client _client;
+
+  static const _baseUrl = 'https://api.siliconflow.cn/v1';
+  static const _defaultModel = 'deepseek-ai/DeepSeek-V3';
 
   @override
   Future<List<CaptureDraftPreview>> analyze({
@@ -31,16 +34,17 @@ class DeepSeekCaptureAnalyzer implements CaptureAnalyzer {
     final prompt = buildCapturePrompt(dateStr, timeStr);
     final userMessage = '当前时间：$dateStr $timeStr，语音转写：$transcript';
 
-    final uri = Uri.parse(config.deepSeekBaseUrl).resolve('/chat/completions');
+    final model = config.apiModelName ?? _defaultModel;
+    final uri = Uri.parse(_baseUrl).resolve('/chat/completions');
     final response = await _client
         .post(
           uri,
           headers: {
-            'Authorization': 'Bearer ${secrets.deepSeekApiKey}',
+            'Authorization': 'Bearer ${secrets.siliconFlowApiKey}',
             'Content-Type': 'application/json',
           },
           body: jsonEncode({
-            'model': config.deepSeekModel,
+            'model': model,
             'temperature': config.temperature,
             'response_format': {'type': 'json_object'},
             'messages': [
@@ -52,7 +56,7 @@ class DeepSeekCaptureAnalyzer implements CaptureAnalyzer {
         .timeout(Duration(seconds: config.timeoutSeconds));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw StateError('DeepSeek 分析失败: ${response.statusCode}');
+      throw StateError('SiliconFlow 分析失败: ${response.statusCode}');
     }
 
     final decoded = jsonDecode(response.body);
@@ -70,9 +74,8 @@ class DeepSeekCaptureAnalyzer implements CaptureAnalyzer {
       items.add(previewJson);
     }
     if (items.isEmpty) {
-      throw StateError('DeepSeek 返回格式无效');
+      throw StateError('SiliconFlow 返回格式无效');
     }
     return CaptureDraftPreviewParser.parseList(items);
   }
 }
-

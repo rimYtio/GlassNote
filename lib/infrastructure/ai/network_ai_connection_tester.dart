@@ -104,6 +104,103 @@ class NetworkAiConnectionTester implements AiConnectionTester {
     }
   }
 
+  @override
+  Future<AiConnectionTestResult> testOpenAI({
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    if (secrets.openAIApiKey.trim().isEmpty) {
+      return const AiConnectionTestResult.failure('OpenAI 连接失败: API Key 未填写');
+    }
+    try {
+      final baseUrl = config.apiBaseUrl ?? 'https://api.openai.com/v1';
+      final model = config.apiModelName ?? 'gpt-4.1-mini';
+      final uri = Uri.parse(baseUrl).resolve('/chat/completions');
+      final response = await _httpClient
+          .post(
+            uri,
+            headers: {
+              'Authorization': 'Bearer ${secrets.openAIApiKey}',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': model,
+              'temperature': 0,
+              'max_tokens': 8,
+              'messages': [
+                {'role': 'user', 'content': 'ping'},
+              ],
+            }),
+          )
+          .timeout(_shortTimeout(config));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return AiConnectionTestResult.failure(
+          'OpenAI 连接失败: ${response.statusCode} ${_snippet(response.body)}',
+        );
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map &&
+          decoded['choices'] is List &&
+          (decoded['choices'] as List).isNotEmpty) {
+        return const AiConnectionTestResult.success('OpenAI 连接成功');
+      }
+      return const AiConnectionTestResult.failure('OpenAI 连接失败: 返回格式无效');
+    } on TimeoutException {
+      return const AiConnectionTestResult.failure('OpenAI 连接失败: 请求超时');
+    } on Object catch (error) {
+      return AiConnectionTestResult.failure('OpenAI 连接失败: $error');
+    }
+  }
+
+  @override
+  Future<AiConnectionTestResult> testSiliconFlow({
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    if (secrets.siliconFlowApiKey.trim().isEmpty) {
+      return const AiConnectionTestResult.failure('SiliconFlow 连接失败: API Key 未填写');
+    }
+    try {
+      final model = config.apiModelName ?? 'deepseek-ai/DeepSeek-V3';
+      final uri = Uri.parse(
+        'https://api.siliconflow.cn/v1',
+      ).resolve('/chat/completions');
+      final response = await _httpClient
+          .post(
+            uri,
+            headers: {
+              'Authorization': 'Bearer ${secrets.siliconFlowApiKey}',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': model,
+              'temperature': 0,
+              'max_tokens': 8,
+              'messages': [
+                {'role': 'user', 'content': 'ping'},
+              ],
+            }),
+          )
+          .timeout(_shortTimeout(config));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return AiConnectionTestResult.failure(
+          'SiliconFlow 连接失败: ${response.statusCode} ${_snippet(response.body)}',
+        );
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map &&
+          decoded['choices'] is List &&
+          (decoded['choices'] as List).isNotEmpty) {
+        return const AiConnectionTestResult.success('SiliconFlow 连接成功');
+      }
+      return const AiConnectionTestResult.failure('SiliconFlow 连接失败: 返回格式无效');
+    } on TimeoutException {
+      return const AiConnectionTestResult.failure('SiliconFlow 连接失败: 请求超时');
+    } on Object catch (error) {
+      return AiConnectionTestResult.failure('SiliconFlow 连接失败: $error');
+    }
+  }
+
   Duration _shortTimeout(AiConfig config) {
     final configured = config.timeoutSeconds;
     final seconds = configured < 1
