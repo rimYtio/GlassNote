@@ -25,45 +25,30 @@ class GlassBottomNavigation extends StatelessWidget {
           height: 78,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(30)),
-                    gradient: LinearGradient(
-                      colors: isLight ? const [
-                        Color.fromRGBO(200, 225, 252, 0.28),
-                        Color.fromRGBO(0, 0, 0, 0),
-                      ] : const [
-                        Color.fromRGBO(190, 220, 245, 0.26),
-                        Color.fromRGBO(210, 235, 252, 0.13),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: DecoratedBox(
+                key: const ValueKey('glass-bottom-navigation-surface'),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: isLight ? 0.72 : 0.14),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: isLight ? 0.38 : 0.12),
                   ),
-                  child: DecoratedBox(
-                    key: const ValueKey('glass-bottom-navigation-surface'),
-                    decoration: BoxDecoration(
-                    color: Color.fromRGBO(210, 235, 255, isLight ? 0.55 : 0.38),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: const Color.fromRGBO(190, 220, 250, 0.28),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorScheme.shadow.withValues(alpha: 0.08),
-                          blurRadius: 32,
-                          offset: const Offset(0, -4),
-                        ),
-                        BoxShadow(
-                          color: colorScheme.shadow.withValues(alpha: 0.12),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withValues(alpha: 0.04),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
                     ),
-                    child: Padding(
+                    BoxShadow(
+                      color: colorScheme.shadow.withValues(alpha: 0.024),
+                      blurRadius: 40,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 8,
@@ -87,8 +72,7 @@ class GlassBottomNavigation extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -108,6 +92,7 @@ class _GlassNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final foreground = selected
         ? colorScheme.onPrimaryContainer
         : colorScheme.onSurface.withValues(alpha: 0.78);
@@ -129,7 +114,7 @@ class _GlassNavItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
                 color: selected
-                    ?                     const Color.fromRGBO(190, 225, 255, 0.55)
+                    ? const Color(0xFFE8F4FD).withValues(alpha: isLight ? 0.80 : 0.25)
                     : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected

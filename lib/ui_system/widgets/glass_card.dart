@@ -22,47 +22,33 @@ class GlassCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(Radius.circular(24)),
-            gradient: LinearGradient(
-              colors: isLight ? const [
-                Color.fromRGBO(210, 230, 250, 0.25),
-                Color.fromRGBO(225, 240, 255, 0.10),
-              ] : const [
-                Color.fromRGBO(190, 220, 245, 0.28),
-                Color.fromRGBO(210, 235, 252, 0.16),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: isLight ? 0.42 : 0.15),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.024),
+                blurRadius: 40,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
           child: Material(
-            color: const Color.fromRGBO(220, 240, 255, 0.55),
+            color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: const Color.fromRGBO(200, 230, 252, 0.25),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.shadow.withValues(alpha: 0.06),
-                        blurRadius: 32,
-                        offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: colorScheme.shadow.withValues(alpha: 0.12),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                ),
-                child: Padding(padding: padding, child: child),
-              ),
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(padding: padding, child: child),
             ),
           ),
         ),

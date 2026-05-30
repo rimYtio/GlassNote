@@ -212,6 +212,7 @@ class _GlassFloatingActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Tooltip(
       message: tooltip,
@@ -219,20 +220,25 @@ class _GlassFloatingActionButton extends StatelessWidget {
         key: const ValueKey('timeline-glass-fab'),
         borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: DecoratedBox(
             key: const ValueKey('timeline-glass-fab-surface'),
             decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.44),
+              color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: colorScheme.onPrimaryContainer.withValues(alpha: 0.12),
+                color: Colors.white.withValues(alpha: 0.35),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.14),
-                  blurRadius: 22,
-                  offset: const Offset(0, 12),
+                  color: colorScheme.shadow.withValues(alpha: 0.06),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.03),
+                  blurRadius: 40,
+                  offset: const Offset(0, 16),
                 ),
               ],
             ),
@@ -384,7 +390,7 @@ class _TimelineDayListState extends State<_TimelineDayList> {
                 ),
               );
             },
-          ),
+            ),
           const SliverToBoxAdapter(child: SizedBox(height: 112)),
         ],
       ),
@@ -565,13 +571,21 @@ class _DaySection extends StatelessWidget {
           ),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: colorScheme.surface.withValues(alpha: 0.34),
+              color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
               borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.08),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
+                  color: colorScheme.shadow.withValues(alpha: 0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.024),
+                  blurRadius: 40,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
@@ -920,23 +934,24 @@ class _TimelineSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.34),
+            color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.18),
+              color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
             ),
             boxShadow: [
               BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.10),
-                blurRadius: 28,
-                offset: const Offset(0, 16),
+                color: colorScheme.shadow.withValues(alpha: 0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -992,17 +1007,19 @@ class _TimelineSearchResults extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final isLight = Theme.of(context).brightness == Brightness.light;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
           key: const ValueKey('timeline-search-results'),
           decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.40),
+            color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.16),
+              color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
             ),
           ),
           child: Padding(
@@ -1076,6 +1093,7 @@ class _TimelineCalendarDialogState
       endDate: DateTime(_year, 12, 31),
     );
     final tasks = ref.watch(timelineTasksRangeProvider(range));
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Dialog(
       key: const ValueKey('timeline-calendar-dialog'),
@@ -1084,18 +1102,14 @@ class _TimelineCalendarDialogState
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: DecoratedBox(
             key: const ValueKey('timeline-calendar-surface'),
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: 0.52),
+              color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.16),
+                color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
               ),
             ),
             child: Padding(

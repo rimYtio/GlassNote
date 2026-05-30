@@ -124,6 +124,7 @@ class _TranscriptGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final title = switch (state.status) {
       CaptureStatus.recording => '正在聆听',
       CaptureStatus.analyzing => '正在整理',
@@ -138,19 +139,19 @@ class _TranscriptGlass extends StatelessWidget {
       key: const ValueKey('capture-transcript-glass'),
       borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.38),
+            color: Colors.white.withValues(alpha: isLight ? 0.55 : 0.12),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: colorScheme.onSurface.withValues(alpha: 0.10),
+              color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
             ),
             boxShadow: [
               BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.08),
-                blurRadius: 26,
-                offset: const Offset(0, 14),
+                color: colorScheme.shadow.withValues(alpha: 0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -475,6 +476,7 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final lit = widget.active || _pressed;
 
     return GestureDetector(
@@ -513,13 +515,13 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: colorScheme.primary.withValues(alpha: 0.22),
+                      color: Colors.white.withValues(alpha: isLight ? 0.55 : 0.08),
                       border: Border.all(
                         color: colorScheme.primary.withValues(alpha: 0.38),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: colorScheme.primary.withValues(alpha: 0.38),
+                          color: colorScheme.primary.withValues(alpha: 0.25),
                           blurRadius: 24,
                           spreadRadius: 5,
                         ),
@@ -538,24 +540,27 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(36),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                   child: DecoratedBox(
                     key: const ValueKey('capture-mic-button'),
                     decoration: BoxDecoration(
-                      color:
-                          (lit
-                                  ? colorScheme.primaryContainer
-                                  : colorScheme.surface)
-                              .withValues(alpha: lit ? 0.52 : 0.40),
+                      color: Colors.white.withValues(
+                        alpha: lit ? (isLight ? 0.78 : 0.18) : (isLight ? 0.65 : 0.12),
+                      ),
                       borderRadius: BorderRadius.circular(36),
                       border: Border.all(
-                        color: colorScheme.onSurface.withValues(alpha: 0.22),
+                        color: Colors.white.withValues(alpha: 0.22),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: colorScheme.shadow.withValues(alpha: 0.12),
-                          blurRadius: 30,
-                          offset: const Offset(0, 14),
+                          color: colorScheme.shadow.withValues(alpha: 0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.03),
+                          blurRadius: 40,
+                          offset: const Offset(0, 16),
                         ),
                       ],
                     ),

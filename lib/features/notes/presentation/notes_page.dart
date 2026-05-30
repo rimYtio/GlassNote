@@ -222,7 +222,7 @@ class _CreateMenuOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Material(
       color: Colors.transparent,
@@ -242,20 +242,20 @@ class _CreateMenuOverlay extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(22),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                     child: DecoratedBox(
                       key: const ValueKey('notes-create-glass-menu-surface'),
                       decoration: BoxDecoration(
-                        color: const Color.fromRGBO(215, 238, 255, 0.55),
+                        color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: const Color.fromRGBO(190, 220, 250, 0.24),
+                          color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: colorScheme.shadow.withValues(alpha: 0.10),
-                            blurRadius: 26,
-                            offset: const Offset(0, 14),
+                            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.06),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),

@@ -32,7 +32,6 @@ class GlassScaffold extends StatelessWidget {
               )
             : null);
 
-    final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Scaffold(
@@ -86,19 +85,17 @@ class GlassScaffold extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isLight ? const [
-                  Color.fromRGBO(215, 235, 252, 0.32),
-                  Color.fromRGBO(235, 245, 255, 0.15),
-                  Color.fromRGBO(255, 255, 255, 0.05),
-                ] : [
-                  colorScheme.primaryContainer.withValues(alpha: 0.25),
-                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
-                  colorScheme.surface.withValues(alpha: 0.08),
+                  Color.fromRGBO(255, 255, 255, 0.15),
+                  Color.fromRGBO(255, 255, 255, 0.03),
+                  Color.fromRGBO(255, 255, 255, 0.0),
+                ] : const [
+                  Color.fromRGBO(255, 255, 255, 0.04),
+                  Color.fromRGBO(255, 255, 255, 0.02),
+                  Color.fromRGBO(255, 255, 255, 0.0),
                 ],
               ),
               border: Border.all(
-                color: isLight 
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : colorScheme.outlineVariant.withValues(alpha: 0.12),
+                color: Colors.white.withValues(alpha: 0.12),
                 width: 1.0,
               ),
             ),
