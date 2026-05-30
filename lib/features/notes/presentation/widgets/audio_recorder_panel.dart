@@ -1,3 +1,4 @@
+// Audio recording removed from product scope
 import 'dart:async';
 
 import 'package:flutter/material.dart';

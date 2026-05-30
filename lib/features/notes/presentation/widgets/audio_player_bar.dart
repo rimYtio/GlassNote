@@ -1,4 +1,6 @@
+// Audio recording removed from product scope
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -82,11 +84,29 @@ class _AudioPlayerBarState extends State<AudioPlayerBar>
     final state = _playerState;
     if (state == PlayerState.playing) {
       await _player.pause();
-    } else {
+      return;
+    }
+    try {
+      final file = File(widget.filePath);
+      if (!await file.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('录音文件不存在')),
+          );
+        }
+        return;
+      }
       if (state == PlayerState.completed) {
         await _player.seek(Duration.zero);
       }
       await _player.play(DeviceFileSource(widget.filePath));
+    } catch (e) {
+      debugPrint('[AudioAttachment] play failed path=${widget.filePath} error=$e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('录音文件无法播放')),
+        );
+      }
     }
   }
 
@@ -98,6 +118,21 @@ class _AudioPlayerBarState extends State<AudioPlayerBar>
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasBoundedWidth && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 32;
+
+        return SizedBox(
+          width: width,
+          child: _buildContent(context),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isPlaying = _playerState == PlayerState.playing;
     final progress = _duration.inMilliseconds == 0

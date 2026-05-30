@@ -11,14 +11,12 @@ import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/di/note_folder_use_case_providers.dart';
-import '../../../domain/entities/attachment.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'notes_controller.dart';
-import 'widgets/audio_player_bar.dart';
-import 'widgets/audio_recorder_panel.dart';
+
 import 'widgets/reminder_picker.dart';
 import 'widgets/tag_chip_display.dart';
 import 'widgets/tag_picker.dart';
@@ -144,19 +142,6 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     });
   }
 
-  Future<void> _ensureNoteCreated() async {
-    if (_effectiveNoteId != null) return;
-    final actions = ref.read(notesActionsProvider);
-    final note = await actions.createNote(
-      title: _titleController.text.trim().isEmpty
-          ? '无标题笔记'
-          : _titleController.text.trim(),
-      plainText: _plainText(),
-      richContentJson: _richContentJson(),
-      folderId: widget.folderId ?? Folder.uncategorizedId,
-    );
-    _createdNoteId = note.id;
-  }
   void _loadContent(Note note) {
     _loadFailed = false;
     // Try Delta JSON first
@@ -244,6 +229,11 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           icon: const Icon(Icons.ios_share),
           onPressed: _hasContent ? _showExportSheet : null,
         ),
+        IconButton(
+          icon: const Icon(Icons.image_outlined),
+          tooltip: '插入图片',
+          onPressed: _pickImage,
+        ),
         TextButton(
           onPressed: _saving ? null : _finish,
           child: const Text('完成'),
@@ -278,16 +268,17 @@ child: TextField(
               padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
               child: QuillEditor.basic(
                 controller: _quillController,
-                config: const QuillEditorConfig(
+                config: QuillEditorConfig(
                   placeholder: '开始输入',
                   expands: true,
                   autoFocus: false,
+                  embedBuilders: [
+                    ImageEmbedBuilder(),
+                  ],
                 ),
               ),
             ),
           ),
-          // Attachment bar
-          _attachmentBar(effectiveId),
         ],
       ),
     );
@@ -307,198 +298,22 @@ child: TextField(
     );
   }
 
-  Widget _attachmentBar(String? noteId) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Divider(height: 1),
-        Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 6,
-            bottom: MediaQuery.of(context).viewPadding.bottom + 6,
-          ),
-          child: Row(
-            children: [
-              _attachButton(
-                icon: Icons.image_outlined,
-                label: '图片',
-                onTap: () => _pickImage(),
-              ),
-              const SizedBox(width: 12),
-              _attachButton(
-                icon: Icons.mic_outlined,
-                label: '录音',
-                onTap: () => _showAudioRecorder(),
-              ),
-              const Spacer(),
-              if (noteId != null) _attachmentList(noteId),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _attachButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: colorScheme.primary),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  Widget _attachmentList(String noteId) {
-    final attachments = ref.watch(attachmentsByNoteProvider(noteId));
-    return attachments.when(
-      data: (list) {
-        if (list.isEmpty) return const SizedBox.shrink();
-        final audioAttachments =
-            list.where((a) => a.type == AttachmentType.audio).toList();
-        final imageCount =
-            list.where((a) => a.type == AttachmentType.image).length;
-
-        return Row(
-          children: [
-            if (imageCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Text(
-                  '$imageCount 张图片',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-            ...audioAttachments.map(
-              (a) => SizedBox(
-                width: 200,
-                child: AudioPlayerBar(
-                  filePath: a.localPath,
-                  label: a.fileName,
-                  onDelete: () => _deleteAttachment(a),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-      error: (_, _) => const SizedBox.shrink(),
-      loading: () => const SizedBox.shrink(),
-    );
-  }
-
-  Future<void> _deleteAttachment(Attachment attachment) async {
-    await ref.read(attachmentRepositoryProvider).delete(attachment.id);
-    await ref.read(attachmentFileStoreProvider).deleteFile(attachment.localPath);
-  }
   Future<void> _pickImage() async {
-    await _ensureNoteCreated();
-    final effectiveId = _effectiveNoteId;
-    if (effectiveId == null) return;
     final picker = ImagePicker();
-    final xFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 90,
-    );
+    final xFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
     if (xFile == null) return;
 
     final bytes = await xFile.readAsBytes();
     final fileStore = ref.read(attachmentFileStoreProvider);
-    final fileName =
-        'img_${const Uuid().v4()}.${xFile.path.split('.').last}';
+    final fileName = 'img_${const Uuid().v4()}.${xFile.path.split('.').last}';
     final localPath = await fileStore.saveImage(bytes, fileName);
 
-    // Get image dimensions
-    final decoded = await decodeImageFromList(bytes);
-    final attachment = Attachment(
-      id: const Uuid().v4(),
-      noteId: effectiveId,
-      type: AttachmentType.image,
-      fileName: fileName,
-      localPath: localPath,
-      mimeType: xFile.mimeType ?? 'image/jpeg',
-      sizeBytes: bytes.length,
-      width: decoded.width,
-      height: decoded.height,
-      durationMs: null,
-      createdAt: DateTime.now(),
-    );
-
-    await ref.read(attachmentRepositoryProvider).save(attachment);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('图片已添加')),
-      );
-    }
+    // Insert image block into Quill document at cursor position
+    final index = _quillController.selection.baseOffset;
+    _quillController.document.insert(index, BlockEmbed.image(localPath));
+    _quillController.document.insert(index + 1, '\n');
   }
 
-  void _showAudioRecorder() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => AudioRecorderPanel(
-        onSaved: (filePath) => _saveAudioAttachment(filePath),
-      ),
-    );
-  }
-
-  Future<void> _saveAudioAttachment(String tempPath) async {
-    await _ensureNoteCreated();
-    final effectiveId = _effectiveNoteId;
-    if (effectiveId == null) return;
-    final fileStore = ref.read(attachmentFileStoreProvider);
-    final localPath = await fileStore.saveAudio(tempPath);
-    final file = File(localPath);
-    final fileStat = await file.stat();
-
-    final attachment = Attachment(
-      id: const Uuid().v4(),
-      noteId: effectiveId,
-      type: AttachmentType.audio,
-      fileName: localPath.split('/').last,
-      localPath: localPath,
-      mimeType: 'audio/mp4',
-      sizeBytes: fileStat.size,
-      width: null,
-      height: null,
-      durationMs: null,
-      createdAt: DateTime.now(),
-    );
-
-    await ref.read(attachmentRepositoryProvider).save(attachment);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('录音已保存')),
-      );
-    }
-  }
   void _showReminderPicker(String noteId) {
     showModalBottomSheet<void>(
       context: context,
@@ -662,5 +477,22 @@ child: TextField(
     } else {
       context.go('/notes/folder/$targetFolderId');
     }
+  }
+}
+
+class ImageEmbedBuilder extends EmbedBuilder {
+  @override
+  String get key => 'image';
+
+  @override
+  Widget build(BuildContext context, EmbedContext embedContext) {
+    final path = embedContext.node.value.data as String;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(File(path), fit: BoxFit.contain),
+      ),
+    );
   }
 }
