@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/capture/analyze_capture_text_use_case.dart';
@@ -89,9 +90,11 @@ class CaptureController extends Notifier<CaptureState> {
     _finalTranscript = '';
     _transcriptionDone = Completer<void>();
     state = const CaptureState(status: CaptureStatus.recording, transcript: '');
+    debugPrint('[Capture] startRecording called');
     try {
       final config = await ref.read(aiConfigRepositoryProvider).load();
       final secrets = await _loadSecrets();
+      debugPrint('[Capture] hasCaptureKeys: ${secrets.hasCaptureKeys}');
       if (!secrets.hasCaptureKeys) {
         state = state.copyWith(
           status: CaptureStatus.error,
@@ -102,12 +105,15 @@ class CaptureController extends Notifier<CaptureState> {
         return;
       }
 
+      debugPrint('[Capture] hasCaptureKeys OK');
       final voice = RunVoiceCaptureUseCase(
         ref.read(audioInputServiceProvider),
         ref.read(realtimeTranscriptionClientProvider),
       );
+      debugPrint('[Capture] requesting microphone permission...');
       final granted = await voice.requestPermission();
       if (!granted) {
+        debugPrint('[Capture] microphone permission DENIED');
         state = state.copyWith(
           status: CaptureStatus.error,
           errorMessage: '未获得麦克风权限',
@@ -117,22 +123,27 @@ class CaptureController extends Notifier<CaptureState> {
         return;
       }
 
+      debugPrint('[Capture] permission granted, starting voice capture...');
       _subscription = voice
           .start(config: config, secrets: secrets)
           .listen(
             _handleTranscriptionEvent,
             onDone: () {
+              debugPrint('[Capture] transcription stream done');
               if (!(_transcriptionDone?.isCompleted ?? true)) {
                 _transcriptionDone?.complete();
               }
             },
             onError: (Object error) {
+              debugPrint('[Capture] transcription stream error: $error');
               if (!(_transcriptionDone?.isCompleted ?? true)) {
                 _transcriptionDone?.completeError(error);
               }
             },
           );
+      debugPrint('[Capture] voice capture stream started');
     } on Object catch (error) {
+      debugPrint('[Capture] startRecording error: $error');
       state = state.copyWith(
         status: CaptureStatus.error,
         errorMessage: '启动录音失败: $error',
@@ -142,6 +153,7 @@ class CaptureController extends Notifier<CaptureState> {
   }
 
   Future<void> stopRecording() async {
+    debugPrint('[Capture] stopRecording called, transcript length: ${_finalTranscript.length}');
     if (state.status != CaptureStatus.recording) {
       return;
     }
@@ -224,6 +236,7 @@ class CaptureController extends Notifier<CaptureState> {
   }
 
   void _handleTranscriptionEvent(TranscriptionEvent event) {
+    debugPrint('[Capture] transcription event: ${event.type} - ${event.text.substring(0, event.text.length.clamp(0, 50))}');
     switch (event.type) {
       case TranscriptionEventType.delta:
         state = state.copyWith(transcript: event.text);
