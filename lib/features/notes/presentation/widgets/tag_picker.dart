@@ -55,7 +55,10 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      ref.invalidate(tagsByNoteProvider(widget.noteId));
+                      Navigator.of(context).pop();
+                    },
                     child: const Text('完成'),
                   ),
                 ],
@@ -88,16 +91,15 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
                               _TagChip(
                                 tag: tag,
                                 isSelected: selectedIds.contains(tag.id),
-                                onToggle: () {
+                                onToggle: () async {
+                                  final repo = ref.read(tagRepositoryProvider);
                                   if (selectedIds.contains(tag.id)) {
-                                    ref
-                                        .read(tagRepositoryProvider)
-                                        .removeTagFromNote(widget.noteId, tag.id);
+                                    await repo.removeTagFromNote(widget.noteId, tag.id);
                                   } else {
-                                    ref
-                                        .read(tagRepositoryProvider)
-                                        .addTagToNote(widget.noteId, tag.id);
+                                    await repo.addTagToNote(widget.noteId, tag.id);
                                   }
+                                  ref.invalidate(_noteTagsProvider(widget.noteId));
+                                  ref.invalidate(noteByIdProvider(widget.noteId));
                                 },
                               ),
                           ],
