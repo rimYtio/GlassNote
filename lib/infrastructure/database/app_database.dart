@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -476,6 +477,7 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   }
 
   Future<Note> updateNote(Note note) async {
+    debugPrint('[NotesDao] updateNote writing id=${note.id} plainText="${note.plainText}" richLen=${note.richContentJson.length}');
     await (update(noteRows)..where((table) => table.id.equals(note.id))).write(
       NoteRowsCompanion(
         title: Value(note.title),
@@ -487,7 +489,9 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
         updatedAt: Value(note.updatedAt),
       ),
     );
-    return (await findById(note.id))!;
+    final result = (await findById(note.id))!;
+    debugPrint('[NotesDao] updateNote result id=${result.id} plainText="${result.plainText}" richLen=${result.richContentJson.length}');
+    return result;
   }
 
   Future<void> softDelete(String id) async {

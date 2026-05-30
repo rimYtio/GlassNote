@@ -1,10 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../domain/services/data_protection_service.dart';
 
 class FlutterSecureKeyValueStore implements SecureKeyValueStore {
   const FlutterSecureKeyValueStore([
-    this._storage = const FlutterSecureStorage(),
+    this._storage = const FlutterSecureStorage(
+      aOptions: AndroidOptions(
+        resetOnError: kDebugMode, // only reset in debug
+      ),
+    ),
   ]);
 
   final FlutterSecureStorage _storage;

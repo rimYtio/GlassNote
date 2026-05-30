@@ -38,6 +38,8 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   final _titleFocusNode = FocusNode();
   final _quillController = QuillController.basic();
   bool _loadedExistingNote = false;
+  bool _loadFailed = false;
+  bool _editorReady = false;
   bool _saving = false;
   Timer? _autoSaveTimer;
   String _saveStatus = '';
@@ -46,7 +48,7 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   @override
   void initState() {
     super.initState();
-    _titleController.addListener(_onContentChanged);
+    // Listener added only after content is loaded — prevents auto-save during load
   }
 
   @override
@@ -59,6 +61,7 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   }
 
   void _onContentChanged() {
+    if (_loadFailed) return;
     _scheduleAutoSave();
   }
 
@@ -84,6 +87,15 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     final richJson = _richContentJson();
 
     if (!_hasContent) return;
+
+    if (_loadFailed) {
+      debugPrint('[AutoSave] skipped: loadFailed');
+      return;
+    }
+    if (!_editorReady) {
+      debugPrint('[AutoSave] skipped: editor not ready');
+      return;
+    }
 
     final actions = ref.read(notesActionsProvider);
 
@@ -114,6 +126,13 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
         richContentJson: richJson,
       ),
     );
+    // DB check: verify save persisted correctly
+    try {
+      final check = await ref.read(noteByIdProvider(effectiveId).future);
+      if (check != null) {
+        debugPrint('[EditNote] autoSave db check id=$effectiveId contentLen=${check.plainText.length} deltaLen=${check.richContentJson.length}');
+      }
+    } catch (_) {}
     if (!mounted) return;
     setState(() => _saveStatus = '已保存');
     _clearSaveStatusAfterDelay();
@@ -139,7 +158,8 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     _createdNoteId = note.id;
   }
   void _loadContent(Note note) {
-    // Try to load as Delta JSON first
+    _loadFailed = false;
+    // Try Delta JSON first
     if (note.richContentJson.isNotEmpty && note.richContentJson != '{}') {
       try {
         final decoded = jsonDecode(note.richContentJson);
@@ -148,14 +168,16 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           return;
         }
       } catch (_) {
-        // Fall through to plain text loading
+        // Fall through to plainText
       }
     }
-
-    // Fallback: load plain text as plain content
+    // Fallback: plain text
     if (note.plainText.isNotEmpty) {
-      _quillController.document = Document()
-        ..insert(0, note.plainText);
+      _quillController.document = Document()..insert(0, note.plainText);
+    }
+    // If both failed or are empty, mark load failed
+    if (_quillController.document.toPlainText().trim().isEmpty) {
+      _loadFailed = note.plainText.isNotEmpty || note.richContentJson != '{}';
     }
   }
 
@@ -168,11 +190,24 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
       final noteAsync = ref.watch(noteByIdProvider(noteId));
       noteAsync.whenData((note) {
         if (note != null && !_loadedExistingNote) {
+          debugPrint('[EditNote] open noteId=$noteId contentLen=${note.plainText.length} deltaLen=${note.richContentJson.length}');
           _titleController.text = note.title;
           _loadContent(note);
           _loadedExistingNote = true;
+          if (!_loadFailed) {
+            _titleController.addListener(_onContentChanged);
+            _editorReady = true;
+          }
+          debugPrint('[EditNote] existing note loaded noteId=$noteId editorReady=$_editorReady loadFailed=$_loadFailed');
         }
       });
+    }
+
+    // New note: mark editor ready immediately (no content to load)
+    if (noteId == null && !_editorReady) {
+      _editorReady = true;
+      _titleController.addListener(_onContentChanged);
+      debugPrint('[EditNote] new note initialized editorReady=$_editorReady loadFailed=$_loadFailed');
     }
 
     return _editor(context);
@@ -555,6 +590,29 @@ child: TextField(
     final title = _titleController.text.trim();
     final plain = _plainText();
     final richJson = _richContentJson();
+    debugPrint('[EditNote] quill plain="${plain}"');
+    debugPrint('[EditNote] quill richLen=${richJson.length}');
+
+    if (_loadFailed) {
+      debugPrint('[EditNote] finish blocked: loadFailed=true');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('笔记加载异常，已阻止保存以避免覆盖原内容')),
+      );
+      setState(() => _saving = false);
+      return;
+    }
+
+    if (!_editorReady) {
+      debugPrint('[EditNote] finish blocked: editor not ready');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('编辑器尚未初始化完成，请稍后再试')),
+      );
+      setState(() => _saving = false);
+      return;
+    }
+
     final actions = ref.read(notesActionsProvider);
     var targetFolderId = widget.folderId ?? Folder.uncategorizedId;
 
@@ -576,6 +634,9 @@ child: TextField(
       }
       final existing = await ref.read(noteByIdProvider(existingId).future);
       if (existing != null) {
+        debugPrint('[EditNote] before save oldContentLen=${existing.plainText.length} oldDeltaLen=${existing.richContentJson.length}');
+        debugPrint('[EditNote] before save latestPlainLen=${plain.length} latestDeltaLen=${richJson.length}');
+
         final note = await actions.updateNote(
           existing.copyWith(
             title: title.isEmpty ? '无标题笔记' : title,
@@ -584,6 +645,14 @@ child: TextField(
           ),
         );
         targetFolderId = note.folderId;
+        // DB check: verify save persisted
+        try {
+          final check = await ref.read(noteByIdProvider(existingId).future);
+          if (check != null) {
+            debugPrint('[EditNote] finish db check id=$existingId contentLen=${check.plainText.length} deltaLen=${check.richContentJson.length}');
+            debugPrint('[EditNote] expected latestPlainLen=${plain.length} latestDeltaLen=${richJson.length}');
+          }
+        } catch (_) {}
       }
     }
 

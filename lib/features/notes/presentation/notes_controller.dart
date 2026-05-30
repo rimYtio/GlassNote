@@ -84,8 +84,10 @@ class NotesActions {
     );
   }
 
-  Future<Note> updateNote(Note note) {
-    return _ref.read(noteRepositoryProvider).update(note);
+  Future<Note> updateNote(Note note) async {
+    final updated = await _ref.read(noteRepositoryProvider).update(note);
+    _ref.invalidate(noteByIdProvider(note.id));
+    return updated;
   }
 
   Future<Folder> renameFolder(Folder folder, String name) async {
@@ -104,16 +106,19 @@ class NotesActions {
     return updated;
   }
 
-  Future<void> toggleStar(Note note) {
-    return _ref
+  Future<Note> toggleStar(Note note) async {
+    final updated = await _ref
         .read(noteRepositoryProvider)
         .update(note.copyWith(isStarred: !note.isStarred));
+    _ref.invalidate(noteByIdProvider(note.id));
+    return updated;
   }
 
   Future<void> migrateNote(Note note, String targetFolderId) async {
     await _ref
         .read(noteRepositoryProvider)
         .update(note.copyWith(folderId: targetFolderId));
+    _ref.invalidate(noteByIdProvider(note.id));
     _ref.invalidate(notesByFolderProvider(note.folderId));
     _ref.invalidate(notesByFolderProvider(targetFolderId));
   }

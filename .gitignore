@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+fix_bug/5.30.1.txt
+fix_bug/5.30.2.txt
+fix_bug/5.30.4.txt
+fix_bug/5.30.5.txt
+fix_bug/5.30.6.txt
+fix_bug/5.30.7.txt
+fix_bug/5.30.txt
+fix_bug/50.30.3.txt

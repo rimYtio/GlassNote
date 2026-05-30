@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/note.dart';
@@ -58,6 +59,7 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<Note> update(Note note) {
+    debugPrint('[NoteRepo] updateNote IN id=${note.id} contentLen=${note.plainText.length} deltaLen=${note.richContentJson.length}');
     return _database.notesDao.updateNote(
       note.copyWith(updatedAt: DateTime.now()),
     );
