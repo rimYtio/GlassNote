@@ -38,7 +38,7 @@ class GlassScaffold extends StatelessWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Layer 1: Warm pink/lavender orb (top-right, 380×380, blur 200, 25% opacity)
+          // Layer 1: Warm pink/lavender orb (top-right, 300×300, blur 200, 15% opacity)
           Positioned(
             top: -80,
             right: -60,
@@ -46,31 +46,31 @@ class GlassScaffold extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 200, sigmaY: 200),
                 child: Container(
-                  width: 380,
-                  height: 380,
+                  width: 300,
+                  height: 300,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0x40F0D0E0),
+                    color: Color(0x26F0D0E0),
                   ),
                 ),
               ),
             ),
           ),
 
-          // Layer 2: Sky blue orb (bottom-center, 420×420, blur 200, 30% opacity)
+          // Layer 2: Sky blue orb (bottom-center, 350×350, blur 200, 15% opacity)
           Align(
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
-              offset: const Offset(0, 60),
+              offset: const Offset(0, 120),
               child: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 200, sigmaY: 200),
                   child: Container(
-                    width: 420,
-                    height: 420,
+                    width: 350,
+                    height: 350,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0x4DB0D8F0),
+                      color: Color(0x26B0D8F0),
                     ),
                   ),
                 ),
@@ -78,38 +78,19 @@ class GlassScaffold extends StatelessWidget {
             ),
           ),
 
-          // Layer 2.5: Cyan orb (mid-left, for color variety)
-          Positioned(
-            left: -100,
-            top: MediaQuery.of(context).size.height * 0.3,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 180, sigmaY: 180),
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0x3300D4D4),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Layer 3: Morning-sky gradient overlay
+          // Layer 3: Ethereal gradient overlay
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isLight ? const [
-                  Color.fromRGBO(210, 235, 252, 0.18),  // sky blue top-left
-                  Color.fromRGBO(245, 240, 250, 0.08),  // warm lilac mid
-                  Color.fromRGBO(255, 255, 255, 0.0),    // fade to bg
-                ] : const [
-                  Color.fromRGBO(255, 255, 255, 0.06),
+                  Color.fromRGBO(255, 255, 255, 0.15),
                   Color.fromRGBO(255, 255, 255, 0.03),
+                  Color.fromRGBO(255, 255, 255, 0.0),
+                ] : const [
+                  Color.fromRGBO(255, 255, 255, 0.04),
+                  Color.fromRGBO(255, 255, 255, 0.02),
                   Color.fromRGBO(255, 255, 255, 0.0),
                 ],
               ),
