@@ -56,23 +56,42 @@ class DeepSeekCaptureAnalyzer implements CaptureAnalyzer {
     }
 
     final decoded = jsonDecode(response.body);
-    final content =
+    final rawContent =
         decoded['choices']?[0]?['message']?['content']?.toString() ?? '[]';
-    final previewJson = jsonDecode(content);
-    final items = <Map<String, Object?>>[];
-    if (previewJson is List) {
-      for (final item in previewJson) {
-        if (item is Map<String, Object?>) {
-          items.add(item);
-        }
+    final List<Map<String, Object?>> items;
+    try {
+      final previewJson = jsonDecode(rawContent);
+      if (previewJson is List) {
+        items = previewJson.whereType<Map<String, Object?>>().toList();
+      } else if (previewJson is Map<String, Object?>) {
+        items = [previewJson];
+      } else {
+        items = [];
       }
-    } else if (previewJson is Map<String, Object?>) {
-      items.add(previewJson);
+    } on FormatException {
+      // DeepSeek returned non-JSON content — use raw transcript as note
+      return [
+        CaptureDraftPreview.note(
+          title: _extractTitle(transcript),
+          content: transcript,
+        ),
+      ];
     }
     if (items.isEmpty) {
-      throw StateError('DeepSeek 返回格式无效');
+      return [
+        CaptureDraftPreview.note(
+          title: _extractTitle(transcript),
+          content: transcript,
+        ),
+      ];
     }
     return CaptureDraftPreviewParser.parseList(items);
+  }
+
+  static String _extractTitle(String transcript) {
+    final trimmed = transcript.trim();
+    if (trimmed.length <= 20) return trimmed;
+    return '${trimmed.substring(0, 20)}…';
   }
 }
 

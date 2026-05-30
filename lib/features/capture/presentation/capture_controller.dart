@@ -89,7 +89,6 @@ class CaptureController extends Notifier<CaptureState> {
     }
     _finalTranscript = '';
     _transcriptionDone = Completer<void>();
-    state = const CaptureState(status: CaptureStatus.recording, transcript: '');
     debugPrint('[Capture] startRecording called');
     try {
       final config = await ref.read(aiConfigRepositoryProvider).load();
@@ -123,6 +122,7 @@ class CaptureController extends Notifier<CaptureState> {
         return;
       }
 
+      state = const CaptureState(status: CaptureStatus.recording, transcript: '');
       debugPrint('[Capture] permission granted, starting voice capture...');
       _subscription = voice
           .start(config: config, secrets: secrets)
@@ -154,7 +154,7 @@ class CaptureController extends Notifier<CaptureState> {
 
   Future<void> stopRecording() async {
     debugPrint('[Capture] stopRecording called, transcript length: ${_finalTranscript.length}');
-    if (state.status != CaptureStatus.recording) {
+    if (state.status != CaptureStatus.recording || _subscription == null) {
       return;
     }
     await ref.read(audioInputServiceProvider).stop();
@@ -192,10 +192,11 @@ class CaptureController extends Notifier<CaptureState> {
           );
       state = state.copyWith(status: CaptureStatus.preview, previews: previews);
     } on Object catch (error) {
-      state = state.copyWith(
-        status: CaptureStatus.error,
-        errorMessage: 'AI 分析失败: $error',
-        errorType: CaptureErrorType.analysis,
+      // DeepSeek failure is non-fatal — keep raw transcript, return to idle
+      debugPrint('[Capture] AI analysis failed (non-fatal): $error');
+      state = const CaptureState(
+        status: CaptureStatus.idle,
+        transcript: '',
       );
     }
   }

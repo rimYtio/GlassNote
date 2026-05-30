@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../domain/entities/capture_draft_preview.dart';
 import '../../../domain/entities/timeline_task.dart';
-import '../../../infrastructure/audio/sound_service.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
@@ -485,8 +484,8 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
       onLongPressStart: (_) {
         _setPressed(true);
         HapticFeedback.heavyImpact();
-        unawaited(SoundService.micArm());
         widget.onStart();
+        // micArm sound disabled during recording — avoids audio focus conflict
       },
       onLongPressEnd: (_) {
         _setPressed(false);

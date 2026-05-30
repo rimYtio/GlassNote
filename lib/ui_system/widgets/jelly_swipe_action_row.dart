@@ -74,22 +74,30 @@ class _JellySwipeActionRowState extends State<JellySwipeActionRow> {
         children: [
           if (_isDragging || widget.isOpen)
             Positioned.fill(
-              child: Row(
-                children: [
-                  if (widget.leadingActions.isNotEmpty)
-                    _ActionRail(
-                      alignment: Alignment.centerLeft,
-                      actions: widget.leadingActions,
-                      onActionPressed: widget.onClose,
-                    ),
-                  const Spacer(),
-                  if (widget.trailingActions.isNotEmpty)
-                    _ActionRail(
-                      alignment: Alignment.centerRight,
-                      actions: widget.trailingActions,
-                      onActionPressed: widget.onClose,
-                    ),
-                ],
+              child: ClipRect(
+                child: Row(
+                  children: [
+                    if (widget.leadingActions.isNotEmpty)
+                      SizedBox(
+                        width: _leadingExtent,
+                        child: _ActionRail(
+                          alignment: Alignment.centerLeft,
+                          actions: widget.leadingActions,
+                          onActionPressed: widget.onClose,
+                        ),
+                      ),
+                    const Spacer(),
+                    if (widget.trailingActions.isNotEmpty)
+                      SizedBox(
+                        width: _trailingExtent,
+                        child: _ActionRail(
+                          alignment: Alignment.centerRight,
+                          actions: widget.trailingActions,
+                          onActionPressed: widget.onClose,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           AnimatedContainer(
