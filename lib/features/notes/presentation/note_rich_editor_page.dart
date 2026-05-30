@@ -323,6 +323,7 @@ child: TextField(
         targetType: 'note',
         targetId: noteId,
         targetTitle: _titleController.text.trim(),
+        preferredTime: null,
       ),
     );
   }

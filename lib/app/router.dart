@@ -10,6 +10,7 @@ import '../features/notes/presentation/notes_page.dart';
 import '../features/schedule/presentation/schedule_page.dart';
 import '../features/settings/presentation/ai_settings_page.dart';
 import '../features/settings/presentation/export_settings_page.dart';
+import '../features/settings/presentation/notification_center_page.dart';
 import '../features/settings/presentation/security_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/settings/presentation/tag_management_page.dart';
@@ -126,6 +127,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'tags',
                 pageBuilder: (context, state) =>
                     _transitionPage(const TagManagementPage()),
+              ),
+              GoRoute(
+                path: 'notifications',
+                pageBuilder: (context, state) =>
+                    _transitionPage(const NotificationCenterPage()),
               ),
                 ],
               ),

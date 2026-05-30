@@ -1693,6 +1693,7 @@ class _TimelineTaskEditorSheetState
         targetType: 'schedule',
         targetId: taskId,
         targetTitle: _titleController.text.trim(),
+        preferredTime: widget.task?.startAt,
       ),
     );
   }

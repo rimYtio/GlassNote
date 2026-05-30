@@ -9,11 +9,13 @@ class ReminderPicker extends ConsumerStatefulWidget {
     required this.targetType,
     required this.targetId,
     required this.targetTitle,
+    this.preferredTime,
   });
 
   final String targetType;
   final String targetId;
   final String targetTitle;
+  final DateTime? preferredTime;
 
   @override
   ConsumerState<ReminderPicker> createState() => _ReminderPickerState();
@@ -38,18 +40,11 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
       return;
     }
 
-    // Cancel existing reminders for this target
+    final notificationId =
+        ('${widget.targetType}:${widget.targetId}').hashCode & 0x7fffffff;
+
+    // 1. Save DB record first (always)
     await ref.read(reminderRepositoryProvider).cancelByTarget(widget.targetId);
-
-    final notificationId = await ref
-        .read(localNotificationServiceProvider)
-        .schedule(
-          title: widget.targetTitle.isNotEmpty ? widget.targetTitle : 'GlassNote 提醒',
-          body: label,
-          triggerTime: triggerTime,
-          payload: '${widget.targetType}:${widget.targetId}',
-        );
-
     await ref.read(reminderRepositoryProvider).create(
       targetType: widget.targetType,
       targetId: widget.targetId,
@@ -57,11 +52,27 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
       notificationId: notificationId,
     );
 
+    // 2. Cancel old notification
+    await ref.read(localNotificationServiceProvider).cancel(notificationId);
+
+    // 3. Schedule new notification (may fail gracefully)
+    final result = await ref.read(localNotificationServiceProvider).schedule(
+      notificationId: notificationId,
+      title: widget.targetTitle.isNotEmpty ? widget.targetTitle : 'GlassNote 提醒',
+      body: label,
+      triggerTime: triggerTime,
+      payload: '${widget.targetType}:${widget.targetId}',
+    );
+
+    // 4. Show appropriate message
     if (!mounted) return;
     setState(() => _saving = false);
     Navigator.of(context).pop();
+    final message = result.isOk
+        ? '已设置提醒: ${_formatDateTime(triggerTime)}'
+        : '提醒已保存，但系统通知调度失败';
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('已设置提醒: ${_formatDateTime(triggerTime)}')),
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -136,7 +147,7 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
               description: '在任务时间提醒',
               icon: Icons.alarm,
               onTap: () => _setReminder(
-                _selectedTime ?? DateTime.now().add(const Duration(minutes: 1)),
+                _selectedTime ?? widget.preferredTime ?? DateTime.now().add(const Duration(minutes: 1)),
                 '准时提醒',
               ),
             ),
@@ -145,7 +156,7 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
               description: '提前5分钟提醒',
               icon: Icons.alarm,
               onTap: () => _setReminder(
-                (_selectedTime ?? DateTime.now())
+                (_selectedTime ?? widget.preferredTime ?? DateTime.now())
                     .subtract(const Duration(minutes: 5)),
                 '5分钟前提醒',
               ),
@@ -155,7 +166,7 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
               description: '提前15分钟提醒',
               icon: Icons.alarm,
               onTap: () => _setReminder(
-                (_selectedTime ?? DateTime.now())
+                (_selectedTime ?? widget.preferredTime ?? DateTime.now())
                     .subtract(const Duration(minutes: 15)),
                 '15分钟前提醒',
               ),
@@ -165,7 +176,7 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
               description: '提前30分钟提醒',
               icon: Icons.alarm,
               onTap: () => _setReminder(
-                (_selectedTime ?? DateTime.now())
+                (_selectedTime ?? widget.preferredTime ?? DateTime.now())
                     .subtract(const Duration(minutes: 30)),
                 '30分钟前提醒',
               ),
@@ -175,7 +186,7 @@ class _ReminderPickerState extends ConsumerState<ReminderPicker> {
               description: '提前1小时提醒',
               icon: Icons.alarm,
               onTap: () => _setReminder(
-                (_selectedTime ?? DateTime.now())
+                (_selectedTime ?? widget.preferredTime ?? DateTime.now())
                     .subtract(const Duration(hours: 1)),
                 '1小时前提醒',
               ),

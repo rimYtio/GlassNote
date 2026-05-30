@@ -63,7 +63,7 @@ class SettingsPage extends ConsumerWidget {
             _SettingsEntry(
               title: '备份与通知',
               icon: Icons.notifications_none,
-              onTap: () {},
+              onTap: () => context.push('/settings/notifications'),
             ),
             _SettingsEntry(
               title: '回收站',
