@@ -38,7 +38,24 @@ class GlassScaffold extends StatelessWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Layer 1: Warm pink/lavender orb (top-right, 300×300, blur 200, 15% opacity)
+          // Layer 0: Background vertical gradient
+          if (isLight)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFFEEF4FC),
+                      Color(0xFFD6E4F2),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // Layer 1: Warm pink/lavender orb (top-right, 300×300, blur 200, 37% opacity)
           Positioned(
             top: -80,
             right: -60,
@@ -50,14 +67,14 @@ class GlassScaffold extends StatelessWidget {
                   height: 300,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0x26F0D0E0),
+                    color: Color(0x85F0D5DF),
                   ),
                 ),
               ),
             ),
           ),
 
-          // Layer 2: Sky blue orb (bottom-center, 350×350, blur 200, 15% opacity)
+          // Layer 2: Sky blue orb (bottom-center, 350×350, blur 200, 37% opacity)
           Align(
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
@@ -70,7 +87,7 @@ class GlassScaffold extends StatelessWidget {
                     height: 350,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0x26B0D8F0),
+                      color: Color(0x85C0DEF2),
                     ),
                   ),
                 ),
@@ -85,9 +102,9 @@ class GlassScaffold extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isLight ? const [
-                  Color.fromRGBO(255, 255, 255, 0.15),
-                  Color.fromRGBO(255, 255, 255, 0.03),
-                  Color.fromRGBO(255, 255, 255, 0.0),
+                  Color.fromRGBO(240, 246, 252, 0.20),
+                  Color.fromRGBO(228, 238, 248, 0.10),
+                  Color.fromRGBO(232, 239, 246, 0.0),
                 ] : const [
                   Color.fromRGBO(255, 255, 255, 0.04),
                   Color.fromRGBO(255, 255, 255, 0.02),
@@ -95,7 +112,7 @@ class GlassScaffold extends StatelessWidget {
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12),
+                color: Colors.white.withValues(alpha: 0.18),
                 width: 1.0,
               ),
             ),

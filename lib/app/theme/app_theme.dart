@@ -14,7 +14,7 @@ class AppTheme {
         surfaceContainerLowest: const Color(0xFFF8F6FF),
       ),
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFFF0F4F8),
+      scaffoldBackgroundColor: const Color(0xFFE0ECF5),
     );
   }
 

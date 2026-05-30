@@ -14,7 +14,6 @@ class GlassBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
 
     return SafeArea(
@@ -26,25 +25,20 @@ class GlassBottomNavigation extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(30),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
               child: DecoratedBox(
                 key: const ValueKey('glass-bottom-navigation-surface'),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: isLight ? 0.72 : 0.14),
+                  color: Colors.white.withValues(alpha: isLight ? 0.60 : 0.14),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: isLight ? 0.38 : 0.12),
+                    color: Colors.white.withValues(alpha: isLight ? 0.80 : 0.12),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: colorScheme.shadow.withValues(alpha: 0.04),
+                      color: const Color(0xFF2D4664).withValues(alpha: 0.10),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
-                    ),
-                    BoxShadow(
-                      color: colorScheme.shadow.withValues(alpha: 0.024),
-                      blurRadius: 40,
-                      offset: const Offset(0, 12),
                     ),
                   ],
                 ),
@@ -94,8 +88,10 @@ class _GlassNavItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
     final foreground = selected
-        ? colorScheme.onPrimaryContainer
-        : colorScheme.onSurface.withValues(alpha: 0.78);
+        ? (isLight ? const Color(0xFF5A56A5) : colorScheme.onPrimaryContainer)
+        : (isLight
+            ? const Color(0xFF3F4650).withValues(alpha: 0.88)
+            : colorScheme.onSurface.withValues(alpha: 0.78));
 
     return Semantics(
       button: true,
@@ -114,14 +110,14 @@ class _GlassNavItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
                 color: selected
-                    ? const Color(0xFFE8F4FD).withValues(alpha: isLight ? 0.80 : 0.25)
+                    ? const Color(0xFFE7EEF8).withValues(alpha: isLight ? 0.82 : 0.25)
                     : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected
                   ? Border.all(
-                      color: colorScheme.onPrimaryContainer.withValues(
-                        alpha: 0.10,
-                      ),
+                      color: isLight
+                          ? Colors.white.withValues(alpha: 0.75)
+                          : colorScheme.onPrimaryContainer.withValues(alpha: 0.10),
                     )
                   : null,
             ),

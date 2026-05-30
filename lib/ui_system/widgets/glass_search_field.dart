@@ -24,10 +24,10 @@ class GlassSearchField extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: isLight ? 0.60 : 0.10),
+            color: Colors.white.withValues(alpha: isLight ? 0.55 : 0.10),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
+              color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
             ),
           ),
           child: TextField(

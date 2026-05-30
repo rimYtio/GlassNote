@@ -16,41 +16,60 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: isLight ? 0.42 : 0.15),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: Colors.white.withValues(alpha: isLight ? 0.58 : 0.12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: isLight ? 0.76 : 0.15),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2D4664).withValues(alpha: 0.08),
+                      blurRadius: 32,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
               ),
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.024),
-                blurRadius: 40,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(24),
-              child: Padding(padding: padding, child: child),
             ),
-          ),
+            // Top highlight: 1px white gradient
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: isLight ? 0.50 : 0.08),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(padding: padding, child: child),
+              ),
+            ),
+          ],
         ),
       ),
     );
