@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -46,20 +44,24 @@ class JellySwipeActionRow extends StatefulWidget {
 }
 
 class _JellySwipeActionRowState extends State<JellySwipeActionRow> {
-  static const _actionWidth = 86.0;
+  static const _actionWidth = 80.0;
+  static const _actionGap = 6.0;
   static const _openThreshold = 46.0;
 
   double _dragOffset = 0;
   bool _isDragging = false;
 
-  double get _leadingExtent => widget.leadingActions.length * _actionWidth;
+  double _leadingExtent(int count) =>
+      count > 0 ? count * _actionWidth + (count - 1) * _actionGap : 0.0;
 
-  double get _trailingExtent => widget.trailingActions.length * _actionWidth;
+  double _trailingExtent(int count) =>
+      count > 0 ? count * _actionWidth + (count - 1) * _actionGap : 0.0;
 
   @override
   Widget build(BuildContext context) {
     final offset = _isDragging ? _dragOffset : _settledOffset;
-    final scaleY = 1.0 + math.min(offset.abs() / 1800, 0.035).toDouble();
+    final leadingCount = widget.leadingActions.length;
+    final trailingCount = widget.trailingActions.length;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -69,71 +71,86 @@ class _JellySwipeActionRowState extends State<JellySwipeActionRow> {
       onHorizontalDragUpdate: _hasActions ? _handleDragUpdate : null,
       onHorizontalDragEnd: _hasActions ? _handleDragEnd : null,
       onHorizontalDragCancel: _hasActions ? _closeDrag : null,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (_isDragging || widget.isOpen)
-            Positioned.fill(
-              child: ClipRect(
-                child: Row(
-                  children: [
-                    if (widget.leadingActions.isNotEmpty)
-                      SizedBox(
-                        width: _leadingExtent,
-                        child: _ActionRail(
-                          alignment: Alignment.centerLeft,
-                          actions: widget.leadingActions,
-                          onActionPressed: widget.onClose,
-                        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxW = constraints.maxWidth;
+            final leadExtent = _leadingExtent(leadingCount)
+                .clamp(0.0, maxW * 0.70);
+            final trailExtent = _trailingExtent(trailingCount)
+                .clamp(0.0, maxW * 0.70);
+
+            final dx = widget.isOpen
+                ? offset
+                : (_isDragging ? offset : 0.0);
+
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              alignment: Alignment.center,
+              children: [
+                if (widget.isOpen || _isDragging) ...[
+                  if (leadingCount > 0)
+                    PositionedDirectional(
+                      top: 0,
+                      bottom: 0,
+                      start: 0,
+                      width: leadExtent,
+                      child: _ActionRail(
+                        alignment: Alignment.centerLeft,
+                        actions: widget.leadingActions,
+                        actionWidth: _actionWidth,
+                        gap: _actionGap,
+                        onActionPressed: widget.onClose,
                       ),
-                    const Spacer(),
-                    if (widget.trailingActions.isNotEmpty)
-                      SizedBox(
-                        width: _trailingExtent,
-                        child: _ActionRail(
-                          alignment: Alignment.centerRight,
-                          actions: widget.trailingActions,
-                          onActionPressed: widget.onClose,
-                        ),
+                    ),
+                  if (trailingCount > 0)
+                    PositionedDirectional(
+                      top: 0,
+                      bottom: 0,
+                      end: 0,
+                      width: trailExtent,
+                      child: _ActionRail(
+                        alignment: Alignment.centerRight,
+                        actions: widget.trailingActions,
+                        actionWidth: _actionWidth,
+                        gap: _actionGap,
+                        onActionPressed: widget.onClose,
                       ),
-                  ],
+                    ),
+                ],
+                Transform.translate(
+                  offset: Offset(dx, 0),
+                  child: SizedBox(
+                    width: maxW,
+                    child: widget.child,
+                  ),
                 ),
-              ),
-            ),
-          AnimatedContainer(
-            duration: _isDragging
-                ? Duration.zero
-                : const Duration(milliseconds: 430),
-            curve: Curves.easeOutCubic,
-            transform: Matrix4.identity()
-              ..setEntry(0, 3, offset)
-              ..setEntry(1, 1, scaleY),
-            transformAlignment: Alignment.center,
-            child: widget.child,
-          ),
-        ],
+              ],
+            );
+          },
+        ),
       ),
     );
+  }
+
+  double get _settledOffset {
+    if (!widget.isOpen) return 0;
+    return switch (widget.openSide) {
+      JellySwipeSide.leading => _leadingExtent(widget.leadingActions.length),
+      JellySwipeSide.trailing => -_trailingExtent(widget.trailingActions.length),
+      null => 0,
+    };
   }
 
   bool get _hasActions =>
       widget.leadingActions.isNotEmpty || widget.trailingActions.isNotEmpty;
 
-  double get _settledOffset {
-    if (!widget.isOpen) {
-      return 0;
-    }
-    return switch (widget.openSide) {
-      JellySwipeSide.leading => _leadingExtent,
-      JellySwipeSide.trailing => -_trailingExtent,
-      null => 0,
-    };
-  }
-
   void _handleDragUpdate(DragUpdateDetails details) {
     final delta = details.primaryDelta ?? 0;
-    final next = (_dragOffset + delta).clamp(-_trailingExtent, _leadingExtent);
-    setState(() => _dragOffset = next.toDouble());
+    final maxLead = _leadingExtent(widget.leadingActions.length);
+    final maxTrail = _trailingExtent(widget.trailingActions.length);
+    setState(() => _dragOffset = (_dragOffset + delta).clamp(-maxTrail, maxLead));
   }
 
   void _handleDragEnd(DragEndDetails details) {
@@ -172,11 +189,15 @@ class _ActionRail extends StatelessWidget {
   const _ActionRail({
     required this.alignment,
     required this.actions,
+    required this.actionWidth,
+    required this.gap,
     required this.onActionPressed,
   });
 
   final Alignment alignment;
   final List<JellySwipeAction> actions;
+  final double actionWidth;
+  final double gap;
   final VoidCallback onActionPressed;
 
   @override
@@ -186,18 +207,20 @@ class _ActionRail extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final action in actions)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+          for (int i = 0; i < actions.length; i++) ...[
+            if (i > 0) SizedBox(width: gap),
+            SizedBox(
+              width: actionWidth,
               child: _SwipeActionButton(
-                action: action,
+                action: actions[i],
                 onPressed: () {
                   HapticFeedback.selectionClick();
                   onActionPressed();
-                  action.onPressed();
+                  actions[i].onPressed();
                 },
               ),
             ),
+          ],
         ],
       ),
     );
@@ -220,21 +243,41 @@ class _SwipeActionButton extends StatelessWidget {
         ? colorScheme.errorContainer.withValues(alpha: 0.82)
         : colorScheme.secondaryContainer.withValues(alpha: 0.72);
 
-    return SizedBox(
-      width: 78,
-      height: 58,
-      child: FilledButton.tonalIcon(
-        style: FilledButton.styleFrom(
-          backgroundColor: background,
-          foregroundColor: foreground,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(19),
+    return SizedBox.expand(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(action.icon, size: 20, color: foreground),
+                  const SizedBox(width: 6),
+                  Text(
+                    action.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: foreground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        onPressed: onPressed,
-        icon: Icon(action.icon, size: 18),
-        label: Text(action.label, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }
