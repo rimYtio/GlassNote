@@ -32,10 +32,11 @@ class GlassScaffold extends StatelessWidget {
               )
             : null);
 
+    final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Layer 1: Warm pink/lavender orb (top-right, 300×300, blur 200, 15% opacity)
@@ -85,19 +86,19 @@ class GlassScaffold extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isLight ? const [
-                  Color.fromRGBO(200, 230, 252, 0.38),
-                  Color.fromRGBO(220, 240, 255, 0.18),
-                  Color.fromRGBO(255, 255, 255, 0.08),
-                ] : const [
-                  Color.fromRGBO(180, 210, 240, 0.32),
-                  Color.fromRGBO(200, 225, 248, 0.20),
-                  Color.fromRGBO(220, 240, 255, 0.10),
+                  Color.fromRGBO(215, 235, 252, 0.32),
+                  Color.fromRGBO(235, 245, 255, 0.15),
+                  Color.fromRGBO(255, 255, 255, 0.05),
+                ] : [
+                  colorScheme.primaryContainer.withValues(alpha: 0.25),
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
+                  colorScheme.surface.withValues(alpha: 0.08),
                 ],
               ),
               border: Border.all(
                 color: isLight 
-                    ? const Color.fromRGBO(190, 220, 250, 0.28)
-                    : const Color.fromRGBO(160, 200, 235, 0.16),
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : colorScheme.outlineVariant.withValues(alpha: 0.12),
                 width: 1.0,
               ),
             ),
