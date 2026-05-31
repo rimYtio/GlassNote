@@ -47,34 +47,53 @@ class GlassScaffold extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFFEEF4FC),
-                      Color(0xFFD6E4F2),
+                      Color(0xFFEAF1F7),
+                      Color(0xFFDDE7F1),
                     ],
                   ),
                 ),
               ),
             ),
 
-          // Layer 1: Warm pink/lavender orb (top-right, 300×300, blur 200, 37% opacity)
+          // Layer 1: Warm pink/lavender orb (top-right, 420×420, blur 200, ~40% opacity)
           Positioned(
-            top: -80,
-            right: -60,
+            top: -100,
+            right: -80,
             child: ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 200, sigmaY: 200),
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0x85F0D5DF),
-                  ),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 420,
+                      height: 420,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0x66F0D5DF),
+                      ),
+                    ),
+                    Container(
+                      width: 420,
+                      height: 420,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          center: Alignment.center,
+                          radius: 0.8,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.0),
+                            const Color.fromRGBO(176, 140, 155, 0.22),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
 
-          // Layer 2: Sky blue orb (bottom-center, 350×350, blur 200, 37% opacity)
+          // Layer 2: Sky blue orb (bottom-center, 460×460, blur 200, ~35% opacity)
           Align(
             alignment: Alignment.bottomCenter,
             child: Transform.translate(
@@ -82,13 +101,32 @@ class GlassScaffold extends StatelessWidget {
               child: ClipRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 200, sigmaY: 200),
-                  child: Container(
-                    width: 350,
-                    height: 350,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0x85C0DEF2),
-                    ),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 460,
+                        height: 460,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0x59C0DEF2),
+                        ),
+                      ),
+                      Container(
+                        width: 460,
+                        height: 460,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            center: Alignment.center,
+                            radius: 0.8,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.0),
+                              const Color.fromRGBO(140, 180, 210, 0.22),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

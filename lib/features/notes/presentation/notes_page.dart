@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/di/note_folder_use_case_providers.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
-import '../../../ui_system/animations/lottie_loader.dart';
+
 import '../../../ui_system/widgets/glass_card.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import '../../../ui_system/widgets/glass_search_field.dart';
@@ -81,6 +81,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
               setState(() => _selectedFilterTag = tagId);
             },
           ),
+          const SizedBox(height: 14),
           if (query.isNotEmpty)
             _SearchResults(
               query: query,
@@ -365,9 +366,16 @@ class _SearchResults extends ConsumerWidget {
         notes.when(
           data: (items) {
             if (matchingFolders.isEmpty && items.isEmpty) {
-              return const LottieEmptyState(
-                asset: 'assets/lottie/empty_search.json',
-                message: '未找到相关文件夹或笔记',
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search, size: 64, color: Color(0xFFC0C5CE)),
+                    SizedBox(height: 16),
+                    Text('未找到相关文件夹或笔记',
+                      style: TextStyle(color: Color(0xFFA0A5AE), fontSize: 15)),
+                  ],
+                ),
               );
             }
 
@@ -596,9 +604,16 @@ class _NotesList extends ConsumerWidget {
         }
 
         if (filtered.isEmpty) {
-          return LottieEmptyState(
-            asset: 'assets/lottie/empty_search.json',
-            message: filterTagId != null ? '该标签下暂无笔记' : '暂无笔记',
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.search, size: 64, color: Color(0xFFC0C5CE)),
+                const SizedBox(height: 16),
+                Text(filterTagId != null ? '该标签下暂无笔记' : '暂无笔记',
+                  style: const TextStyle(color: Color(0xFFA0A5AE), fontSize: 15)),
+              ],
+            ),
           );
         }
 

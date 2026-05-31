@@ -14,7 +14,8 @@ class InMemorySecureKeyValueStore implements SecureKeyValueStore {
   }
 
   @override
-  Future<void> writeSecret({required String key, required String value}) async {
+  Future<bool> writeSecret({required String key, required String value}) async {
     _values[key] = value;
+    return true;
   }
 }

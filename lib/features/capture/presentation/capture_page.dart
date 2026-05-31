@@ -122,7 +122,6 @@ class _TranscriptGlass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
     final title = switch (state.status) {
       CaptureStatus.recording => '正在聆听',
@@ -141,16 +140,16 @@ class _TranscriptGlass extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: isLight ? 0.55 : 0.12),
+            color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.08),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
+              color: Colors.white.withValues(alpha: 0.80),
             ),
             boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+              const BoxShadow(
+                color: Color(0x1A788CA0),
+                blurRadius: 22,
+                offset: Offset(0, 8),
               ),
             ],
           ),
@@ -344,18 +343,19 @@ class _VoiceOrbPainter extends CustomPainter {
       ..shader =
           RadialGradient(
             colors: [
-              tint.withValues(alpha: 0.26 + energy * 0.16),
+              tint.withValues(alpha: 0.30 + energy * 0.16),
               secondary.withValues(alpha: 0.14),
               surface.withValues(alpha: 0.02),
             ],
           ).createShader(
-            Rect.fromCircle(center: center, radius: size.width * 0.47),
+            Rect.fromCircle(center: center, radius: size.width * 0.52),
           );
     canvas.drawCircle(center, size.width * (0.40 + energy * 0.06), glowPaint);
 
+    const envAlphas = [0.15, 0.12, 0.08];
     for (var i = 0; i < 3; i += 1) {
       final ring = Paint()
-        ..color = tint.withValues(alpha: 0.11 - i * 0.02 + energy * 0.06)
+        ..color = tint.withValues(alpha: envAlphas[i] + energy * 0.08)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2;
       canvas.drawPath(
@@ -374,9 +374,10 @@ class _VoiceOrbPainter extends CustomPainter {
           RadialGradient(
             center: const Alignment(-0.35, -0.42),
             colors: [
-              Colors.white.withValues(alpha: 0.52),
-              tint.withValues(alpha: 0.34 + energy * 0.16),
-              secondary.withValues(alpha: 0.28),
+              const Color(0xFFC6C7CE),  // muted lavender base
+              const Color(0xFFB5B7C6),  // muted mist purple
+              tint.withValues(alpha: 0.45 + energy * 0.12),
+              const Color(0xFFA5A6BC).withValues(alpha: 0.55),  // muted deeper edge
             ],
           ).createShader(
             Rect.fromCircle(center: center, radius: baseRadius * 1.25),
@@ -387,7 +388,7 @@ class _VoiceOrbPainter extends CustomPainter {
     );
 
     final edgePaint = Paint()
-      ..color = tint.withValues(alpha: 0.48 + energy * 0.18)
+      ..color = const Color(0xFFA8A5D2).withValues(alpha: 0.70)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2
       ..strokeCap = StrokeCap.round;
@@ -395,6 +396,23 @@ class _VoiceOrbPainter extends CustomPainter {
       _blobPath(center, baseRadius + 1, phaseRadians * 1.2, 5 + energy * 18),
       edgePaint,
     );
+
+    // Specular highlight — softened glow at top-left of the filled orb
+    final highlightPos = Offset(
+      center.dx - baseRadius * 0.15,
+      center.dy - baseRadius * 0.2,
+    );
+    final highlightPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.42),
+        colors: [
+          Colors.white.withValues(alpha: 0.22),
+          Colors.white.withValues(alpha: 0.0),
+        ],
+      ).createShader(
+        Rect.fromCircle(center: highlightPos, radius: baseRadius * 0.55),
+      );
+    canvas.drawCircle(highlightPos, baseRadius * 0.45, highlightPaint);
   }
 
   Path _blobPath(

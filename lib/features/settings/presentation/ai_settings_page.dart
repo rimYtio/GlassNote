@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -544,18 +545,27 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   }
 
   Future<AiSecrets> _readStoredSecrets() async {
-    final secrets = ref.read(secureKeyValueStoreProvider);
-    return AiSecrets(
-      volcAppKey: await secrets.readSecret(AiConfig.volcAppKeySecretKey) ?? '',
-      volcAccessKey:
-          await secrets.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
-      deepSeekApiKey:
-          await secrets.readSecret(AiConfig.deepSeekApiKeySecretKey) ?? '',
-      openAIApiKey:
-          await secrets.readSecret(AiConfig.openAIApiKeySecretKey) ?? '',
-      siliconFlowApiKey:
-          await secrets.readSecret(AiConfig.siliconFlowApiKeySecretKey) ?? '',
-    );
+    try {
+      final secrets = ref.read(secureKeyValueStoreProvider);
+      return AiSecrets(
+        volcAppKey: await secrets.readSecret(AiConfig.volcAppKeySecretKey) ?? '',
+        volcAccessKey:
+            await secrets.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
+        deepSeekApiKey:
+            await secrets.readSecret(AiConfig.deepSeekApiKeySecretKey) ?? '',
+        openAIApiKey:
+            await secrets.readSecret(AiConfig.openAIApiKeySecretKey) ?? '',
+        siliconFlowApiKey:
+            await secrets.readSecret(AiConfig.siliconFlowApiKeySecretKey) ?? '',
+      );
+    } catch (e) {
+      debugPrint('[AiSettings] _readStoredSecrets failed: $e');
+      return const AiSecrets(
+        volcAppKey: '',
+        volcAccessKey: '',
+        deepSeekApiKey: '',
+      );
+    }
   }
 
   void _cancelDismiss() {
@@ -646,44 +656,52 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   }
 
   Future<void> _load() async {
-    final config = await ref.read(aiConfigRepositoryProvider).load();
-    final secrets = await _readStoredSecrets();
-    if (!mounted) {
-      return;
+    try {
+      final config = await ref.read(aiConfigRepositoryProvider).load();
+      final secrets = await _readStoredSecrets();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _selectedProvider = config.providerType;
+        _volcEndpointController.text = config.volcAsrEndpoint;
+        _volcResourceController.text = config.volcAsrResourceId;
+        _volcLanguageController.text = config.volcAsrLanguage;
+        _deepSeekBaseUrlController.text = config.deepSeekBaseUrl;
+        _deepSeekModelController.text = config.deepSeekModel;
+        _apiBaseUrlController.text = config.apiBaseUrl ?? '';
+        _apiModelNameController.text = config.apiModelName ?? '';
+        _temperatureController.text = config.temperature.toString();
+        _timeoutController.text = config.timeoutSeconds.toString();
+        _volcAppKeySaved = secrets.volcAppKey.isNotEmpty;
+        _volcAccessKeySaved = secrets.volcAccessKey.isNotEmpty;
+        _deepSeekKeySaved = secrets.deepSeekApiKey.isNotEmpty;
+        _openAIKeySaved = secrets.openAIApiKey.isNotEmpty;
+        _siliconFlowKeySaved = secrets.siliconFlowApiKey.isNotEmpty;
+        if (_volcAppKeySaved) {
+          _volcAppKeyController.text = _maskedKey;
+        }
+        if (_volcAccessKeySaved) {
+          _volcAccessKeyController.text = _maskedKey;
+        }
+        if (_deepSeekKeySaved) {
+          _deepSeekKeyController.text = _maskedKey;
+        }
+        if (_openAIKeySaved) {
+          _openAIKeyController.text = _maskedKey;
+        }
+        if (_siliconFlowKeySaved) {
+          _siliconFlowKeyController.text = _maskedKey;
+        }
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('[AiSettings] _load failed: $e');
+      if (!mounted) {
+        return;
+      }
+      setState(() => _loading = false);
     }
-    setState(() {
-      _selectedProvider = config.providerType;
-      _volcEndpointController.text = config.volcAsrEndpoint;
-      _volcResourceController.text = config.volcAsrResourceId;
-      _volcLanguageController.text = config.volcAsrLanguage;
-      _deepSeekBaseUrlController.text = config.deepSeekBaseUrl;
-      _deepSeekModelController.text = config.deepSeekModel;
-      _apiBaseUrlController.text = config.apiBaseUrl ?? '';
-      _apiModelNameController.text = config.apiModelName ?? '';
-      _temperatureController.text = config.temperature.toString();
-      _timeoutController.text = config.timeoutSeconds.toString();
-      _volcAppKeySaved = secrets.volcAppKey.isNotEmpty;
-      _volcAccessKeySaved = secrets.volcAccessKey.isNotEmpty;
-      _deepSeekKeySaved = secrets.deepSeekApiKey.isNotEmpty;
-      _openAIKeySaved = secrets.openAIApiKey.isNotEmpty;
-      _siliconFlowKeySaved = secrets.siliconFlowApiKey.isNotEmpty;
-      if (_volcAppKeySaved) {
-        _volcAppKeyController.text = _maskedKey;
-      }
-      if (_volcAccessKeySaved) {
-        _volcAccessKeyController.text = _maskedKey;
-      }
-      if (_deepSeekKeySaved) {
-        _deepSeekKeyController.text = _maskedKey;
-      }
-      if (_openAIKeySaved) {
-        _openAIKeyController.text = _maskedKey;
-      }
-      if (_siliconFlowKeySaved) {
-        _siliconFlowKeyController.text = _maskedKey;
-      }
-      _loading = false;
-    });
   }
 
   Future<void> _save() async {
@@ -699,42 +717,49 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
 
       final resolvedSecrets = await _currentSecrets();
       final secureStore = ref.read(secureKeyValueStoreProvider);
-      if (resolvedSecrets.volcAppKey.isNotEmpty) {
-        await secureStore.writeSecret(
-          key: AiConfig.volcAppKeySecretKey,
-          value: resolvedSecrets.volcAppKey,
-        );
+      bool keyWriteFailed = false;
+
+      // Write each key and verify with read-back
+      final keysToWrite = <String, String>{};
+      if (resolvedSecrets.volcAppKey.isNotEmpty) keysToWrite[AiConfig.volcAppKeySecretKey] = resolvedSecrets.volcAppKey;
+      if (resolvedSecrets.volcAccessKey.isNotEmpty) keysToWrite[AiConfig.volcAccessKeySecretKey] = resolvedSecrets.volcAccessKey;
+      if (resolvedSecrets.deepSeekApiKey.isNotEmpty) keysToWrite[AiConfig.deepSeekApiKeySecretKey] = resolvedSecrets.deepSeekApiKey;
+      if (resolvedSecrets.openAIApiKey.isNotEmpty) keysToWrite[AiConfig.openAIApiKeySecretKey] = resolvedSecrets.openAIApiKey;
+      if (resolvedSecrets.siliconFlowApiKey.isNotEmpty) keysToWrite[AiConfig.siliconFlowApiKeySecretKey] = resolvedSecrets.siliconFlowApiKey;
+
+      for (final entry in keysToWrite.entries) {
+        debugPrint('[ApiSave] secure write key=${entry.key} len=${entry.value.length}');
+        final ok = await secureStore.writeSecret(key: entry.key, value: entry.value);
+        if (!ok) {
+          keyWriteFailed = true;
+          break;
+        }
+        // Read-back verification
+        final readBack = await secureStore.readSecret(entry.key);
+        if (readBack == null || readBack.isEmpty || readBack != entry.value) {
+          debugPrint('[ApiSave] read-back mismatch key=${entry.key} expectedLen=${entry.value.length} actualLen=${readBack?.length ?? 0}');
+          keyWriteFailed = true;
+          break;
+        }
       }
-      if (resolvedSecrets.volcAccessKey.isNotEmpty) {
-        await secureStore.writeSecret(
-          key: AiConfig.volcAccessKeySecretKey,
-          value: resolvedSecrets.volcAccessKey,
-        );
+
+      if (keyWriteFailed) {
+        debugPrint('[ApiSave] Keystore write failed — stopping save');
+        if (!mounted) return;
+        setState(() {
+          _saveMessage = '本地密钥存储异常，请重置 API 密钥后重新保存';
+          _feedbackSuccess = false;
+          _saveVisible = true;
+        });
+        _scheduleDismiss();
+        return;
       }
-      if (resolvedSecrets.deepSeekApiKey.isNotEmpty) {
-        await secureStore.writeSecret(
-          key: AiConfig.deepSeekApiKeySecretKey,
-          value: resolvedSecrets.deepSeekApiKey,
-        );
-      }
-      if (resolvedSecrets.openAIApiKey.isNotEmpty) {
-        await secureStore.writeSecret(
-          key: AiConfig.openAIApiKeySecretKey,
-          value: resolvedSecrets.openAIApiKey,
-        );
-      }
-      if (resolvedSecrets.siliconFlowApiKey.isNotEmpty) {
-        await secureStore.writeSecret(
-          key: AiConfig.siliconFlowApiKeySecretKey,
-          value: resolvedSecrets.siliconFlowApiKey,
-        );
-      }
+
       ref.invalidate(aiSecretsProvider);
       await _syncSavedSecretFlags();
 
-      if (!mounted) {
-        return;
-      }
+      debugPrint('[ApiSave] all keys written and verified');
+      if (!mounted) return;
       setState(() {
         _volcAppKeyController.text = _maskedKey;
         _volcAccessKeyController.text = _maskedKey;
@@ -749,20 +774,19 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
         _saveMessage = 'API 设置已保存';
         _feedbackSuccess = true;
         _saveVisible = true;
-        _saving = false;
       });
       _scheduleDismiss();
     } on Object catch (error) {
-      if (!mounted) {
-        return;
-      }
+      debugPrint('[ApiSave] exception: $error');
+      if (!mounted) return;
       setState(() {
         _saveMessage = 'API 设置保存失败: $error';
         _feedbackSuccess = false;
         _saveVisible = true;
-        _saving = false;
       });
       _scheduleDismiss();
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 }

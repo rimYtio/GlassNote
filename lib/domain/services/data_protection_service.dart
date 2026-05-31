@@ -5,7 +5,7 @@ abstract interface class DataProtectionService {
 }
 
 abstract interface class SecureKeyValueStore {
-  Future<void> writeSecret({required String key, required String value});
+  Future<bool> writeSecret({required String key, required String value});
 
   Future<String?> readSecret(String key);
 
