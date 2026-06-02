@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/timeline_task.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import '../../notes/presentation/widgets/reminder_picker.dart';
+import '../../../infrastructure/providers/infrastructure_providers.dart';
 import 'timeline_controller.dart';
 
 const _timelineTodaySliverKey = ValueKey<String>('timeline-today-sliver');
@@ -1634,6 +1635,51 @@ class _TimelineTaskEditorSheetState
     );
   }
 
+  static DateTime? _computeDefaultReminder({
+    required DateTime? startAt,
+  }) {
+    if (startAt == null) return null;
+    final now = DateTime.now();
+    if (!startAt.isAfter(now)) return null;
+
+    final diff = startAt.difference(now);
+    if (diff >= const Duration(minutes: 15)) {
+      return startAt.subtract(const Duration(minutes: 15));
+    }
+    return startAt;
+  }
+
+  Future<void> _applyDefaultReminder(String taskId, String title, DateTime startAt) async {
+    final reminderAt = _computeDefaultReminder(startAt: startAt);
+    if (reminderAt == null) return;
+
+    try {
+      final reminderRepo = ref.read(reminderRepositoryProvider);
+      final notificationService = ref.read(localNotificationServiceProvider);
+      final notificationId = ('schedule:$taskId').hashCode & 0x7fffffff;
+
+      final result = await notificationService.schedule(
+        notificationId: notificationId,
+        title: title.isNotEmpty ? title : '任务提醒',
+        body: '任务即将开始',
+        triggerTime: reminderAt,
+        payload: 'schedule:$taskId',
+      );
+
+      await reminderRepo.create(
+        targetType: 'schedule',
+        targetId: taskId,
+        triggerTime: reminderAt,
+        notificationId: notificationId,
+      );
+
+      debugPrint('[TaskCreate] auto-reminder set taskId=$taskId reminderAt=$reminderAt status=${result.status}');
+    } catch (e) {
+      debugPrint('[TaskCreate] auto-reminder failed taskId=$taskId error=$e — task still created');
+      // Default reminder failure is non-fatal — task creation continues
+    }
+  }
+
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -1645,7 +1691,7 @@ class _TimelineTaskEditorSheetState
     final endAt = _dateTimeFor(_endTime);
     final task = widget.task;
     if (task == null) {
-      await actions.create(
+      final created = await actions.create(
         TimelineTaskDraft(
           title: title,
           description: _descriptionController.text,
@@ -1656,6 +1702,11 @@ class _TimelineTaskEditorSheetState
           colorArgb: _color.toARGB32(),
         ),
       );
+
+      // Default reminder for new tasks with start time
+      if (startAt != null) {
+        await _applyDefaultReminder(created.id, title, startAt);
+      }
     } else {
       await actions.update(
         task.copyWith(

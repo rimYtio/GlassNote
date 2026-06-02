@@ -9,7 +9,7 @@ class FlutterSecureKeyValueStore implements SecureKeyValueStore {
   const FlutterSecureKeyValueStore([
     this._storage = const FlutterSecureStorage(
       aOptions: AndroidOptions(
-        resetOnError: kDebugMode,
+        resetOnError: true,
       ),
     ),
   ]);
