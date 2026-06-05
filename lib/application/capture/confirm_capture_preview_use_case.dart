@@ -7,17 +7,20 @@ import '../../domain/entities/timeline_task.dart';
 import '../../domain/repositories/folder_repository.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/repositories/timeline_task_repository.dart';
+import '../timeline/ensure_task_default_reminder_use_case.dart';
 
 class ConfirmCapturePreviewUseCase {
   const ConfirmCapturePreviewUseCase({
     required this.notes,
     required this.folders,
     required this.tasks,
+    this.defaultReminder,
   });
 
   final NoteRepository notes;
   final FolderRepository folders;
   final TimelineTaskRepository tasks;
+  final EnsureTaskDefaultReminderUseCase? defaultReminder;
 
   Future<void> call(List<CaptureDraftPreview> previews) async {
     for (final preview in previews) {
@@ -44,12 +47,12 @@ class ConfirmCapturePreviewUseCase {
     );
   }
 
-  Future<TimelineTask> _createTask(CaptureDraftPreview preview) {
+  Future<TimelineTask> _createTask(CaptureDraftPreview preview) async {
     final taskDate = preview.taskDate;
     if (taskDate == null) {
       throw StateError('任务日期缺失，无法创建');
     }
-    return tasks.create(
+    final task = await tasks.create(
       TimelineTaskDraft(
         title: preview.title,
         description: preview.content,
@@ -59,6 +62,12 @@ class ConfirmCapturePreviewUseCase {
         importance: preview.importance ?? TimelineImportance.medium,
       ),
     );
+    try {
+      await defaultReminder?.call(task);
+    } on Object {
+      // A reminder failure must not block creating the captured task.
+    }
+    return task;
   }
 
   Future<String> _folderIdFor(String? folderName) async {

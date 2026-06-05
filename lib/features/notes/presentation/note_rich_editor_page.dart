@@ -37,6 +37,8 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   final _titleController = TextEditingController();
   final _titleFocusNode = FocusNode();
   final _quillController = QuillController.basic();
+  final _bodyFocusNode = FocusNode();
+  final _bodyScrollController = ScrollController();
   bool _loadedExistingNote = false;
   bool _loadFailed = false;
   bool _editorReady = false;
@@ -58,6 +60,8 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     _autoSaveTimer?.cancel();
     _titleController.dispose();
     _titleFocusNode.dispose();
+    _bodyFocusNode.dispose();
+    _bodyScrollController.dispose();
     super.dispose();
   }
 
@@ -205,6 +209,7 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
 
     return GlassScaffold(
       title: widget.noteId == null ? '新建笔记' : '编辑笔记',
+      resizeToAvoidBottomInset: false,
       leading: IconButton(
         tooltip: '返回',
         icon: const Icon(Icons.chevron_left),
@@ -241,52 +246,71 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           child: const Text('完成'),
         ),
       ],
-      body: RepaintBoundary(
-        key: _exportKey,
-        child: Column(
-          key: const ValueKey('note-editor-page'),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
-              child: TextField(
-                key: const ValueKey('note-title-field'),
-                focusNode: _titleFocusNode,
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: '标题',
-                  border: InputBorder.none,
-                ),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ),
-            _RichToolbar(
-              controller: _quillController,
-              onInsertImage: _pickImage,
-              onInsertAudio: _showAudioRecorder,
-            ),
-            const Divider(height: 1),
-            if (effectiveId != null) _tagRow(effectiveId),
-            Expanded(
-              key: const ValueKey('note-editor-content'),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
-                child: QuillEditor.basic(
-                  key: const ValueKey('note-body-field'),
-                  controller: _quillController,
-                  config: QuillEditorConfig(
-                    placeholder: '开始输入',
-                    expands: true,
-                    autoFocus: false,
-                    embedBuilders: [ImageEmbedBuilder()],
+      body: AnimatedPadding(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: RepaintBoundary(
+          key: _exportKey,
+          child: Column(
+            key: const ValueKey('note-editor-page'),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
+                child: TextField(
+                  key: const ValueKey('note-title-field'),
+                  focusNode: _titleFocusNode,
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    hintText: '标题',
+                    border: InputBorder.none,
+                  ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
-            ),
-            if (effectiveId != null) _audioAttachments(effectiveId),
-          ],
+              _RichToolbar(
+                controller: _quillController,
+                onInsertImage: _pickImage,
+                onInsertAudio: _showAudioRecorder,
+              ),
+              const Divider(height: 1),
+              if (effectiveId != null) _tagRow(effectiveId),
+              Expanded(
+                key: const ValueKey('note-editor-content'),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTapDown: (_) => _bodyFocusNode.requestFocus(),
+                    child: QuillEditor.basic(
+                      key: const ValueKey('note-body-field'),
+                      controller: _quillController,
+                      focusNode: _bodyFocusNode,
+                      scrollController: _bodyScrollController,
+                      config: QuillEditorConfig(
+                        placeholder: '开始输入',
+                        expands: true,
+                        autoFocus: false,
+                        onTapDown: (_, _) {
+                          _bodyFocusNode.requestFocus();
+                          return false;
+                        },
+                        scrollBottomInset:
+                            MediaQuery.viewInsetsOf(context).bottom + 24,
+                        embedBuilders: [ImageEmbedBuilder()],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (effectiveId != null) _audioAttachments(effectiveId),
+            ],
+          ),
         ),
       ),
     );

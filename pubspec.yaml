@@ -42,6 +42,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  shaders:
+    - assets/shaders/vox_sphere.frag
   assets:
     - assets/sounds/
     - assets/rive/

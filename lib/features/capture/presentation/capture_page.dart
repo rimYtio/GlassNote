@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../domain/entities/capture_draft_preview.dart';
 import '../../../domain/entities/timeline_task.dart';
@@ -107,7 +108,7 @@ class _VoiceCaptureStage extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 10),
-        _VoiceOrb(status: state.status, transcript: state.transcript),
+        VoxSphere(status: state.status, transcript: state.transcript),
         const SizedBox(height: 18),
         _TranscriptGlass(state: state),
       ],
@@ -142,9 +143,7 @@ class _TranscriptGlass extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.08),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.80),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.80)),
             boxShadow: [
               const BoxShadow(
                 color: Color(0x1A788CA0),
@@ -178,23 +177,31 @@ class _TranscriptGlass extends StatelessWidget {
   }
 }
 
-class _VoiceOrb extends ConsumerStatefulWidget {
-  const _VoiceOrb({required this.status, required this.transcript});
+class VoxSphere extends ConsumerStatefulWidget {
+  const VoxSphere({super.key, required this.status, required this.transcript});
 
   final CaptureStatus status;
   final String transcript;
 
   @override
-  ConsumerState<_VoiceOrb> createState() => _VoiceOrbState();
+  ConsumerState<VoxSphere> createState() => _VoxSphereState();
 }
 
-class _VoiceOrbState extends ConsumerState<_VoiceOrb>
+const _voxSphereShaderAsset = 'assets/shaders/vox_sphere.frag';
+const double kVoxSphereStageLightAlpha = 0.30;
+const double kVoxSphereStageDarkAlpha = 0.34;
+const double kVoxSphereEdgeStrokeMax = 1.20;
+
+class _VoxSphereState extends ConsumerState<VoxSphere>
     with TickerProviderStateMixin {
   late final AnimationController _waveCtrl;
   late final AnimationController _pulseCtrl;
+  late final AnimationController _activationCtrl;
   late final Animation<double> _speechPulse;
   StreamSubscription<double>? _amplitudeSub;
   double _amplitude = 0.0;
+  double _smoothedAmplitude = 0.0;
+  bool _showActivation = false;
 
   @override
   void initState() {
@@ -207,6 +214,15 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
       vsync: this,
       duration: const Duration(milliseconds: 420),
     );
+    _activationCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 760),
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed && mounted) {
+            setState(() => _showActivation = false);
+          }
+        });
     _speechPulse = CurvedAnimation(
       parent: _pulseCtrl,
       curve: Curves.easeOutCubic,
@@ -215,10 +231,14 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
   }
 
   @override
-  void didUpdateWidget(covariant _VoiceOrb oldWidget) {
+  void didUpdateWidget(covariant VoxSphere oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.status != oldWidget.status) {
       _syncAmplitudeSubscription();
+      if (widget.status == CaptureStatus.recording &&
+          oldWidget.status != CaptureStatus.recording) {
+        _triggerActivation();
+      }
     }
     if (widget.transcript != oldWidget.transcript &&
         widget.transcript.length > oldWidget.transcript.length) {
@@ -231,12 +251,13 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
     _amplitudeSub?.cancel();
     _waveCtrl.dispose();
     _pulseCtrl.dispose();
+    _activationCtrl.dispose();
     super.dispose();
   }
 
   double get _targetScale {
     return switch (widget.status) {
-      CaptureStatus.recording => 1.12 + _amplitude * 0.16,
+      CaptureStatus.recording => 1.07 + _smoothedAmplitude * 0.13,
       CaptureStatus.analyzing => 1.08,
       CaptureStatus.preview => 1.04,
       CaptureStatus.success => 1.04,
@@ -249,10 +270,14 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
     if (widget.status != CaptureStatus.recording) {
       _amplitudeSub?.cancel();
       _amplitudeSub = null;
-      if (_amplitude != 0 && mounted) {
-        setState(() => _amplitude = 0);
+      if ((_amplitude != 0 || _smoothedAmplitude != 0) && mounted) {
+        setState(() {
+          _amplitude = 0;
+          _smoothedAmplitude = 0;
+        });
       } else {
         _amplitude = 0;
+        _smoothedAmplitude = 0;
       }
       return;
     }
@@ -265,22 +290,30 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
       if (!mounted) return;
       setState(() {
         _amplitude = value.clamp(0.0, 1.0);
+        _smoothedAmplitude = _smoothedAmplitude * 0.82 + _amplitude * 0.18;
       });
     });
   }
 
+  void _triggerActivation() {
+    setState(() => _showActivation = true);
+    _activationCtrl.forward(from: 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final activeLevel = widget.status == CaptureStatus.recording
-        ? _amplitude
+        ? _smoothedAmplitude
         : widget.status == CaptureStatus.analyzing
         ? 0.22
         : 0.04;
+    final sphereSize = MediaQuery.sizeOf(context).width.clamp(360.0, 620.0);
+    final visualSize = (sphereSize * 0.54).clamp(204.0, 260.0);
+    final brightness = Theme.of(context).brightness;
 
     return SizedBox(
       key: const ValueKey('capture-voice-orb'),
-      height: 220,
+      height: visualSize + 56,
       child: Center(
         child: AnimatedScale(
           key: const ValueKey('capture-voice-orb-scale'),
@@ -288,20 +321,65 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutBack,
           child: AnimatedBuilder(
-            animation: Listenable.merge([_waveCtrl, _pulseCtrl]),
+            animation: Listenable.merge([
+              _waveCtrl,
+              _pulseCtrl,
+              _activationCtrl,
+            ]),
             builder: (context, child) {
-              return RepaintBoundary(
-                child: CustomPaint(
-                  size: const Size(176, 176),
-                  painter: _VoiceOrbPainter(
-                    phase: _waveCtrl.value,
-                    amplitude: activeLevel,
-                    speechPulse: _speechPulse.value,
-                    status: widget.status,
-                    primary: colorScheme.primary,
-                    secondary: colorScheme.secondary,
-                    surface: colorScheme.surface,
-                  ),
+              return SizedBox(
+                width: visualSize,
+                height: visualSize,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      key: const ValueKey('capture-vox-sphere-stage'),
+                      size: Size.square(visualSize),
+                      painter: _VoxSphereStagePainter(
+                        phase: _waveCtrl.value,
+                        amplitude: activeLevel,
+                        activation: _activationCtrl.value,
+                        status: widget.status,
+                        brightness: brightness,
+                      ),
+                    ),
+                    _VoxSphereShaderLayer(
+                      key: const ValueKey('capture-vox-sphere-shader'),
+                      phase: _waveCtrl.value,
+                      amplitude: activeLevel,
+                      speechPulse: _speechPulse.value,
+                      activation: _activationCtrl.value,
+                      status: widget.status,
+                      brightness: brightness,
+                    ),
+                    if (_showActivation)
+                      IgnorePointer(
+                        key: const ValueKey(
+                          'capture-vox-sphere-lottie-activation',
+                        ),
+                        child: Lottie.asset(
+                          'assets/lottie/vox_sphere_activation.json',
+                          controller: _activationCtrl,
+                          width: visualSize * 0.76,
+                          height: visualSize * 0.76,
+                          fit: BoxFit.contain,
+                          repeat: false,
+                        ),
+                      ),
+                    CustomPaint(
+                      key: const ValueKey('capture-vox-sphere-canvas'),
+                      size: Size.square(visualSize),
+                      painter: _VoxSphereOverlayPainter(
+                        phase: _waveCtrl.value,
+                        amplitude: activeLevel,
+                        speechPulse: _speechPulse.value,
+                        activation: _activationCtrl.value,
+                        status: widget.status,
+                        brightness: brightness,
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
@@ -312,148 +390,463 @@ class _VoiceOrbState extends ConsumerState<_VoiceOrb>
   }
 }
 
-class _VoiceOrbPainter extends CustomPainter {
-  _VoiceOrbPainter({
+class _VoxSphereShaderLayer extends StatefulWidget {
+  const _VoxSphereShaderLayer({
+    super.key,
     required this.phase,
     required this.amplitude,
     required this.speechPulse,
+    required this.activation,
     required this.status,
-    required this.primary,
-    required this.secondary,
-    required this.surface,
+    required this.brightness,
   });
 
   final double phase;
   final double amplitude;
   final double speechPulse;
+  final double activation;
   final CaptureStatus status;
-  final Color primary;
-  final Color secondary;
-  final Color surface;
+  final Brightness brightness;
+
+  @override
+  State<_VoxSphereShaderLayer> createState() => _VoxSphereShaderLayerState();
+}
+
+class _VoxSphereShaderLayerState extends State<_VoxSphereShaderLayer> {
+  FragmentProgram? _program;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgram();
+  }
+
+  Future<void> _loadProgram() async {
+    try {
+      final program = await FragmentProgram.fromAsset(_voxSphereShaderAsset);
+      if (mounted) {
+        setState(() => _program = program);
+      }
+    } on Object {
+      if (mounted) {
+        setState(() => _program = null);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return RepaintBoundary(
+          child: CustomPaint(
+            size: Size(constraints.maxWidth, constraints.maxHeight),
+            painter: _VoxSphereShaderPainter(
+              program: _program,
+              phase: widget.phase,
+              amplitude: widget.amplitude,
+              speechPulse: widget.speechPulse,
+              activation: widget.activation,
+              status: widget.status,
+              brightness: widget.brightness,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _VoxSphereStagePainter extends CustomPainter {
+  _VoxSphereStagePainter({
+    required this.phase,
+    required this.amplitude,
+    required this.activation,
+    required this.status,
+    required this.brightness,
+  });
+
+  final double phase;
+  final double amplitude;
+  final double activation;
+  final CaptureStatus status;
+  final Brightness brightness;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final baseRadius = size.width * 0.34;
-    final phaseRadians = phase * math.pi * 2;
-    final energy = (amplitude + speechPulse * 0.42).clamp(0.0, 1.0);
-    final tint = status == CaptureStatus.error ? Colors.redAccent : primary;
+    final center = Offset(size.width / 2, size.height / 2 + size.height * 0.01);
+    final radius = size.shortestSide * 0.39;
+    final energy = (amplitude + activation * 0.55).clamp(0.0, 1.0);
+    final isLight = brightness == Brightness.light;
+    final tint = _statusTint(status);
+    final deepAlpha = isLight
+        ? kVoxSphereStageLightAlpha
+        : kVoxSphereStageDarkAlpha;
 
-    final glowPaint = Paint()
-      ..shader =
-          RadialGradient(
-            colors: [
-              tint.withValues(alpha: 0.30 + energy * 0.16),
-              secondary.withValues(alpha: 0.14),
-              surface.withValues(alpha: 0.02),
-            ],
-          ).createShader(
-            Rect.fromCircle(center: center, radius: size.width * 0.52),
-          );
-    canvas.drawCircle(center, size.width * (0.40 + energy * 0.06), glowPaint);
-
-    const envAlphas = [0.15, 0.12, 0.08];
-    for (var i = 0; i < 3; i += 1) {
-      final ring = Paint()
-        ..color = tint.withValues(alpha: envAlphas[i] + energy * 0.08)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2;
-      canvas.drawPath(
-        _blobPath(
-          center,
-          baseRadius + 16 + i * 11,
-          phaseRadians * (0.7 + i * 0.25),
-          4 + energy * 14,
-        ),
-        ring,
-      );
-    }
-
-    final fillPaint = Paint()
-      ..shader =
-          RadialGradient(
-            center: const Alignment(-0.35, -0.42),
-            colors: [
-              const Color(0xFFC6C7CE),  // muted lavender base
-              const Color(0xFFB5B7C6),  // muted mist purple
-              tint.withValues(alpha: 0.45 + energy * 0.12),
-              const Color(0xFFA5A6BC).withValues(alpha: 0.55),  // muted deeper edge
-            ],
-          ).createShader(
-            Rect.fromCircle(center: center, radius: baseRadius * 1.25),
-          );
-    canvas.drawPath(
-      _blobPath(center, baseRadius, phaseRadians, 5 + energy * 18),
-      fillPaint,
-    );
-
-    final edgePaint = Paint()
-      ..color = const Color(0xFFA8A5D2).withValues(alpha: 0.70)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(
-      _blobPath(center, baseRadius + 1, phaseRadians * 1.2, 5 + energy * 18),
-      edgePaint,
-    );
-
-    // Specular highlight — softened glow at top-left of the filled orb
-    final highlightPos = Offset(
-      center.dx - baseRadius * 0.15,
-      center.dy - baseRadius * 0.2,
-    );
-    final highlightPaint = Paint()
+    final stagePaint = Paint()
+      ..isAntiAlias = true
       ..shader = RadialGradient(
-        center: const Alignment(-0.35, -0.42),
+        center: const Alignment(0.0, -0.05),
         colors: [
-          Colors.white.withValues(alpha: 0.22),
-          Colors.white.withValues(alpha: 0.0),
+          const Color(0xFF102649).withValues(alpha: deepAlpha),
+          const Color(0xFF10223A).withValues(alpha: deepAlpha * 0.62),
+          const Color(0xFF101826).withValues(alpha: deepAlpha * 0.10),
+          Colors.transparent,
         ],
-      ).createShader(
-        Rect.fromCircle(center: highlightPos, radius: baseRadius * 0.55),
-      );
-    canvas.drawCircle(highlightPos, baseRadius * 0.45, highlightPaint);
-  }
+        stops: const [0.0, 0.42, 0.74, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 1.72));
+    canvas.drawCircle(center, radius * 1.60, stagePaint);
 
-  Path _blobPath(
-    Offset center,
-    double radius,
-    double phase,
-    double distortion,
-  ) {
-    final path = Path();
-    const segments = 72;
-    for (var i = 0; i <= segments; i += 1) {
-      final a = i / segments * math.pi * 2;
-      final wave =
-          math.sin(a * 3 + phase) * distortion * 0.55 +
-          math.sin(a * 5 - phase * 1.4) * distortion * 0.28 +
-          math.sin(a * 9 + phase * 0.6) * distortion * 0.17;
-      final r = radius + wave;
-      final point = Offset(
-        center.dx + math.cos(a) * r,
-        center.dy + math.sin(a) * r,
+    final haloPaint = Paint()
+      ..isAntiAlias = true
+      ..blendMode = BlendMode.plus
+      ..shader = RadialGradient(
+        colors: [
+          tint.withValues(alpha: 0.10 + energy * 0.10),
+          const Color(0xFF89E4FF).withValues(alpha: 0.045 + energy * 0.070),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 1.42));
+    canvas.drawCircle(center, radius * (1.15 + energy * 0.08), haloPaint);
+
+    final orbitPaint = Paint()
+      ..isAntiAlias = true
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8
+      ..color = const Color(
+        0xFF9FDBFF,
+      ).withValues(alpha: 0.075 + energy * 0.055);
+    for (var i = 0; i < 5; i += 1) {
+      final orbitRadius = radius * (0.82 + i * 0.13);
+      final wobble = math.sin(phase * math.pi * 2 + i) * radius * 0.015;
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center,
+          width: orbitRadius * 2.0 + wobble,
+          height: orbitRadius * (1.56 + i * 0.035),
+        ),
+        orbitPaint,
       );
-      if (i == 0) {
-        path.moveTo(point.dx, point.dy);
-      } else {
-        path.lineTo(point.dx, point.dy);
-      }
     }
-    path.close();
-    return path;
+
+    final particlePaint = Paint()
+      ..isAntiAlias = true
+      ..blendMode = BlendMode.plus
+      ..color = const Color(0xFF8FE2FF).withValues(alpha: 0.22);
+    for (var i = 0; i < 18; i += 1) {
+      final seed = i * 1.618;
+      final angle = seed + phase * math.pi * (0.32 + i % 3 * 0.07);
+      final distance = radius * (0.78 + (i % 5) * 0.12);
+      final opacity =
+          0.08 + 0.18 * (0.5 + 0.5 * math.sin(seed + phase * math.pi * 2));
+      particlePaint.color =
+          (i % 4 == 0 ? const Color(0xFF9D8AFF) : const Color(0xFF8FE2FF))
+              .withValues(alpha: opacity);
+      canvas.drawCircle(
+        Offset(
+          center.dx + math.cos(angle) * distance,
+          center.dy + math.sin(angle) * distance * 0.78,
+        ),
+        1.0 + (i % 3) * 0.35,
+        particlePaint,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _VoiceOrbPainter oldDelegate) {
-    return oldDelegate.amplitude != amplitude ||
-        oldDelegate.phase != phase ||
-        oldDelegate.speechPulse != speechPulse ||
+  bool shouldRepaint(covariant _VoxSphereStagePainter oldDelegate) {
+    return oldDelegate.phase != phase ||
+        oldDelegate.amplitude != amplitude ||
+        oldDelegate.activation != activation ||
         oldDelegate.status != status ||
-        oldDelegate.primary != primary ||
-        oldDelegate.secondary != secondary ||
-        oldDelegate.surface != surface;
+        oldDelegate.brightness != brightness;
   }
+}
+
+class _VoxSphereShaderPainter extends CustomPainter {
+  _VoxSphereShaderPainter({
+    required this.program,
+    required this.phase,
+    required this.amplitude,
+    required this.speechPulse,
+    required this.activation,
+    required this.status,
+    required this.brightness,
+  });
+
+  final FragmentProgram? program;
+  final double phase;
+  final double amplitude;
+  final double speechPulse;
+  final double activation;
+  final CaptureStatus status;
+  final Brightness brightness;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final shaderProgram = program;
+    if (shaderProgram == null) {
+      _drawFallbackBody(canvas, size);
+      return;
+    }
+
+    final shader = shaderProgram.fragmentShader()
+      ..setFloat(0, phase * 8.0)
+      ..setFloat(1, size.width)
+      ..setFloat(2, size.height)
+      ..setFloat(3, amplitude)
+      ..setFloat(4, activation)
+      ..setFloat(5, speechPulse)
+      ..setFloat(6, _statusValue(status))
+      ..setFloat(7, brightness == Brightness.light ? 1.0 : 0.0);
+    canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
+  }
+
+  void _drawFallbackBody(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2 + size.height * 0.01);
+    final radius = size.shortestSide * 0.36;
+    final energy = (amplitude + activation * 0.5 + speechPulse * 0.2).clamp(
+      0.0,
+      1.0,
+    );
+    final bodyPath = _liquidPath(
+      center,
+      radius * (1.0 + activation * 0.035),
+      phase * math.pi * 2,
+      radius * (0.010 + amplitude * 0.030),
+      gravity: radius * 0.034,
+    );
+    final tint = _statusTint(status);
+    final paint = Paint()
+      ..isAntiAlias = true
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.45),
+        colors: [
+          Colors.white.withValues(alpha: 0.42),
+          const Color(0xFFB7EEFF).withValues(alpha: 0.26 + energy * 0.08),
+          tint.withValues(alpha: 0.22 + energy * 0.08),
+          const Color(0xFF071C38).withValues(alpha: 0.42),
+        ],
+        stops: const [0.0, 0.30, 0.64, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 1.28));
+    canvas.drawPath(bodyPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VoxSphereShaderPainter oldDelegate) {
+    return oldDelegate.program != program ||
+        oldDelegate.phase != phase ||
+        oldDelegate.amplitude != amplitude ||
+        oldDelegate.speechPulse != speechPulse ||
+        oldDelegate.activation != activation ||
+        oldDelegate.status != status ||
+        oldDelegate.brightness != brightness;
+  }
+}
+
+class _VoxSphereOverlayPainter extends CustomPainter {
+  _VoxSphereOverlayPainter({
+    required this.phase,
+    required this.amplitude,
+    required this.speechPulse,
+    required this.activation,
+    required this.status,
+    required this.brightness,
+  });
+
+  final double phase;
+  final double amplitude;
+  final double speechPulse;
+  final double activation;
+  final CaptureStatus status;
+  final Brightness brightness;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2 + size.height * 0.01);
+    final radius = size.shortestSide * 0.36;
+    final phaseRadians = phase * math.pi * 2;
+    final activationPulse = math.sin(activation * math.pi).clamp(0.0, 1.0);
+    final energy = (amplitude + speechPulse * 0.30 + activationPulse * 0.42)
+        .clamp(0.0, 1.0);
+    final tint = _statusTint(status);
+    final cyan = const Color(0xFF28DAFF);
+    final violet = const Color(0xFF8A5DFF);
+
+    final edgePath = _liquidPath(
+      center,
+      radius * (1.0 + activationPulse * 0.035),
+      phaseRadians,
+      radius * (0.007 + amplitude * 0.030 + activationPulse * 0.014),
+      gravity: radius * 0.034,
+    );
+    final edgePaint = Paint()
+      ..isAntiAlias = true
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.72 + energy * (kVoxSphereEdgeStrokeMax - 0.72)
+      ..strokeCap = StrokeCap.round
+      ..blendMode = BlendMode.plus
+      ..shader = SweepGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.36),
+          cyan.withValues(alpha: 0.34),
+          Colors.transparent,
+          violet.withValues(alpha: 0.16),
+          Colors.white.withValues(alpha: 0.24),
+          cyan.withValues(alpha: 0.34),
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: radius));
+    canvas.drawPath(edgePath, edgePaint);
+
+    final ripplePaint = Paint()
+      ..isAntiAlias = true
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..blendMode = BlendMode.plus;
+    for (var i = 0; i < 4; i += 1) {
+      final progress = ((phase * (0.44 + amplitude * 0.32) + i * 0.20) % 1.0);
+      final ringRadius = radius * (0.15 + progress * (0.63 + energy * 0.12));
+      final alpha = (1.0 - progress).clamp(0.0, 1.0) * (0.10 + energy * 0.20);
+      ripplePaint
+        ..strokeWidth = 0.55 + energy * 0.55
+        ..color = (i.isEven ? cyan : violet).withValues(alpha: alpha * 0.72);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center,
+          width: ringRadius * 2.0,
+          height: ringRadius * (1.68 + math.sin(phaseRadians + i) * 0.06),
+        ),
+        ripplePaint,
+      );
+    }
+
+    final topHighlight = Paint()
+      ..isAntiAlias = true
+      ..blendMode = BlendMode.plus
+      ..shader =
+          RadialGradient(
+            center: const Alignment(-0.45, -0.50),
+            colors: [
+              Colors.white.withValues(alpha: 0.46),
+              cyan.withValues(alpha: 0.11 + energy * 0.10),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(
+                center.dx - radius * 0.20,
+                center.dy - radius * 0.25,
+              ),
+              radius: radius * 0.68,
+            ),
+          );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx - radius * 0.18, center.dy - radius * 0.32),
+        width: radius * 0.95,
+        height: radius * 0.40,
+      ),
+      topHighlight,
+    );
+
+    final sweepOffset = math.sin(phaseRadians * 0.82) * radius * 0.16;
+    final sweepPaint = Paint()
+      ..isAntiAlias = true
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.45
+      ..strokeCap = StrokeCap.round
+      ..blendMode = BlendMode.plus
+      ..color = violet.withValues(alpha: 0.09 + energy * 0.13);
+    final sweepPath = Path()
+      ..moveTo(
+        center.dx + radius * 0.40 + sweepOffset,
+        center.dy - radius * 0.58,
+      )
+      ..cubicTo(
+        center.dx + radius * 0.82,
+        center.dy - radius * 0.16,
+        center.dx + radius * 0.70,
+        center.dy + radius * 0.42,
+        center.dx + radius * 0.24,
+        center.dy + radius * 0.72,
+      );
+    canvas.drawPath(sweepPath, sweepPaint);
+
+    final corePaint = Paint()
+      ..isAntiAlias = true
+      ..blendMode = BlendMode.plus
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.34 * energy),
+          tint.withValues(alpha: 0.20 * energy),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 0.45));
+    canvas.drawCircle(center, radius * (0.10 + energy * 0.10), corePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VoxSphereOverlayPainter oldDelegate) {
+    return oldDelegate.phase != phase ||
+        oldDelegate.amplitude != amplitude ||
+        oldDelegate.speechPulse != speechPulse ||
+        oldDelegate.activation != activation ||
+        oldDelegate.status != status ||
+        oldDelegate.brightness != brightness;
+  }
+}
+
+Path _liquidPath(
+  Offset center,
+  double radius,
+  double phase,
+  double distortion, {
+  required double gravity,
+}) {
+  final path = Path();
+  const segments = 96;
+  for (var i = 0; i <= segments; i += 1) {
+    final a = i / segments * math.pi * 2;
+    final bottomBias = math.max(0.0, math.sin(a)) * gravity;
+    final wave =
+        math.sin(a * 4 + phase) * distortion * 0.52 +
+        math.sin(a * 6 - phase * 1.28) * distortion * 0.28 +
+        math.sin(a * 9 + phase * 0.72) * distortion * 0.14;
+    final r = radius + wave + bottomBias;
+    final point = Offset(
+      center.dx + math.cos(a) * r,
+      center.dy + math.sin(a) * r,
+    );
+    if (i == 0) {
+      path.moveTo(point.dx, point.dy);
+    } else {
+      path.lineTo(point.dx, point.dy);
+    }
+  }
+  path.close();
+  return path;
+}
+
+Color _statusTint(CaptureStatus status) {
+  return switch (status) {
+    CaptureStatus.error => const Color(0xFFFF6474),
+    CaptureStatus.success => const Color(0xFF55F0C4),
+    CaptureStatus.analyzing || CaptureStatus.saving => const Color(0xFF65B8FF),
+    _ => const Color(0xFF21D7FF),
+  };
+}
+
+double _statusValue(CaptureStatus status) {
+  return switch (status) {
+    CaptureStatus.idle => 0,
+    CaptureStatus.recording => 1,
+    CaptureStatus.analyzing => 2,
+    CaptureStatus.preview => 3,
+    CaptureStatus.saving => 3.5,
+    CaptureStatus.success => 4,
+    CaptureStatus.error => 5,
+  };
 }
 
 class _GlassMicButton extends StatefulWidget {
@@ -532,7 +925,9 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: isLight ? 0.55 : 0.08),
+                      color: Colors.white.withValues(
+                        alpha: isLight ? 0.55 : 0.08,
+                      ),
                       border: Border.all(
                         color: colorScheme.primary.withValues(alpha: 0.38),
                       ),
@@ -562,7 +957,9 @@ class _GlassMicButtonState extends State<_GlassMicButton> {
                     key: const ValueKey('capture-mic-button'),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(
-                        alpha: lit ? (isLight ? 0.78 : 0.18) : (isLight ? 0.65 : 0.12),
+                        alpha: lit
+                            ? (isLight ? 0.78 : 0.18)
+                            : (isLight ? 0.65 : 0.12),
                       ),
                       borderRadius: BorderRadius.circular(36),
                       border: Border.all(

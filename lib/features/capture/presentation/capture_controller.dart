@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../application/capture/analyze_capture_text_use_case.dart';
 import '../../../application/capture/confirm_capture_preview_use_case.dart';
 import '../../../application/capture/run_voice_capture_use_case.dart';
+import '../../../app/di/timeline_use_case_providers.dart';
 import '../../../domain/entities/ai_config.dart';
 import '../../../domain/entities/capture_draft_preview.dart';
 import '../../../domain/services/realtime_transcription_client.dart';
@@ -198,6 +199,7 @@ class CaptureController extends Notifier<CaptureState> {
         notes: ref.read(noteRepositoryProvider),
         folders: ref.read(folderRepositoryProvider),
         tasks: ref.read(timelineTaskRepositoryProvider),
+        defaultReminder: ref.read(ensureTaskDefaultReminderUseCaseProvider),
       )(state.previews);
       state = CaptureState(
         status: CaptureStatus.success,

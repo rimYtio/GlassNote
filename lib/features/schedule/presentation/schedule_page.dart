@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/timeline_task.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import '../../notes/presentation/widgets/reminder_picker.dart';
-import '../../../infrastructure/providers/infrastructure_providers.dart';
 import 'timeline_controller.dart';
 
 const _timelineTodaySliverKey = ValueKey<String>('timeline-today-sliver');
@@ -1633,69 +1632,6 @@ class _TimelineTaskEditorSheetState
     );
   }
 
-  static DateTime? _computeDefaultReminder({
-    required DateTime? startAt,
-    required int leadMinutes,
-  }) {
-    if (startAt == null) return null;
-    final now = DateTime.now();
-    if (!startAt.isAfter(now)) return null;
-
-    final diff = startAt.difference(now);
-    final lead = Duration(minutes: leadMinutes);
-    if (diff >= lead) {
-      return startAt.subtract(lead);
-    }
-    return startAt;
-  }
-
-  Future<bool?> _applyDefaultReminder(
-    String taskId,
-    String title,
-    DateTime startAt,
-  ) async {
-    final settings = await ref.read(settingsRepositoryProvider).load();
-    final reminderAt = _computeDefaultReminder(
-      startAt: startAt,
-      leadMinutes: settings.defaultReminderLeadMinutes,
-    );
-    if (reminderAt == null) return null;
-
-    final notificationId = ('schedule:$taskId').hashCode & 0x7fffffff;
-    try {
-      final reminderRepo = ref.read(reminderRepositoryProvider);
-      await reminderRepo.cancelByTarget(taskId);
-      await reminderRepo.create(
-        targetType: 'schedule',
-        targetId: taskId,
-        triggerTime: reminderAt,
-        notificationId: notificationId,
-      );
-    } catch (e) {
-      debugPrint(
-        '[TaskCreate] auto-reminder save failed taskId=$taskId error=$e',
-      );
-      return null;
-    }
-
-    try {
-      final notificationService = ref.read(localNotificationServiceProvider);
-      final result = await notificationService.schedule(
-        notificationId: notificationId,
-        title: title.isNotEmpty ? title : '任务提醒',
-        body: '任务即将开始',
-        triggerTime: reminderAt,
-        payload: 'schedule:$taskId',
-      );
-      return result.isOk;
-    } catch (e) {
-      debugPrint(
-        '[TaskCreate] auto-reminder schedule failed taskId=$taskId error=$e — reminder remains saved',
-      );
-      return false;
-    }
-  }
-
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -1706,9 +1642,8 @@ class _TimelineTaskEditorSheetState
     final startAt = _dateTimeFor(_startTime);
     final endAt = _dateTimeFor(_endTime);
     final task = widget.task;
-    bool? defaultReminderScheduled;
     if (task == null) {
-      final created = await actions.create(
+      await actions.create(
         TimelineTaskDraft(
           title: title,
           description: _descriptionController.text,
@@ -1719,15 +1654,6 @@ class _TimelineTaskEditorSheetState
           colorArgb: _color.toARGB32(),
         ),
       );
-
-      // Default reminder for new tasks with start time
-      if (startAt != null) {
-        defaultReminderScheduled = await _applyDefaultReminder(
-          created.id,
-          title,
-          startAt,
-        );
-      }
     } else {
       await actions.update(
         task.copyWith(
@@ -1744,13 +1670,7 @@ class _TimelineTaskEditorSheetState
     }
 
     if (mounted) {
-      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      if (defaultReminderScheduled == false) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('提醒已保存，但系统通知调度失败，请检查权限')),
-        );
-      }
     }
   }
 

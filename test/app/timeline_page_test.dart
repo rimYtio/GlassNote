@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glass_note/app/app.dart';
 import 'package:glass_note/domain/entities/timeline_task.dart';
 import 'package:glass_note/domain/services/data_protection_service.dart';
+import 'package:glass_note/features/schedule/presentation/timeline_controller.dart';
 import 'package:glass_note/infrastructure/database/app_database.dart';
 import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
 
@@ -19,6 +20,35 @@ void main() {
   tearDown(() async {
     await database.close();
   });
+
+  test(
+    'timeline action creates an app reminder before notification scheduling',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(_EmptySecureStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final startAt = DateTime.now().add(const Duration(hours: 2));
+      final task = await container
+          .read(timelineActionsProvider)
+          .create(
+            TimelineTaskDraft(
+              title: 'Release 真机提醒',
+              taskDate: startAt,
+              startAt: startAt,
+            ),
+          );
+
+      final reminders = await database.remindersDao.listPending();
+      expect(reminders, hasLength(1));
+      expect(reminders.single.targetType, 'schedule');
+      expect(reminders.single.targetId, task.id);
+    },
+  );
 
   testWidgets('timeline creates a task from the floating add sheet', (
     tester,

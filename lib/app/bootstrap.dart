@@ -14,11 +14,14 @@ void bootstrap() async {
 
   // Re-register all pending reminders from the database
   final database = AppDatabase();
-  await notificationService.reschedule(() => database.remindersDao.listPending());
+  await notificationService.reschedule(
+    () => database.remindersDao.listPending(),
+  );
 
   runApp(
     ProviderScope(
       overrides: [
+        appDatabaseProvider.overrideWithValue(database),
         localNotificationServiceProvider.overrideWithValue(notificationService),
       ],
       child: const AppLockGate(child: GlassNoteApp()),

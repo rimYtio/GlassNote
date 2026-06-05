@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +83,47 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('capture-created task receives a pending app reminder', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          secureKeyValueStoreProvider.overrideWithValue(secrets),
+          audioInputServiceProvider.overrideWithValue(_FakeAudioInputService()),
+          realtimeTranscriptionClientProvider.overrideWithValue(
+            _FakeRealtimeTranscriptionClient(),
+          ),
+          captureAnalyzerProvider.overrideWithValue(_TaskCaptureAnalyzer()),
+        ],
+        child: const GlassNoteApp(),
+      ),
+    );
+    await _pumpUi(tester);
+
+    final gesture = await _startLongPress(
+      tester,
+      find.byKey(const ValueKey('capture-mic-button')),
+    );
+    await _pumpUi(tester);
+    await gesture.up();
+    await _pumpUi(tester);
+
+    await tester.tap(find.widgetWithText(FilledButton, '确认创建全部 (1)'));
+    await _pumpUi(tester);
+
+    final tasks = await database.timelineTasksDao.search('捕获任务提醒');
+    expect(tasks, hasLength(1));
+    final reminders = await database.remindersDao.listPending();
+    expect(reminders, hasLength(1));
+    expect(reminders.single.targetType, 'schedule');
+    expect(reminders.single.targetId, tasks.single.id);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('capture page keeps voice orb above transcript glass at idle', (
     tester,
   ) async {
@@ -107,6 +149,26 @@ void main() {
       const ValueKey('capture-transcript-glass'),
     );
     expect(orb, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-canvas')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-stage')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-shader')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-lottie-idle')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-lottie-activation')),
+      findsNothing,
+    );
     expect(transcriptGlass, findsOneWidget);
     expect(
       tester.getBottomLeft(orb).dy,
@@ -141,6 +203,14 @@ void main() {
     final button = find.byKey(const ValueKey('capture-mic-button'));
     final gesture = await _startLongPress(tester, button);
     await _pumpUi(tester);
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-lottie-activation')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('capture-vox-sphere-shader')),
+      findsOneWidget,
+    );
 
     audio.emitAmplitude(0.85);
     await tester.pump(const Duration(milliseconds: 120));
@@ -281,6 +351,39 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  test('vox sphere material stays transparent and avoids neon outline', () {
+    final shader = File('assets/shaders/vox_sphere.frag').readAsStringSync();
+    final capturePage = File(
+      'lib/features/capture/presentation/capture_page.dart',
+    ).readAsStringSync();
+    final activation = File(
+      'assets/lottie/vox_sphere_activation.json',
+    ).readAsStringSync();
+
+    expect(_floatConstant(shader, 'kGlassAlphaBase'), lessThanOrEqualTo(0.46));
+    expect(
+      _floatConstant(shader, 'kGlassAlphaFresnel'),
+      lessThanOrEqualTo(0.18),
+    );
+    expect(
+      _floatConstant(shader, 'kVolumeBlueCeiling'),
+      lessThanOrEqualTo(0.30),
+    );
+    expect(
+      _floatConstant(shader, 'kVioletReflectionMax'),
+      lessThanOrEqualTo(0.24),
+    );
+    expect(
+      _floatConstant(capturePage, 'kVoxSphereStageLightAlpha'),
+      lessThanOrEqualTo(0.34),
+    );
+    expect(
+      _floatConstant(capturePage, 'kVoxSphereEdgeStrokeMax'),
+      lessThanOrEqualTo(1.35),
+    );
+    expect(activation, isNot(contains('[0.58,0.28,1.0,1]')));
+  });
 }
 
 class _FakeAudioInputService implements AudioInputService {
@@ -379,6 +482,25 @@ class _FakeCaptureAnalyzer implements CaptureAnalyzer {
   }
 }
 
+class _TaskCaptureAnalyzer implements CaptureAnalyzer {
+  @override
+  Future<List<CaptureDraftPreview>> analyze({
+    required String transcript,
+    required AiConfig config,
+    required AiSecrets secrets,
+  }) async {
+    final date = DateTime.now().add(const Duration(days: 1));
+    return [
+      CaptureDraftPreview.task(
+        title: '捕获任务提醒',
+        content: transcript,
+        taskDate: date,
+        startTime: const CaptureClockTime(hour: 10, minute: 0),
+      ),
+    ];
+  }
+}
+
 Future<void> _pumpUi(WidgetTester tester) async {
   for (var i = 0; i < 5; i += 1) {
     await tester.pump(const Duration(milliseconds: 100));
@@ -398,4 +520,15 @@ void _useTallViewport(WidgetTester tester) {
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
+}
+
+double _floatConstant(String source, String name) {
+  final match = RegExp(
+    'const (?:float |double )?${RegExp.escape(name)}'
+    r'\s*=\s*([0-9.]+)',
+  ).firstMatch(source);
+  if (match == null) {
+    fail('Missing visual contract constant $name');
+  }
+  return double.parse(match.group(1)!);
 }
