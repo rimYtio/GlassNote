@@ -20,6 +20,7 @@ import 'notes_controller.dart';
 import 'widgets/audio_player_bar.dart';
 import 'widgets/audio_recorder_panel.dart';
 import 'widgets/reminder_picker.dart';
+import 'widgets/rich_toolbar_toggle.dart';
 import 'widgets/tag_chip_display.dart';
 import 'widgets/tag_picker.dart';
 
@@ -630,64 +631,107 @@ class _RichToolbar extends StatelessWidget {
     return SizedBox(
       key: const ValueKey('note-rich-toolbar'),
       height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        children: [
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-bold'),
-            icon: Icons.format_bold,
-            tooltip: '粗体',
-            onTap: () => controller.formatSelection(Attribute.bold),
-          ),
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-italic'),
-            icon: Icons.format_italic,
-            tooltip: '斜体',
-            onTap: () => controller.formatSelection(Attribute.italic),
-          ),
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-underline'),
-            icon: Icons.format_underlined,
-            tooltip: '下划线',
-            onTap: () => controller.formatSelection(Attribute.underline),
-          ),
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-heading'),
-            icon: Icons.title,
-            tooltip: '标题',
-            onTap: () => controller.formatSelection(Attribute.h1),
-          ),
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-bullet-list'),
-            icon: Icons.format_list_bulleted,
-            tooltip: '项目列表',
-            onTap: () => controller.formatSelection(Attribute.ul),
-          ),
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-check-list'),
-            icon: Icons.check_box_outlined,
-            tooltip: '待办',
-            onTap: () => controller.formatSelection(Attribute.unchecked),
-          ),
-          _ToolbarButton(
-            key: const ValueKey('note-toolbar-quote'),
-            icon: Icons.format_quote,
-            tooltip: '引用',
-            onTap: () => controller.formatSelection(Attribute.blockQuote),
-          ),
-          const SizedBox(width: 8),
-          _ToolbarButton(
-            icon: Icons.image_outlined,
-            tooltip: '插入图片',
-            onTap: onInsertImage,
-          ),
-          _ToolbarButton(
-            icon: Icons.keyboard_voice_outlined,
-            tooltip: '插入音频',
-            onTap: onInsertAudio,
-          ),
-        ],
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final attributes = controller.getSelectionStyle().attributes;
+          return ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            children: [
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-bold'),
+                icon: Icons.format_bold,
+                tooltip: '粗体',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.bold,
+                  attributes,
+                ),
+                onTap: () =>
+                    toggleRichToolbarSelection(controller, Attribute.bold),
+              ),
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-italic'),
+                icon: Icons.format_italic,
+                tooltip: '斜体',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.italic,
+                  attributes,
+                ),
+                onTap: () =>
+                    toggleRichToolbarSelection(controller, Attribute.italic),
+              ),
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-underline'),
+                icon: Icons.format_underlined,
+                tooltip: '下划线',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.underline,
+                  attributes,
+                ),
+                onTap: () =>
+                    toggleRichToolbarSelection(controller, Attribute.underline),
+              ),
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-heading'),
+                icon: Icons.title,
+                tooltip: '标题',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.h1,
+                  attributes,
+                ),
+                onTap: () =>
+                    toggleRichToolbarSelection(controller, Attribute.h1),
+              ),
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-bullet-list'),
+                icon: Icons.format_list_bulleted,
+                tooltip: '项目列表',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.ul,
+                  attributes,
+                ),
+                onTap: () =>
+                    toggleRichToolbarSelection(controller, Attribute.ul),
+              ),
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-check-list'),
+                icon: Icons.check_box_outlined,
+                tooltip: '待办',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.unchecked,
+                  attributes,
+                ),
+                onTap: () =>
+                    toggleRichToolbarSelection(controller, Attribute.unchecked),
+              ),
+              _ToolbarButton(
+                key: const ValueKey('note-toolbar-quote'),
+                icon: Icons.format_quote,
+                tooltip: '引用',
+                selected: isRichToolbarAttributeActive(
+                  Attribute.blockQuote,
+                  attributes,
+                ),
+                onTap: () => toggleRichToolbarSelection(
+                  controller,
+                  Attribute.blockQuote,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _ToolbarButton(
+                icon: Icons.image_outlined,
+                tooltip: '插入图片',
+                onTap: onInsertImage,
+              ),
+              _ToolbarButton(
+                icon: Icons.keyboard_voice_outlined,
+                tooltip: '插入音频',
+                onTap: onInsertAudio,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -699,19 +743,31 @@ class _ToolbarButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
+    this.selected = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 42,
       height: 42,
       child: IconButton(
         tooltip: tooltip,
+        isSelected: selected,
+        style: IconButton.styleFrom(
+          backgroundColor: selected
+              ? colorScheme.primary.withValues(alpha: 0.16)
+              : Colors.transparent,
+          foregroundColor: selected
+              ? colorScheme.primary
+              : colorScheme.onSurfaceVariant,
+        ),
         icon: Icon(icon, size: 21),
         onPressed: onTap,
       ),
