@@ -25,6 +25,20 @@ class PdfExporter {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(40),
         build: (pw.Context context) {
+          final imageWidgets = <pw.Widget>[];
+          for (final path in imagePaths ?? const <String>[]) {
+            final file = File(path);
+            if (!file.existsSync()) continue;
+            imageWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 14),
+                child: pw.Image(
+                  pw.MemoryImage(file.readAsBytesSync()),
+                  fit: pw.BoxFit.contain,
+                ),
+              ),
+            );
+          }
           return [
             pw.Header(
               level: 0,
@@ -39,16 +53,14 @@ class PdfExporter {
             if (createdAt != null)
               pw.Paragraph(
                 text: '创建日期: ${_formatDate(createdAt)}',
-                style: pw.TextStyle(
-                  fontSize: 11,
-                  color: PdfColors.grey600,
-                ),
+                style: pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
               ),
             pw.SizedBox(height: 16),
             pw.Paragraph(
               text: content.isNotEmpty ? content : '（无内容）',
               style: const pw.TextStyle(fontSize: 12, lineSpacing: 1.5),
             ),
+            ...imageWidgets,
           ];
         },
       ),
@@ -71,7 +83,9 @@ class PdfExporter {
 
   Future<pw.Font?> _loadFont() async {
     try {
-      final fontData = await rootBundle.load('assets/fonts/NotoSansSC-Regular.ttf');
+      final fontData = await rootBundle.load(
+        'assets/fonts/NotoSansSC-Regular.ttf',
+      );
       return pw.Font.ttf(fontData);
     } catch (_) {
       return null;

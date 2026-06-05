@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:convert';
 
 import 'package:local_auth/local_auth.dart';
@@ -10,9 +12,9 @@ class AppLockService {
     required SettingsRepository settingsRepository,
     required SecureKeyValueStore secureStore,
     LocalAuthentication? localAuth,
-  })  : _settingsRepository = settingsRepository,
-        _secureStore = secureStore,
-        _localAuth = localAuth ?? LocalAuthentication();
+  }) : _settingsRepository = settingsRepository,
+       _secureStore = secureStore,
+       _localAuth = localAuth ?? LocalAuthentication();
 
   static const _pinHashKey = 'app_lock_pin_hash';
 

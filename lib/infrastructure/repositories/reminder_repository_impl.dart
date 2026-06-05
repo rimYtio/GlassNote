@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+// ignore_for_file: prefer_initializing_formals
+
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/reminder.dart';
@@ -9,12 +10,12 @@ import '../notifications/local_notification_service.dart';
 class ReminderRepositoryImpl implements ReminderRepository {
   ReminderRepositoryImpl({
     required AppDatabase database,
-    required LocalNotificationService notificationService,
-  })  : _database = database,
-        _notificationService = notificationService;
+    required LocalNotificationService? notificationService,
+  }) : _database = database,
+       _notificationService = notificationService;
 
   final AppDatabase _database;
-  final LocalNotificationService _notificationService;
+  final LocalNotificationService? _notificationService;
 
   @override
   Future<Reminder> create({
@@ -34,23 +35,20 @@ class ReminderRepositoryImpl implements ReminderRepository {
         createdAt: now,
       ),
     );
-    debugPrint('Created reminder: ${reminder.id} for $targetType $targetId');
     return reminder;
   }
 
   @override
   Future<void> cancel(int notificationId) async {
-    debugPrint('Cancelling reminder with notificationId: $notificationId');
-    await _notificationService.cancel(notificationId);
+    await _notificationService?.cancel(notificationId);
     await _database.remindersDao.cancelByNotificationId(notificationId);
   }
 
   @override
   Future<void> cancelByTarget(String targetId) async {
-    debugPrint('Cancelling all reminders for target: $targetId');
     final reminders = await _database.remindersDao.listByTarget(targetId);
     for (final reminder in reminders) {
-      await _notificationService.cancel(reminder.notificationId);
+      await _notificationService?.cancel(reminder.notificationId);
     }
     await _database.remindersDao.cancelByTarget(targetId);
   }

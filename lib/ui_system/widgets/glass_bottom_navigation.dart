@@ -29,10 +29,12 @@ class GlassBottomNavigation extends StatelessWidget {
               child: DecoratedBox(
                 key: const ValueKey('glass-bottom-navigation-surface'),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: isLight ? 0.60 : 0.14),
+                  color: Colors.white.withValues(alpha: isLight ? 0.48 : 0.10),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: isLight ? 0.80 : 0.12),
+                    color: Colors.white.withValues(
+                      alpha: isLight ? 0.80 : 0.12,
+                    ),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -90,8 +92,8 @@ class _GlassNavItem extends StatelessWidget {
     final foreground = selected
         ? (isLight ? const Color(0xFF5A56A5) : colorScheme.onPrimaryContainer)
         : (isLight
-            ? const Color(0xFF3F4650).withValues(alpha: 0.88)
-            : colorScheme.onSurface.withValues(alpha: 0.78));
+              ? const Color(0xFF3F4650).withValues(alpha: 0.88)
+              : colorScheme.onSurface.withValues(alpha: 0.78));
 
     return Semantics(
       button: true,
@@ -109,15 +111,19 @@ class _GlassNavItem extends StatelessWidget {
             height: selected ? 62 : 58,
             padding: const EdgeInsets.symmetric(vertical: 7),
             decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFFE7EEF8).withValues(alpha: isLight ? 0.82 : 0.25)
-                    : Colors.transparent,
+              color: selected
+                  ? const Color(
+                      0xFFE7EEF8,
+                    ).withValues(alpha: isLight ? 0.82 : 0.25)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: selected
                   ? Border.all(
                       color: isLight
                           ? Colors.white.withValues(alpha: 0.75)
-                          : colorScheme.onPrimaryContainer.withValues(alpha: 0.10),
+                          : colorScheme.onPrimaryContainer.withValues(
+                              alpha: 0.10,
+                            ),
                     )
                   : null,
             ),

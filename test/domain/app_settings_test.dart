@@ -14,6 +14,9 @@ void main() {
     expect(settings.autoTranscribeVoice, isFalse);
     expect(settings.defaultFolderId, 'inbox');
     expect(settings.exportIncludeMetadata, isTrue);
+    expect(settings.fontScale, 1.0);
+    expect(settings.defaultReminderLeadMinutes, 15);
+    expect(settings.hasRequestedStartupPermissions, isFalse);
     expect(settings.createdAt, now);
     expect(settings.updatedAt, now);
   });
@@ -25,11 +28,17 @@ void main() {
 
     final copied = settings.copyWith(
       themeMode: AppThemeMode.dark,
+      fontScale: 1.15,
+      defaultReminderLeadMinutes: 30,
+      hasRequestedStartupPermissions: true,
       updatedAt: updatedAt,
     );
 
     expect(copied.id, settings.id);
     expect(copied.themeMode, AppThemeMode.dark);
+    expect(copied.fontScale, 1.15);
+    expect(copied.defaultReminderLeadMinutes, 30);
+    expect(copied.hasRequestedStartupPermissions, isTrue);
     expect(copied.createdAt, createdAt);
     expect(copied.updatedAt, updatedAt);
   });

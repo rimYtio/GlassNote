@@ -42,18 +42,22 @@ class SettingsPage extends ConsumerWidget {
             _SettingsEntry(
               title: '字体设置',
               icon: Icons.text_fields,
-              onTap: () {},
+              onTap: () => context.push('/settings/font'),
             ),
             _SettingsEntry(
               title: 'API 设置',
               icon: Icons.api,
               onTap: () => context.push('/settings/ai'),
             ),
-            _SettingsEntry(title: '数据导出', icon: Icons.ios_share, onTap: () => context.push('/settings/export')),
+            _SettingsEntry(
+              title: '数据导出',
+              icon: Icons.ios_share,
+              onTap: () => context.push('/settings/export'),
+            ),
             _SettingsEntry(
               title: '数据导入',
               icon: Icons.download_rounded,
-              onTap: () {},
+              onTap: () => context.push('/settings/export'),
             ),
             _SettingsEntry(
               title: '安全设置',
@@ -61,7 +65,7 @@ class SettingsPage extends ConsumerWidget {
               onTap: () => context.push('/settings/security'),
             ),
             _SettingsEntry(
-              title: '备份与通知',
+              title: '通知中心',
               icon: Icons.notifications_none,
               onTap: () => context.push('/settings/notifications'),
             ),

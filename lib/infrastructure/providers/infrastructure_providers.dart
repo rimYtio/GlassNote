@@ -9,11 +9,13 @@ import '../../domain/repositories/reminder_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/tag_repository.dart';
 import '../../domain/repositories/timeline_task_repository.dart';
+import '../../domain/services/startup_permission_service.dart';
 import '../../domain/services/ai_connection_tester.dart';
 import '../../domain/services/audio_input_service.dart';
 import '../../domain/services/capture_analyzer.dart';
 import '../../domain/services/data_protection_service.dart';
 import '../../domain/services/realtime_transcription_client.dart';
+import '../../application/settings/startup_permission_service_impl.dart';
 import '../ai/deepseek_capture_analyzer.dart';
 import '../ai/openai_capture_analyzer.dart';
 import '../ai/siliconflow_capture_analyzer.dart';
@@ -61,8 +63,7 @@ final aiSecretsProvider = FutureProvider<AiSecrets>((ref) async {
         await store.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
     deepSeekApiKey:
         await store.readSecret(AiConfig.deepSeekApiKeySecretKey) ?? '',
-    openAIApiKey:
-        await store.readSecret(AiConfig.openAIApiKeySecretKey) ?? '',
+    openAIApiKey: await store.readSecret(AiConfig.openAIApiKeySecretKey) ?? '',
     siliconFlowApiKey:
         await store.readSecret(AiConfig.siliconFlowApiKeySecretKey) ?? '',
   );
@@ -94,7 +95,10 @@ final folderRepositoryProvider = Provider<FolderRepository>((ref) {
 });
 
 final noteRepositoryProvider = Provider<NoteRepository>((ref) {
-  return NoteRepositoryImpl(ref.watch(appDatabaseProvider));
+  return NoteRepositoryImpl(
+    ref.watch(appDatabaseProvider),
+    fileStore: ref.watch(attachmentFileStoreProvider),
+  );
 });
 
 final timelineTaskRepositoryProvider = Provider<TimelineTaskRepository>((ref) {
@@ -120,16 +124,33 @@ final appLockServiceProvider = Provider<AppLockService>((ref) {
   );
 });
 
-final localNotificationServiceProvider =
-    Provider<LocalNotificationService>((ref) {
+final startupPermissionServiceProvider = Provider<StartupPermissionService>((
+  ref,
+) {
+  return StartupPermissionServiceImpl(
+    settingsRepository: ref.watch(settingsRepositoryProvider),
+    notificationPermissions: ref.watch(localNotificationServiceProvider),
+    audioInput: ref.watch(audioInputServiceProvider),
+  );
+});
+
+final localNotificationServiceProvider = Provider<LocalNotificationService>((
+  ref,
+) {
   throw UnimplementedError(
     'localNotificationServiceProvider must be overridden in bootstrap',
   );
 });
 
 final reminderRepositoryProvider = Provider<ReminderRepository>((ref) {
+  LocalNotificationService? notificationService;
+  try {
+    notificationService = ref.watch(localNotificationServiceProvider);
+  } on Object {
+    notificationService = null;
+  }
   return ReminderRepositoryImpl(
     database: ref.watch(appDatabaseProvider),
-    notificationService: ref.watch(localNotificationServiceProvider),
+    notificationService: notificationService,
   );
 });

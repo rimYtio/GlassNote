@@ -9,6 +9,11 @@ class RecordAudioInputService implements AudioInputService {
   final AudioRecorder _recorder;
 
   @override
+  Future<bool> checkPermission() {
+    return _recorder.hasPermission(request: false);
+  }
+
+  @override
   Future<bool> requestPermission() async {
     final has = await _recorder.hasPermission();
     return has;

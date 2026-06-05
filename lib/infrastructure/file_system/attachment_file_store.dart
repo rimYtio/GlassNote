@@ -8,7 +8,7 @@ import 'package:uuid/uuid.dart';
 class AttachmentFileStore {
   const AttachmentFileStore();
 
-  Future<String> _attachmentsDirectory() async {
+  Future<String> attachmentsDirectory() async {
     final appDir = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(appDir.path, 'attachments'));
     if (!await dir.exists()) {
@@ -18,7 +18,7 @@ class AttachmentFileStore {
   }
 
   Future<String> saveImage(Uint8List bytes, String fileName) async {
-    final dir = await _attachmentsDirectory();
+    final dir = await attachmentsDirectory();
     final filePath = p.join(dir, fileName);
     final file = File(filePath);
     await file.writeAsBytes(bytes);
@@ -26,7 +26,7 @@ class AttachmentFileStore {
   }
 
   Future<String> saveAudio(String tempPath) async {
-    final dir = await _attachmentsDirectory();
+    final dir = await attachmentsDirectory();
     final ext = p.extension(tempPath).isEmpty ? '.m4a' : p.extension(tempPath);
     final fileName = '${const Uuid().v4()}$ext';
     final targetPath = p.join(dir, fileName);

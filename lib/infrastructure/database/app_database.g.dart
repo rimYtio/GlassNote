@@ -204,6 +204,45 @@ class $AppSettingsRowsTable extends AppSettingsRows
           'CHECK ("export_include_metadata" IN (0, 1))',
         ),
       );
+  static const VerificationMeta _fontScaleMeta = const VerificationMeta(
+    'fontScale',
+  );
+  @override
+  late final GeneratedColumn<double> fontScale = GeneratedColumn<double>(
+    'font_scale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _defaultReminderLeadMinutesMeta =
+      const VerificationMeta('defaultReminderLeadMinutes');
+  @override
+  late final GeneratedColumn<int> defaultReminderLeadMinutes =
+      GeneratedColumn<int>(
+        'default_reminder_lead_minutes',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(15),
+      );
+  static const VerificationMeta _hasRequestedStartupPermissionsMeta =
+      const VerificationMeta('hasRequestedStartupPermissions');
+  @override
+  late final GeneratedColumn<bool> hasRequestedStartupPermissions =
+      GeneratedColumn<bool>(
+        'has_requested_startup_permissions',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("has_requested_startup_permissions" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -235,6 +274,9 @@ class $AppSettingsRowsTable extends AppSettingsRows
     autoTranscribeVoice,
     defaultFolderId,
     exportIncludeMetadata,
+    fontScale,
+    defaultReminderLeadMinutes,
+    hasRequestedStartupPermissions,
     createdAt,
     updatedAt,
   ];
@@ -315,6 +357,30 @@ class $AppSettingsRowsTable extends AppSettingsRows
     } else if (isInserting) {
       context.missing(_exportIncludeMetadataMeta);
     }
+    if (data.containsKey('font_scale')) {
+      context.handle(
+        _fontScaleMeta,
+        fontScale.isAcceptableOrUnknown(data['font_scale']!, _fontScaleMeta),
+      );
+    }
+    if (data.containsKey('default_reminder_lead_minutes')) {
+      context.handle(
+        _defaultReminderLeadMinutesMeta,
+        defaultReminderLeadMinutes.isAcceptableOrUnknown(
+          data['default_reminder_lead_minutes']!,
+          _defaultReminderLeadMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('has_requested_startup_permissions')) {
+      context.handle(
+        _hasRequestedStartupPermissionsMeta,
+        hasRequestedStartupPermissions.isAcceptableOrUnknown(
+          data['has_requested_startup_permissions']!,
+          _hasRequestedStartupPermissionsMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -368,6 +434,18 @@ class $AppSettingsRowsTable extends AppSettingsRows
         DriftSqlType.bool,
         data['${effectivePrefix}export_include_metadata'],
       )!,
+      fontScale: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}font_scale'],
+      )!,
+      defaultReminderLeadMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}default_reminder_lead_minutes'],
+      )!,
+      hasRequestedStartupPermissions: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_requested_startup_permissions'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -393,6 +471,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
   final bool autoTranscribeVoice;
   final String defaultFolderId;
   final bool exportIncludeMetadata;
+  final double fontScale;
+  final int defaultReminderLeadMinutes;
+  final bool hasRequestedStartupPermissions;
   final DateTime createdAt;
   final DateTime updatedAt;
   const AppSettingsRow({
@@ -403,6 +484,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     required this.autoTranscribeVoice,
     required this.defaultFolderId,
     required this.exportIncludeMetadata,
+    required this.fontScale,
+    required this.defaultReminderLeadMinutes,
+    required this.hasRequestedStartupPermissions,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -416,6 +500,13 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     map['auto_transcribe_voice'] = Variable<bool>(autoTranscribeVoice);
     map['default_folder_id'] = Variable<String>(defaultFolderId);
     map['export_include_metadata'] = Variable<bool>(exportIncludeMetadata);
+    map['font_scale'] = Variable<double>(fontScale);
+    map['default_reminder_lead_minutes'] = Variable<int>(
+      defaultReminderLeadMinutes,
+    );
+    map['has_requested_startup_permissions'] = Variable<bool>(
+      hasRequestedStartupPermissions,
+    );
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -430,6 +521,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       autoTranscribeVoice: Value(autoTranscribeVoice),
       defaultFolderId: Value(defaultFolderId),
       exportIncludeMetadata: Value(exportIncludeMetadata),
+      fontScale: Value(fontScale),
+      defaultReminderLeadMinutes: Value(defaultReminderLeadMinutes),
+      hasRequestedStartupPermissions: Value(hasRequestedStartupPermissions),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -452,6 +546,13 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       exportIncludeMetadata: serializer.fromJson<bool>(
         json['exportIncludeMetadata'],
       ),
+      fontScale: serializer.fromJson<double>(json['fontScale']),
+      defaultReminderLeadMinutes: serializer.fromJson<int>(
+        json['defaultReminderLeadMinutes'],
+      ),
+      hasRequestedStartupPermissions: serializer.fromJson<bool>(
+        json['hasRequestedStartupPermissions'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -467,6 +568,13 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       'autoTranscribeVoice': serializer.toJson<bool>(autoTranscribeVoice),
       'defaultFolderId': serializer.toJson<String>(defaultFolderId),
       'exportIncludeMetadata': serializer.toJson<bool>(exportIncludeMetadata),
+      'fontScale': serializer.toJson<double>(fontScale),
+      'defaultReminderLeadMinutes': serializer.toJson<int>(
+        defaultReminderLeadMinutes,
+      ),
+      'hasRequestedStartupPermissions': serializer.toJson<bool>(
+        hasRequestedStartupPermissions,
+      ),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -480,6 +588,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     bool? autoTranscribeVoice,
     String? defaultFolderId,
     bool? exportIncludeMetadata,
+    double? fontScale,
+    int? defaultReminderLeadMinutes,
+    bool? hasRequestedStartupPermissions,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => AppSettingsRow(
@@ -490,6 +601,11 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     autoTranscribeVoice: autoTranscribeVoice ?? this.autoTranscribeVoice,
     defaultFolderId: defaultFolderId ?? this.defaultFolderId,
     exportIncludeMetadata: exportIncludeMetadata ?? this.exportIncludeMetadata,
+    fontScale: fontScale ?? this.fontScale,
+    defaultReminderLeadMinutes:
+        defaultReminderLeadMinutes ?? this.defaultReminderLeadMinutes,
+    hasRequestedStartupPermissions:
+        hasRequestedStartupPermissions ?? this.hasRequestedStartupPermissions,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -512,6 +628,14 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       exportIncludeMetadata: data.exportIncludeMetadata.present
           ? data.exportIncludeMetadata.value
           : this.exportIncludeMetadata,
+      fontScale: data.fontScale.present ? data.fontScale.value : this.fontScale,
+      defaultReminderLeadMinutes: data.defaultReminderLeadMinutes.present
+          ? data.defaultReminderLeadMinutes.value
+          : this.defaultReminderLeadMinutes,
+      hasRequestedStartupPermissions:
+          data.hasRequestedStartupPermissions.present
+          ? data.hasRequestedStartupPermissions.value
+          : this.hasRequestedStartupPermissions,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -527,6 +651,11 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
           ..write('autoTranscribeVoice: $autoTranscribeVoice, ')
           ..write('defaultFolderId: $defaultFolderId, ')
           ..write('exportIncludeMetadata: $exportIncludeMetadata, ')
+          ..write('fontScale: $fontScale, ')
+          ..write('defaultReminderLeadMinutes: $defaultReminderLeadMinutes, ')
+          ..write(
+            'hasRequestedStartupPermissions: $hasRequestedStartupPermissions, ',
+          )
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -542,6 +671,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     autoTranscribeVoice,
     defaultFolderId,
     exportIncludeMetadata,
+    fontScale,
+    defaultReminderLeadMinutes,
+    hasRequestedStartupPermissions,
     createdAt,
     updatedAt,
   );
@@ -556,6 +688,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
           other.autoTranscribeVoice == this.autoTranscribeVoice &&
           other.defaultFolderId == this.defaultFolderId &&
           other.exportIncludeMetadata == this.exportIncludeMetadata &&
+          other.fontScale == this.fontScale &&
+          other.defaultReminderLeadMinutes == this.defaultReminderLeadMinutes &&
+          other.hasRequestedStartupPermissions ==
+              this.hasRequestedStartupPermissions &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -568,6 +704,9 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
   final Value<bool> autoTranscribeVoice;
   final Value<String> defaultFolderId;
   final Value<bool> exportIncludeMetadata;
+  final Value<double> fontScale;
+  final Value<int> defaultReminderLeadMinutes;
+  final Value<bool> hasRequestedStartupPermissions;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -579,6 +718,9 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     this.autoTranscribeVoice = const Value.absent(),
     this.defaultFolderId = const Value.absent(),
     this.exportIncludeMetadata = const Value.absent(),
+    this.fontScale = const Value.absent(),
+    this.defaultReminderLeadMinutes = const Value.absent(),
+    this.hasRequestedStartupPermissions = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -591,6 +733,9 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     required bool autoTranscribeVoice,
     required String defaultFolderId,
     required bool exportIncludeMetadata,
+    this.fontScale = const Value.absent(),
+    this.defaultReminderLeadMinutes = const Value.absent(),
+    this.hasRequestedStartupPermissions = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -611,6 +756,9 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     Expression<bool>? autoTranscribeVoice,
     Expression<String>? defaultFolderId,
     Expression<bool>? exportIncludeMetadata,
+    Expression<double>? fontScale,
+    Expression<int>? defaultReminderLeadMinutes,
+    Expression<bool>? hasRequestedStartupPermissions,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -625,6 +773,11 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
       if (defaultFolderId != null) 'default_folder_id': defaultFolderId,
       if (exportIncludeMetadata != null)
         'export_include_metadata': exportIncludeMetadata,
+      if (fontScale != null) 'font_scale': fontScale,
+      if (defaultReminderLeadMinutes != null)
+        'default_reminder_lead_minutes': defaultReminderLeadMinutes,
+      if (hasRequestedStartupPermissions != null)
+        'has_requested_startup_permissions': hasRequestedStartupPermissions,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -639,6 +792,9 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     Value<bool>? autoTranscribeVoice,
     Value<String>? defaultFolderId,
     Value<bool>? exportIncludeMetadata,
+    Value<double>? fontScale,
+    Value<int>? defaultReminderLeadMinutes,
+    Value<bool>? hasRequestedStartupPermissions,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -652,6 +808,11 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
       defaultFolderId: defaultFolderId ?? this.defaultFolderId,
       exportIncludeMetadata:
           exportIncludeMetadata ?? this.exportIncludeMetadata,
+      fontScale: fontScale ?? this.fontScale,
+      defaultReminderLeadMinutes:
+          defaultReminderLeadMinutes ?? this.defaultReminderLeadMinutes,
+      hasRequestedStartupPermissions:
+          hasRequestedStartupPermissions ?? this.hasRequestedStartupPermissions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -684,6 +845,19 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
         exportIncludeMetadata.value,
       );
     }
+    if (fontScale.present) {
+      map['font_scale'] = Variable<double>(fontScale.value);
+    }
+    if (defaultReminderLeadMinutes.present) {
+      map['default_reminder_lead_minutes'] = Variable<int>(
+        defaultReminderLeadMinutes.value,
+      );
+    }
+    if (hasRequestedStartupPermissions.present) {
+      map['has_requested_startup_permissions'] = Variable<bool>(
+        hasRequestedStartupPermissions.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -706,6 +880,11 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
           ..write('autoTranscribeVoice: $autoTranscribeVoice, ')
           ..write('defaultFolderId: $defaultFolderId, ')
           ..write('exportIncludeMetadata: $exportIncludeMetadata, ')
+          ..write('fontScale: $fontScale, ')
+          ..write('defaultReminderLeadMinutes: $defaultReminderLeadMinutes, ')
+          ..write(
+            'hasRequestedStartupPermissions: $hasRequestedStartupPermissions, ',
+          )
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -5009,6 +5188,9 @@ typedef $$AppSettingsRowsTableCreateCompanionBuilder =
       required bool autoTranscribeVoice,
       required String defaultFolderId,
       required bool exportIncludeMetadata,
+      Value<double> fontScale,
+      Value<int> defaultReminderLeadMinutes,
+      Value<bool> hasRequestedStartupPermissions,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -5022,6 +5204,9 @@ typedef $$AppSettingsRowsTableUpdateCompanionBuilder =
       Value<bool> autoTranscribeVoice,
       Value<String> defaultFolderId,
       Value<bool> exportIncludeMetadata,
+      Value<double> fontScale,
+      Value<int> defaultReminderLeadMinutes,
+      Value<bool> hasRequestedStartupPermissions,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -5068,6 +5253,21 @@ class $$AppSettingsRowsTableFilterComposer
 
   ColumnFilters<bool> get exportIncludeMetadata => $composableBuilder(
     column: $table.exportIncludeMetadata,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get fontScale => $composableBuilder(
+    column: $table.fontScale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get defaultReminderLeadMinutes => $composableBuilder(
+    column: $table.defaultReminderLeadMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasRequestedStartupPermissions => $composableBuilder(
+    column: $table.hasRequestedStartupPermissions,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5126,6 +5326,22 @@ class $$AppSettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get fontScale => $composableBuilder(
+    column: $table.fontScale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get defaultReminderLeadMinutes => $composableBuilder(
+    column: $table.defaultReminderLeadMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasRequestedStartupPermissions =>
+      $composableBuilder(
+        column: $table.hasRequestedStartupPermissions,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5176,6 +5392,20 @@ class $$AppSettingsRowsTableAnnotationComposer
     column: $table.exportIncludeMetadata,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get fontScale =>
+      $composableBuilder(column: $table.fontScale, builder: (column) => column);
+
+  GeneratedColumn<int> get defaultReminderLeadMinutes => $composableBuilder(
+    column: $table.defaultReminderLeadMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasRequestedStartupPermissions =>
+      $composableBuilder(
+        column: $table.hasRequestedStartupPermissions,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5228,6 +5458,10 @@ class $$AppSettingsRowsTableTableManager
                 Value<bool> autoTranscribeVoice = const Value.absent(),
                 Value<String> defaultFolderId = const Value.absent(),
                 Value<bool> exportIncludeMetadata = const Value.absent(),
+                Value<double> fontScale = const Value.absent(),
+                Value<int> defaultReminderLeadMinutes = const Value.absent(),
+                Value<bool> hasRequestedStartupPermissions =
+                    const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5239,6 +5473,9 @@ class $$AppSettingsRowsTableTableManager
                 autoTranscribeVoice: autoTranscribeVoice,
                 defaultFolderId: defaultFolderId,
                 exportIncludeMetadata: exportIncludeMetadata,
+                fontScale: fontScale,
+                defaultReminderLeadMinutes: defaultReminderLeadMinutes,
+                hasRequestedStartupPermissions: hasRequestedStartupPermissions,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -5252,6 +5489,10 @@ class $$AppSettingsRowsTableTableManager
                 required bool autoTranscribeVoice,
                 required String defaultFolderId,
                 required bool exportIncludeMetadata,
+                Value<double> fontScale = const Value.absent(),
+                Value<int> defaultReminderLeadMinutes = const Value.absent(),
+                Value<bool> hasRequestedStartupPermissions =
+                    const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -5263,6 +5504,9 @@ class $$AppSettingsRowsTableTableManager
                 autoTranscribeVoice: autoTranscribeVoice,
                 defaultFolderId: defaultFolderId,
                 exportIncludeMetadata: exportIncludeMetadata,
+                fontScale: fontScale,
+                defaultReminderLeadMinutes: defaultReminderLeadMinutes,
+                hasRequestedStartupPermissions: hasRequestedStartupPermissions,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

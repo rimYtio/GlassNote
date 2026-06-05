@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -27,6 +26,14 @@ class AppSettingsRows extends Table {
   TextColumn get defaultFolderId => text().named('default_folder_id')();
   BoolColumn get exportIncludeMetadata =>
       boolean().named('export_include_metadata')();
+  RealColumn get fontScale =>
+      real().named('font_scale').withDefault(const Constant(1.0))();
+  IntColumn get defaultReminderLeadMinutes => integer()
+      .named('default_reminder_lead_minutes')
+      .withDefault(const Constant(15))();
+  BoolColumn get hasRequestedStartupPermissions => boolean()
+      .named('has_requested_startup_permissions')
+      .withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().named('created_at')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
 
@@ -44,9 +51,8 @@ class AiConfigRows extends Table {
   RealColumn get temperature => real()();
   IntColumn get timeoutSeconds => integer().named('timeout_seconds')();
   DateTimeColumn get updatedAt => dateTime().named('updated_at')();
-  TextColumn get providerType => text()
-      .named('provider_type')
-      .withDefault(const Constant('deepSeek'))();
+  TextColumn get providerType =>
+      text().named('provider_type').withDefault(const Constant('deepSeek'))();
   TextColumn get apiBaseUrl => text().named('api_base_url').nullable()();
   TextColumn get apiModelName => text().named('api_model_name').nullable()();
 
@@ -167,8 +173,9 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
   }
 
   Future<Tag?> findById(String id) async {
-    final row = await (select(tagRows)
-      ..where((table) => table.id.equals(id))).getSingleOrNull();
+    final row = await (select(
+      tagRows,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
     return row == null ? null : _rowToDomain(row);
   }
 
@@ -178,9 +185,9 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
   }
 
   Stream<List<Tag>> watchAll() {
-    return _allTagsQuery()
-        .watch()
-        .map((rows) => rows.map(_rowToDomain).toList());
+    return _allTagsQuery().watch().map(
+      (rows) => rows.map(_rowToDomain).toList(),
+    );
   }
 
   Future<void> deleteTag(String id) async {
@@ -189,8 +196,9 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
   }
 
   Future<void> renameTag(String id, String name) async {
-    await (update(tagRows)..where((t) => t.id.equals(id)))
-        .write(TagRowsCompanion(name: Value(name)));
+    await (update(tagRows)..where((t) => t.id.equals(id))).write(
+      TagRowsCompanion(name: Value(name)),
+    );
   }
 
   Future<List<Tag>> listByNote(String noteId) async {
@@ -206,7 +214,8 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
       innerJoin(noteTags, noteTags.tagId.equalsExp(tagRows.id)),
     ])..where(noteTags.noteId.equals(noteId));
     return query.watch().map(
-      (rows) => rows.map((row) => _rowToDomain(row.readTable(tagRows))).toList(),
+      (rows) =>
+          rows.map((row) => _rowToDomain(row.readTable(tagRows))).toList(),
     );
   }
 
@@ -217,20 +226,23 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
   }
 
   Future<void> removeTagFromNote(String noteId, String tagId) async {
-    await (delete(noteTags)
-      ..where((t) => t.noteId.equals(noteId) & t.tagId.equals(tagId)))
-        .go();
+    await (delete(
+      noteTags,
+    )..where((t) => t.noteId.equals(noteId) & t.tagId.equals(tagId))).go();
   }
 
   Future<List<Note>> listNotesByTag(String tagId) async {
-    final query = select(noteRows).join([
-      innerJoin(noteTags, noteTags.noteId.equalsExp(noteRows.id)),
-    ])
-      ..where(noteTags.tagId.equals(tagId) & noteRows.isDeleted.equals(false))
-      ..orderBy([
-        OrderingTerm.desc(noteRows.isStarred),
-        OrderingTerm.desc(noteRows.createdAt),
-      ]);
+    final query =
+        select(
+            noteRows,
+          ).join([innerJoin(noteTags, noteTags.noteId.equalsExp(noteRows.id))])
+          ..where(
+            noteTags.tagId.equals(tagId) & noteRows.isDeleted.equals(false),
+          )
+          ..orderBy([
+            OrderingTerm.desc(noteRows.isStarred),
+            OrderingTerm.desc(noteRows.createdAt),
+          ]);
     final rows = await query.get();
     return rows.map((row) {
       final r = row.readTable(noteRows);
@@ -249,8 +261,7 @@ class TagsDao extends DatabaseAccessor<AppDatabase> with _$TagsDaoMixin {
   }
 
   SimpleSelectStatement<$TagRowsTable, TagRow> _allTagsQuery() {
-    return select(tagRows)
-      ..orderBy([(table) => OrderingTerm.asc(table.name)]);
+    return select(tagRows)..orderBy([(table) => OrderingTerm.asc(table.name)]);
   }
 
   Tag _rowToDomain(TagRow row) {
@@ -289,6 +300,11 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
         autoTranscribeVoice: Value(settings.autoTranscribeVoice),
         defaultFolderId: Value(settings.defaultFolderId),
         exportIncludeMetadata: Value(settings.exportIncludeMetadata),
+        fontScale: Value(settings.fontScale),
+        defaultReminderLeadMinutes: Value(settings.defaultReminderLeadMinutes),
+        hasRequestedStartupPermissions: Value(
+          settings.hasRequestedStartupPermissions,
+        ),
         createdAt: Value(settings.createdAt),
         updatedAt: Value(settings.updatedAt),
       ),
@@ -311,6 +327,9 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
       autoTranscribeVoice: row.autoTranscribeVoice,
       defaultFolderId: row.defaultFolderId,
       exportIncludeMetadata: row.exportIncludeMetadata,
+      fontScale: row.fontScale,
+      defaultReminderLeadMinutes: row.defaultReminderLeadMinutes,
+      hasRequestedStartupPermissions: row.hasRequestedStartupPermissions,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );
@@ -477,7 +496,6 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   }
 
   Future<Note> updateNote(Note note) async {
-    debugPrint('[NotesDao] updateNote writing id=${note.id} plainText="${note.plainText}" richLen=${note.richContentJson.length}');
     await (update(noteRows)..where((table) => table.id.equals(note.id))).write(
       NoteRowsCompanion(
         title: Value(note.title),
@@ -489,9 +507,7 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
         updatedAt: Value(note.updatedAt),
       ),
     );
-    final result = (await findById(note.id))!;
-    debugPrint('[NotesDao] updateNote result id=${result.id} plainText="${result.plainText}" richLen=${result.richContentJson.length}');
-    return result;
+    return (await findById(note.id))!;
   }
 
   Future<void> softDelete(String id) async {
@@ -533,6 +549,16 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
     return row == null ? null : _rowToDomain(row);
   }
 
+  Future<List<Note>> listAll() async {
+    final rows =
+        await (select(noteRows)..orderBy([
+              (table) => OrderingTerm.desc(table.isStarred),
+              (table) => OrderingTerm.desc(table.createdAt),
+            ]))
+            .get();
+    return rows.map(_rowToDomain).toList();
+  }
+
   Future<List<Note>> listByFolder(String folderId) async {
     final query = _activeNotesQuery()
       ..where((table) => table.folderId.equals(folderId));
@@ -566,18 +592,16 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   Stream<List<Note>> watchRecent({int limit = 5}) {
     return (select(noteRows)
           ..where((table) => table.isDeleted.equals(false))
-          ..orderBy([
-            (table) => OrderingTerm.desc(table.updatedAt),
-          ])
+          ..orderBy([(table) => OrderingTerm.desc(table.updatedAt)])
           ..limit(limit))
         .watch()
         .map((rows) => rows.map(_rowToDomain).toList());
   }
 
   Stream<List<Note>> watchAll() {
-    return _activeNotesQuery()
-        .watch()
-        .map((rows) => rows.map(_rowToDomain).toList());
+    return _activeNotesQuery().watch().map(
+      (rows) => rows.map(_rowToDomain).toList(),
+    );
   }
 
   Future<List<Note>> listDeleted() async {
@@ -586,9 +610,9 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   }
 
   Stream<List<Note>> watchDeletedNotes() {
-    return _deletedNotesQuery()
-        .watch()
-        .map((rows) => rows.map(_rowToDomain).toList());
+    return _deletedNotesQuery().watch().map(
+      (rows) => rows.map(_rowToDomain).toList(),
+    );
   }
 
   Future<void> restore(String id) async {
@@ -606,24 +630,24 @@ class NotesDao extends DatabaseAccessor<AppDatabase> with _$NotesDaoMixin {
   }
 
   Future<void> emptyTrash() async {
-    final noteIds = await (selectOnly(noteRows)
-          ..addColumns([noteRows.id])
-          ..where(noteRows.isDeleted.equals(true)))
-        .map((row) => row.read(noteRows.id)!)
-        .get();
+    final noteIds =
+        await (selectOnly(noteRows)
+              ..addColumns([noteRows.id])
+              ..where(noteRows.isDeleted.equals(true)))
+            .map((row) => row.read(noteRows.id)!)
+            .get();
     for (final id in noteIds) {
       await db.attachmentsDao.deleteAllByNote(id);
     }
-    await (delete(noteRows)..where((table) => table.isDeleted.equals(true)))
-        .go();
+    await (delete(
+      noteRows,
+    )..where((table) => table.isDeleted.equals(true))).go();
   }
 
   SimpleSelectStatement<$NoteRowsTable, NoteRow> _deletedNotesQuery() {
     return select(noteRows)
       ..where((table) => table.isDeleted.equals(true))
-      ..orderBy([
-        (table) => OrderingTerm.desc(table.updatedAt),
-      ]);
+      ..orderBy([(table) => OrderingTerm.desc(table.updatedAt)]);
   }
 
   SimpleSelectStatement<$NoteRowsTable, NoteRow> _activeNotesQuery() {
@@ -671,16 +695,16 @@ class AttachmentsDao extends DatabaseAccessor<AppDatabase>
         createdAt: Value(attachment.createdAt),
       ),
     );
-    final row =
-        await (select(attachmentRows)..where((t) => t.id.equals(attachment.id)))
-            .getSingle();
+    final row = await (select(
+      attachmentRows,
+    )..where((t) => t.id.equals(attachment.id))).getSingle();
     return _rowToDomain(row);
   }
 
   Future<List<Attachment>> listByNote(String noteId) async {
-    final rows =
-        await (select(attachmentRows)..where((t) => t.noteId.equals(noteId)))
-            .get();
+    final rows = await (select(
+      attachmentRows,
+    )..where((t) => t.noteId.equals(noteId))).get();
     return rows.map(_rowToDomain).toList();
   }
 
@@ -698,11 +722,17 @@ class AttachmentsDao extends DatabaseAccessor<AppDatabase>
         .map((rows) => rows.map(_rowToDomain).toList());
   }
 
-  Future<List<Attachment>> listByType(String noteId, AttachmentType type) async {
-    final rows = await (select(attachmentRows)
-      ..where((t) =>
-          t.noteId.equals(noteId) & t.type.equals(type.index))
-      ..orderBy([(t) => OrderingTerm.asc(t.createdAt)])).get();
+  Future<List<Attachment>> listByType(
+    String noteId,
+    AttachmentType type,
+  ) async {
+    final rows =
+        await (select(attachmentRows)
+              ..where(
+                (t) => t.noteId.equals(noteId) & t.type.equals(type.index),
+              )
+              ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+            .get();
     return rows.map(_rowToDomain).toList();
   }
 
@@ -784,6 +814,19 @@ class TimelineTasksDao extends DatabaseAccessor<AppDatabase>
     return TimelineTaskSort.sortedForTimeline(rows.map(_rowToDomain));
   }
 
+  Future<List<TimelineTask>> listAll({bool includeDeleted = false}) async {
+    final query = select(timelineTaskRows);
+    if (!includeDeleted) {
+      query.where((table) => table.isDeleted.equals(false));
+    }
+    query.orderBy([
+      (table) => OrderingTerm.asc(table.taskDate),
+      (table) => OrderingTerm.asc(table.createdAt),
+    ]);
+    final rows = await query.get();
+    return rows.map(_rowToDomain).toList();
+  }
+
   Future<List<TimelineTask>> search(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
@@ -862,36 +905,52 @@ class RemindersDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<Reminder?> findById(String id) async {
-    final row = await (select(reminderRows)
-      ..where((table) => table.id.equals(id))).getSingleOrNull();
+    final row = await (select(
+      reminderRows,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
     return row == null ? null : _rowToDomain(row);
   }
 
   Future<List<Reminder>> listByTarget(String targetId) async {
-    final rows = await (select(reminderRows)
-      ..where((table) => table.targetId.equals(targetId))
-      ..orderBy([(table) => OrderingTerm.asc(table.triggerTime)])).get();
+    final rows =
+        await (select(reminderRows)
+              ..where((table) => table.targetId.equals(targetId))
+              ..orderBy([(table) => OrderingTerm.asc(table.triggerTime)]))
+            .get();
     return rows.map(_rowToDomain).toList();
   }
 
   Future<List<Reminder>> listPending() async {
     final now = DateTime.now();
-    final rows = await (select(reminderRows)
-      ..where((table) =>
-          table.triggerTime.isBiggerOrEqualValue(now) &
-          table.enabled.equals(true))
-      ..orderBy([(table) => OrderingTerm.asc(table.triggerTime)])).get();
+    final rows =
+        await (select(reminderRows)
+              ..where(
+                (table) =>
+                    table.triggerTime.isBiggerOrEqualValue(now) &
+                    table.enabled.equals(true),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.triggerTime)]))
+            .get();
+    return rows.map(_rowToDomain).toList();
+  }
+
+  Future<List<Reminder>> listAll() async {
+    final rows = await (select(
+      reminderRows,
+    )..orderBy([(table) => OrderingTerm.asc(table.triggerTime)])).get();
     return rows.map(_rowToDomain).toList();
   }
 
   Future<void> cancelByNotificationId(int notificationId) async {
-    await (delete(reminderRows)
-      ..where((table) => table.notificationId.equals(notificationId))).go();
+    await (delete(
+      reminderRows,
+    )..where((table) => table.notificationId.equals(notificationId))).go();
   }
 
   Future<void> cancelByTarget(String targetId) async {
-    await (delete(reminderRows)
-      ..where((table) => table.targetId.equals(targetId))).go();
+    await (delete(
+      reminderRows,
+    )..where((table) => table.targetId.equals(targetId))).go();
   }
 
   Future<void> deleteById(String id) async {
@@ -940,7 +999,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -973,6 +1032,19 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 9) {
         await migrator.createTable(reminderRows);
+      }
+      if (from < 10) {
+        await migrator.addColumn(appSettingsRows, appSettingsRows.fontScale);
+        await migrator.addColumn(
+          appSettingsRows,
+          appSettingsRows.defaultReminderLeadMinutes,
+        );
+      }
+      if (from < 11) {
+        await migrator.addColumn(
+          appSettingsRows,
+          appSettingsRows.hasRequestedStartupPermissions,
+        );
       }
     },
   );

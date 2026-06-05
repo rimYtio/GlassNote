@@ -287,6 +287,9 @@ class _FakeAudioInputService implements AudioInputService {
   final _amplitudes = StreamController<double>.broadcast();
 
   @override
+  Future<bool> checkPermission() async => true;
+
+  @override
   Future<bool> requestPermission() async => true;
 
   @override
@@ -308,6 +311,9 @@ class _FakeAudioInputService implements AudioInputService {
 class _StopCompletingAudioInputService implements AudioInputService {
   final _audio = StreamController<List<int>>();
   final _amplitudes = StreamController<double>.broadcast();
+
+  @override
+  Future<bool> checkPermission() async => true;
 
   @override
   Future<bool> requestPermission() async => true;

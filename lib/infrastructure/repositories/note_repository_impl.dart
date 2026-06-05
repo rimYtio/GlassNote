@@ -1,14 +1,20 @@
-import 'package:flutter/foundation.dart';
+// ignore_for_file: prefer_initializing_formals
+
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../database/app_database.dart';
+import '../file_system/attachment_file_store.dart';
 
 class NoteRepositoryImpl implements NoteRepository {
-  const NoteRepositoryImpl(this._database);
+  const NoteRepositoryImpl(
+    this._database, {
+    AttachmentFileStore fileStore = const AttachmentFileStore(),
+  }) : _fileStore = fileStore;
 
   final AppDatabase _database;
+  final AttachmentFileStore _fileStore;
 
   @override
   Future<Note> create(NoteDraft draft) {
@@ -59,7 +65,6 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<Note> update(Note note) {
-    debugPrint('[NoteRepo] updateNote IN id=${note.id} contentLen=${note.plainText.length} deltaLen=${note.richContentJson.length}');
     return _database.notesDao.updateNote(
       note.copyWith(updatedAt: DateTime.now()),
     );
@@ -81,7 +86,11 @@ class NoteRepositoryImpl implements NoteRepository {
   }
 
   @override
-  Future<void> permanentlyDelete(String id) {
+  Future<void> permanentlyDelete(String id) async {
+    final attachments = await _database.attachmentsDao.listByNote(id);
+    for (final attachment in attachments) {
+      await _fileStore.deleteFile(attachment.localPath);
+    }
     return _database.notesDao.permanentlyDelete(id);
   }
 

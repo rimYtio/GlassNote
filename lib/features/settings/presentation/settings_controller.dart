@@ -27,4 +27,32 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       () => ref.read(updateAppSettingsUseCaseProvider)(updated),
     );
   }
+
+  Future<void> updateSettings(AppSettings Function(AppSettings) update) async {
+    final current =
+        state.asData?.value ?? await ref.read(loadAppSettingsUseCaseProvider)();
+    final updated = update(current).copyWith(updatedAt: DateTime.now());
+    state = AsyncData(updated);
+    state = await AsyncValue.guard(
+      () => ref.read(updateAppSettingsUseCaseProvider)(updated),
+    );
+  }
+
+  Future<void> setFontScale(double fontScale) {
+    return updateSettings(
+      (settings) => settings.copyWith(fontScale: fontScale),
+    );
+  }
+
+  Future<void> setExportIncludeMetadata(bool includeMetadata) {
+    return updateSettings(
+      (settings) => settings.copyWith(exportIncludeMetadata: includeMetadata),
+    );
+  }
+
+  Future<void> setDefaultReminderLeadMinutes(int minutes) {
+    return updateSettings(
+      (settings) => settings.copyWith(defaultReminderLeadMinutes: minutes),
+    );
+  }
 }

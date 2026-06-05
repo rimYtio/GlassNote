@@ -8,18 +8,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../app/di/note_folder_use_case_providers.dart';
+import '../../../domain/entities/attachment.dart';
 import '../../../domain/entities/folder.dart';
 import '../../../domain/entities/note.dart';
 import '../../../infrastructure/providers/infrastructure_providers.dart';
 import '../../../ui_system/widgets/glass_scaffold.dart';
 import 'notes_controller.dart';
 
+import 'widgets/audio_player_bar.dart';
+import 'widgets/audio_recorder_panel.dart';
 import 'widgets/reminder_picker.dart';
 import 'widgets/tag_chip_display.dart';
 import 'widgets/tag_picker.dart';
+
 class NoteRichEditorPage extends ConsumerStatefulWidget {
   const NoteRichEditorPage({super.key, this.noteId, this.folderId});
 
@@ -27,8 +30,7 @@ class NoteRichEditorPage extends ConsumerStatefulWidget {
   final String? folderId;
 
   @override
-  ConsumerState<NoteRichEditorPage> createState() =>
-      _NoteRichEditorPageState();
+  ConsumerState<NoteRichEditorPage> createState() => _NoteRichEditorPageState();
 }
 
 class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
@@ -40,8 +42,8 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   bool _editorReady = false;
   bool _saving = false;
   Timer? _autoSaveTimer;
-  String _saveStatus = '';
   String? _createdNoteId;
+  final _exportKey = GlobalKey();
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
   @override
   void dispose() {
     _titleController.removeListener(_onContentChanged);
+    _quillController.removeListener(_onContentChanged);
     _autoSaveTimer?.cancel();
     _titleController.dispose();
     _titleFocusNode.dispose();
@@ -60,6 +63,9 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
 
   void _onContentChanged() {
     if (_loadFailed) return;
+    if (mounted) {
+      setState(() {});
+    }
     _scheduleAutoSave();
   }
 
@@ -74,11 +80,29 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     _autoSaveTimer = Timer(const Duration(seconds: 2), _autoSave);
   }
 
-  String _plainText() =>
-      _quillController.document.toPlainText().trimRight();
+  String _plainText() => _quillController.document.toPlainText().trimRight();
 
   String _richContentJson() =>
       jsonEncode(_quillController.document.toDelta().toJson());
+
+  Future<String?> _ensureSavedNoteId() async {
+    if (_effectiveNoteId != null) return _effectiveNoteId;
+    final title = _titleController.text.trim();
+    final note = await ref
+        .read(notesActionsProvider)
+        .createNote(
+          title: title.isEmpty ? '无标题笔记' : title,
+          plainText: _plainText(),
+          richContentJson: _richContentJson(),
+          folderId: widget.folderId ?? Folder.uncategorizedId,
+        );
+    _createdNoteId = note.id;
+    if (mounted) {
+      setState(() {});
+    }
+    return note.id;
+  }
+
   Future<void> _autoSave() async {
     final title = _titleController.text.trim();
     final plain = _plainText();
@@ -86,14 +110,8 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
 
     if (!_hasContent) return;
 
-    if (_loadFailed) {
-      debugPrint('[AutoSave] skipped: loadFailed');
-      return;
-    }
-    if (!_editorReady) {
-      debugPrint('[AutoSave] skipped: editor not ready');
-      return;
-    }
+    if (_loadFailed) return;
+    if (!_editorReady) return;
 
     final actions = ref.read(notesActionsProvider);
 
@@ -106,9 +124,9 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
         folderId: widget.folderId ?? Folder.uncategorizedId,
       );
       _createdNoteId = note.id;
-      if (!mounted) return;
-      setState(() => _saveStatus = '已保存');
-      _clearSaveStatusAfterDelay();
+      if (mounted) {
+        setState(() {});
+      }
       return;
     }
 
@@ -124,22 +142,6 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
         richContentJson: richJson,
       ),
     );
-    // DB check: verify save persisted correctly
-    try {
-      final check = await ref.read(noteByIdProvider(effectiveId).future);
-      if (check != null) {
-        debugPrint('[EditNote] autoSave db check id=$effectiveId contentLen=${check.plainText.length} deltaLen=${check.richContentJson.length}');
-      }
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() => _saveStatus = '已保存');
-    _clearSaveStatusAfterDelay();
-  }
-
-  void _clearSaveStatusAfterDelay() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _saveStatus = '');
-    });
   }
 
   void _loadContent(Note note) {
@@ -175,15 +177,14 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
       final noteAsync = ref.watch(noteByIdProvider(noteId));
       noteAsync.whenData((note) {
         if (note != null && !_loadedExistingNote) {
-          debugPrint('[EditNote] open noteId=$noteId contentLen=${note.plainText.length} deltaLen=${note.richContentJson.length}');
           _titleController.text = note.title;
           _loadContent(note);
           _loadedExistingNote = true;
           if (!_loadFailed) {
             _titleController.addListener(_onContentChanged);
+            _quillController.addListener(_onContentChanged);
             _editorReady = true;
           }
-          debugPrint('[EditNote] existing note loaded noteId=$noteId editorReady=$_editorReady loadFailed=$_loadFailed');
         }
       });
     }
@@ -192,11 +193,12 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
     if (noteId == null && !_editorReady) {
       _editorReady = true;
       _titleController.addListener(_onContentChanged);
-      debugPrint('[EditNote] new note initialized editorReady=$_editorReady loadFailed=$_loadFailed');
+      _quillController.addListener(_onContentChanged);
     }
 
     return _editor(context);
   }
+
   Widget _editor(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final effectiveId = _effectiveNoteId;
@@ -239,50 +241,57 @@ class _NoteRichEditorPageState extends ConsumerState<NoteRichEditorPage> {
           child: const Text('完成'),
         ),
       ],
-      body: Column(
-        children: [
-          // Title field
-          Padding(
-            padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
-child: TextField(
-            key: const ValueKey('note-title-field'),
-            focusNode: _titleFocusNode,
-            controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: '标题',
-                border: InputBorder.none,
-              ),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-          // Quill toolbar removed — flutter_quill 11.x has touch bleed bug
-          const Divider(height: 1),
-          // Tag display row (if note has tags)
-          if (effectiveId != null) _tagRow(effectiveId),
-          // Rich editor
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
-              child: QuillEditor.basic(
-                controller: _quillController,
-                config: QuillEditorConfig(
-                  placeholder: '开始输入',
-                  expands: true,
-                  autoFocus: false,
-                  embedBuilders: [
-                    ImageEmbedBuilder(),
-                  ],
+      body: RepaintBoundary(
+        key: _exportKey,
+        child: Column(
+          key: const ValueKey('note-editor-page'),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 2),
+              child: TextField(
+                key: const ValueKey('note-title-field'),
+                focusNode: _titleFocusNode,
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  hintText: '标题',
+                  border: InputBorder.none,
+                ),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
-          ),
-        ],
+            _RichToolbar(
+              controller: _quillController,
+              onInsertImage: _pickImage,
+              onInsertAudio: _showAudioRecorder,
+            ),
+            const Divider(height: 1),
+            if (effectiveId != null) _tagRow(effectiveId),
+            Expanded(
+              key: const ValueKey('note-editor-content'),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
+                child: QuillEditor.basic(
+                  key: const ValueKey('note-body-field'),
+                  controller: _quillController,
+                  config: QuillEditorConfig(
+                    placeholder: '开始输入',
+                    expands: true,
+                    autoFocus: false,
+                    embedBuilders: [ImageEmbedBuilder()],
+                  ),
+                ),
+              ),
+            ),
+            if (effectiveId != null) _audioAttachments(effectiveId),
+          ],
+        ),
       ),
     );
   }
+
   Widget _tagRow(String noteId) {
     final tagsAsync = ref.watch(tagsByNoteProvider(noteId));
     return tagsAsync.when(
@@ -299,19 +308,50 @@ child: TextField(
   }
 
   Future<void> _pickImage() async {
+    final noteId = await _ensureSavedNoteId();
+    if (noteId == null) return;
     final picker = ImagePicker();
-    final xFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+    final xFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+    );
     if (xFile == null) return;
 
     final bytes = await xFile.readAsBytes();
-    final fileStore = ref.read(attachmentFileStoreProvider);
-    final fileName = 'img_${const Uuid().v4()}.${xFile.path.split('.').last}';
-    final localPath = await fileStore.saveImage(bytes, fileName);
+    final attachment = await ref.read(saveNoteImageAttachmentUseCaseProvider)(
+      noteId: noteId,
+      bytes: bytes,
+      originalFileName: xFile.name.isNotEmpty ? xFile.name : xFile.path,
+    );
 
-    // Insert image block into Quill document at cursor position
     final index = _quillController.selection.baseOffset;
-    _quillController.document.insert(index, BlockEmbed.image(localPath));
-    _quillController.document.insert(index + 1, '\n');
+    final insertIndex = index < 0
+        ? _quillController.document.length - 1
+        : index;
+    _quillController.document.insert(
+      insertIndex,
+      BlockEmbed.image(attachment.localPath),
+    );
+    _quillController.document.insert(insertIndex + 1, '\n');
+    _scheduleAutoSave();
+  }
+
+  void _showAudioRecorder() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => AudioRecorderPanel(
+        onSaved: (filePath) async {
+          final noteId = await _ensureSavedNoteId();
+          if (noteId == null) return;
+          await ref.read(saveNoteAudioAttachmentUseCaseProvider)(
+            noteId: noteId,
+            tempFilePath: filePath,
+          );
+        },
+      ),
+    );
   }
 
   void _showReminderPicker(String noteId) {
@@ -351,6 +391,15 @@ child: TextField(
                 _exportPdf();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('导出 PNG'),
+              subtitle: const Text('生成高清图片'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _exportPng();
+              },
+            ),
             const SizedBox(height: 12),
           ],
         ),
@@ -369,33 +418,106 @@ child: TextField(
       final pdfExporter = ref.read(pdfExporterProvider);
       final title = _titleController.text.trim();
       final body = _plainText();
+      final includeMetadata =
+          (await ref.read(settingsRepositoryProvider).load())
+              .exportIncludeMetadata;
       DateTime? createdAt;
+      List<String> imagePaths = const [];
       if (widget.noteId != null) {
         final note = await ref.read(noteByIdProvider(widget.noteId!).future);
         createdAt = note?.createdAt;
       }
+      final noteId = _effectiveNoteId;
+      if (noteId != null) {
+        final attachments = await ref
+            .read(attachmentRepositoryProvider)
+            .listByNote(noteId);
+        imagePaths = attachments
+            .where((item) => item.type == AttachmentType.image)
+            .map((item) => item.localPath)
+            .toList();
+      }
       final file = await pdfExporter.export(
         title.isNotEmpty ? title : '无标题笔记',
         body,
-        createdAt: createdAt,
+        imagePaths: imagePaths,
+        createdAt: includeMetadata ? createdAt : null,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: title.isNotEmpty ? title : '笔记导出',
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], subject: title.isNotEmpty ? title : '笔记导出');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF 已导出')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('PDF 已导出')));
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF 导出失败: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('PDF 导出失败: $e')));
     }
+  }
+
+  Future<void> _exportPng() async {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final title = _titleController.text.trim();
+      final file = await ref
+          .read(pngExporterProvider)
+          .exportFromWidget(_exportKey, title.isNotEmpty ? title : 'note');
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], subject: title.isNotEmpty ? title : '笔记导出');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('PNG 已导出')));
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('PNG 导出失败: $e')));
+    }
+  }
+
+  Widget _audioAttachments(String noteId) {
+    final attachments = ref.watch(attachmentsByNoteProvider(noteId));
+    return attachments.when(
+      data: (items) {
+        final audioItems = items
+            .where((item) => item.type == AttachmentType.audio)
+            .toList();
+        if (audioItems.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Column(
+            children: [
+              for (final attachment in audioItems)
+                AudioPlayerBar(
+                  filePath: attachment.localPath,
+                  label: attachment.fileName,
+                  onDelete: () async {
+                    await ref.read(deleteAttachmentUseCaseProvider)(attachment);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+      error: (_, _) => const SizedBox.shrink(),
+      loading: () => const SizedBox.shrink(),
+    );
   }
 
   Future<void> _finish() async {
@@ -406,25 +528,21 @@ child: TextField(
     final title = _titleController.text.trim();
     final plain = _plainText();
     final richJson = _richContentJson();
-    debugPrint('[EditNote] quill plain="${plain}"');
-    debugPrint('[EditNote] quill richLen=${richJson.length}');
 
     if (_loadFailed) {
-      debugPrint('[EditNote] finish blocked: loadFailed=true');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('笔记加载异常，已阻止保存以避免覆盖原内容')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('笔记加载异常，已阻止保存以避免覆盖原内容')));
       setState(() => _saving = false);
       return;
     }
 
     if (!_editorReady) {
-      debugPrint('[EditNote] finish blocked: editor not ready');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('编辑器尚未初始化完成，请稍后再试')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('编辑器尚未初始化完成，请稍后再试')));
       setState(() => _saving = false);
       return;
     }
@@ -436,8 +554,10 @@ child: TextField(
       // Brand new note: only save if has content
       if (title.isNotEmpty || plain.trim().isNotEmpty) {
         final note = await actions.createNote(
-          title: title, plainText: plain,
-          richContentJson: richJson, folderId: targetFolderId,
+          title: title,
+          plainText: plain,
+          richContentJson: richJson,
+          folderId: targetFolderId,
         );
         targetFolderId = note.folderId;
       }
@@ -450,9 +570,6 @@ child: TextField(
       }
       final existing = await ref.read(noteByIdProvider(existingId).future);
       if (existing != null) {
-        debugPrint('[EditNote] before save oldContentLen=${existing.plainText.length} oldDeltaLen=${existing.richContentJson.length}');
-        debugPrint('[EditNote] before save latestPlainLen=${plain.length} latestDeltaLen=${richJson.length}');
-
         final note = await actions.updateNote(
           existing.copyWith(
             title: title.isEmpty ? '无标题笔记' : title,
@@ -461,14 +578,6 @@ child: TextField(
           ),
         );
         targetFolderId = note.folderId;
-        // DB check: verify save persisted
-        try {
-          final check = await ref.read(noteByIdProvider(existingId).future);
-          if (check != null) {
-            debugPrint('[EditNote] finish db check id=$existingId contentLen=${check.plainText.length} deltaLen=${check.richContentJson.length}');
-            debugPrint('[EditNote] expected latestPlainLen=${plain.length} latestDeltaLen=${richJson.length}');
-          }
-        } catch (_) {}
       }
     }
 
@@ -478,6 +587,111 @@ child: TextField(
     } else {
       context.go('/notes/folder/$targetFolderId');
     }
+  }
+}
+
+class _RichToolbar extends StatelessWidget {
+  const _RichToolbar({
+    required this.controller,
+    required this.onInsertImage,
+    required this.onInsertAudio,
+  });
+
+  final QuillController controller;
+  final VoidCallback onInsertImage;
+  final VoidCallback onInsertAudio;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('note-rich-toolbar'),
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        children: [
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-bold'),
+            icon: Icons.format_bold,
+            tooltip: '粗体',
+            onTap: () => controller.formatSelection(Attribute.bold),
+          ),
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-italic'),
+            icon: Icons.format_italic,
+            tooltip: '斜体',
+            onTap: () => controller.formatSelection(Attribute.italic),
+          ),
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-underline'),
+            icon: Icons.format_underlined,
+            tooltip: '下划线',
+            onTap: () => controller.formatSelection(Attribute.underline),
+          ),
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-heading'),
+            icon: Icons.title,
+            tooltip: '标题',
+            onTap: () => controller.formatSelection(Attribute.h1),
+          ),
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-bullet-list'),
+            icon: Icons.format_list_bulleted,
+            tooltip: '项目列表',
+            onTap: () => controller.formatSelection(Attribute.ul),
+          ),
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-check-list'),
+            icon: Icons.check_box_outlined,
+            tooltip: '待办',
+            onTap: () => controller.formatSelection(Attribute.unchecked),
+          ),
+          _ToolbarButton(
+            key: const ValueKey('note-toolbar-quote'),
+            icon: Icons.format_quote,
+            tooltip: '引用',
+            onTap: () => controller.formatSelection(Attribute.blockQuote),
+          ),
+          const SizedBox(width: 8),
+          _ToolbarButton(
+            icon: Icons.image_outlined,
+            tooltip: '插入图片',
+            onTap: onInsertImage,
+          ),
+          _ToolbarButton(
+            icon: Icons.keyboard_voice_outlined,
+            tooltip: '插入音频',
+            onTap: onInsertAudio,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolbarButton extends StatelessWidget {
+  const _ToolbarButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 42,
+      height: 42,
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon, size: 21),
+        onPressed: onTap,
+      ),
+    );
   }
 }
 

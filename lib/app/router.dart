@@ -10,6 +10,7 @@ import '../features/notes/presentation/notes_page.dart';
 import '../features/schedule/presentation/schedule_page.dart';
 import '../features/settings/presentation/ai_settings_page.dart';
 import '../features/settings/presentation/export_settings_page.dart';
+import '../features/settings/presentation/font_settings_page.dart';
 import '../features/settings/presentation/notification_center_page.dart';
 import '../features/settings/presentation/security_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
@@ -25,13 +26,10 @@ Page<void> _transitionPage(Widget child) {
     child: child,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0.12, 0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-        )),
+        position: Tween<Offset>(begin: const Offset(0.12, 0), end: Offset.zero)
+            .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
         child: child,
       );
     },
@@ -84,12 +82,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/notes',
                 builder: (context, state) => const NotesPage(),
                 routes: [
-              GoRoute(
-                path: 'folder/:folderId',
-                pageBuilder: (context, state) => _transitionPage(
-                  NotesPage(folderId: state.pathParameters['folderId']),
-                ),
-              ),
+                  GoRoute(
+                    path: 'folder/:folderId',
+                    pageBuilder: (context, state) => _transitionPage(
+                      NotesPage(folderId: state.pathParameters['folderId']),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -108,31 +106,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/settings',
                 builder: (context, state) => const SettingsPage(),
                 routes: [
-              GoRoute(
-                path: 'ai',
-                pageBuilder: (context, state) =>
-                    _transitionPage(const AiSettingsPage()),
-              ),
-              GoRoute(
-                path: 'security',
-                pageBuilder: (context, state) =>
-                    _transitionPage(const SecuritySettingsPage()),
-              ),
-              GoRoute(
-                path: 'export',
-                pageBuilder: (context, state) =>
-                    _transitionPage(const ExportSettingsPage()),
-              ),
-              GoRoute(
-                path: 'tags',
-                pageBuilder: (context, state) =>
-                    _transitionPage(const TagManagementPage()),
-              ),
-              GoRoute(
-                path: 'notifications',
-                pageBuilder: (context, state) =>
-                    _transitionPage(const NotificationCenterPage()),
-              ),
+                  GoRoute(
+                    path: 'font',
+                    pageBuilder: (context, state) =>
+                        _transitionPage(const FontSettingsPage()),
+                  ),
+                  GoRoute(
+                    path: 'ai',
+                    pageBuilder: (context, state) =>
+                        _transitionPage(const AiSettingsPage()),
+                  ),
+                  GoRoute(
+                    path: 'security',
+                    pageBuilder: (context, state) =>
+                        _transitionPage(const SecuritySettingsPage()),
+                  ),
+                  GoRoute(
+                    path: 'export',
+                    pageBuilder: (context, state) =>
+                        _transitionPage(const ExportSettingsPage()),
+                  ),
+                  GoRoute(
+                    path: 'tags',
+                    pageBuilder: (context, state) =>
+                        _transitionPage(const TagManagementPage()),
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    pageBuilder: (context, state) =>
+                        _transitionPage(const NotificationCenterPage()),
+                  ),
                 ],
               ),
             ],

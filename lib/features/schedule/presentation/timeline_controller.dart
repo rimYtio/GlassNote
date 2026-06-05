@@ -48,7 +48,11 @@ class TimelineActions {
   }
 
   Future<void> delete(TimelineTask task) async {
-    await _ref.read(reminderRepositoryProvider).cancelByTarget(task.id);
+    try {
+      await _ref.read(reminderRepositoryProvider).cancelByTarget(task.id);
+    } on Object {
+      // Reminder cleanup should not block deleting the local task.
+    }
     return _ref.read(timelineTaskRepositoryProvider).delete(task.id);
   }
 }

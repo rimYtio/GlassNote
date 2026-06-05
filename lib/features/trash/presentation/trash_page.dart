@@ -49,8 +49,7 @@ class TrashPage extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) =>
-            Center(child: Text('加载失败: $error')),
+        error: (error, _) => Center(child: Text('加载失败: $error')),
         loading: () => const LottieAssetWidget(
           asset: 'assets/lottie/loading.json',
           size: 64,
@@ -85,12 +84,14 @@ class TrashPage extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      final db = ref.read(appDatabaseProvider);
-      await db.notesDao.emptyTrash();
+      final notes = await ref.read(noteRepositoryProvider).listDeleted();
+      for (final note in notes) {
+        await ref.read(noteRepositoryProvider).permanentlyDelete(note.id);
+      }
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('回收站已清空')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('回收站已清空')));
       }
     }
   }
@@ -165,9 +166,9 @@ class _DeletedNoteTile extends ConsumerWidget {
   Future<void> _restoreNote(WidgetRef ref, BuildContext context) async {
     await ref.read(noteRepositoryProvider).restore(note.id);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('笔记已恢复')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('笔记已恢复')));
     }
   }
 
@@ -199,9 +200,9 @@ class _DeletedNoteTile extends ConsumerWidget {
     if (confirmed == true) {
       await ref.read(noteRepositoryProvider).permanentlyDelete(note.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('笔记已永久删除')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('笔记已永久删除')));
       }
     }
   }

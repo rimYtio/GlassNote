@@ -8,8 +8,9 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 import '../../domain/entities/reminder.dart';
+import '../../domain/services/notification_permission_service.dart';
 
-class LocalNotificationService {
+class LocalNotificationService implements NotificationPermissionService {
   LocalNotificationService._(this._plugin);
 
   final FlutterLocalNotificationsPlugin _plugin;
@@ -42,8 +43,9 @@ class LocalNotificationService {
       tz.setLocalLocation(tz.getLocation('Asia/Shanghai'));
     }
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -60,25 +62,29 @@ class LocalNotificationService {
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
 
-    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(
-            AndroidNotificationChannel(
-              'glassnote_reminders_v2',
-              '提醒',
-              description: '笔记和任务的提醒通知',
-              importance: Importance.max,
-              enableVibration: true,
-              vibrationPattern: Int64List.fromList([0, 200, 100, 300]),
-              playSound: true,
-            ),
-          );
-        }
+        AndroidNotificationChannel(
+          'glassnote_reminders_v2',
+          '提醒',
+          description: '笔记和任务的提醒通知',
+          importance: Importance.max,
+          enableVibration: true,
+          vibrationPattern: Int64List.fromList([0, 200, 100, 300]),
+          playSound: true,
+        ),
+      );
+    }
 
     try {
       final canExact = await androidPlugin?.canScheduleExactNotifications();
-      debugPrint('[NotificationService] canScheduleExactNotifications=$canExact');
+      debugPrint(
+        '[NotificationService] canScheduleExactNotifications=$canExact',
+      );
     } catch (e) {
       debugPrint('[NotificationService] exact alarm check failed: $e');
     }
@@ -87,16 +93,25 @@ class LocalNotificationService {
   }
 
   Future<bool> requestPermission() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    return requestNotificationPermission();
+  }
+
+  @override
+  Future<bool> requestNotificationPermission() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
     if (android != null) {
       final granted = await android.requestNotificationsPermission();
       return granted ?? false;
     }
 
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>();
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
 
     if (ios != null) {
       final granted = await ios.requestPermissions(
@@ -108,6 +123,41 @@ class LocalNotificationService {
     }
 
     return true;
+  }
+
+  @override
+  Future<bool> requestExactAlarmPermission() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android == null) return true;
+    final granted = await android.requestExactAlarmsPermission();
+    return granted ?? false;
+  }
+
+  @override
+  Future<bool> areNotificationsEnabled() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android != null) {
+      final enabled = await android.areNotificationsEnabled();
+      return enabled ?? true;
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> canScheduleExactAlarms() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android == null) return true;
+    final canSchedule = await android.canScheduleExactNotifications();
+    return canSchedule ?? true;
   }
 
   Future<ScheduleResult> schedule({
@@ -153,7 +203,9 @@ class LocalNotificationService {
         payload: payload,
       );
       status = ScheduleStatus.scheduled;
-      debugPrint('Scheduled notification $notificationId for $triggerTime (exact)');
+      debugPrint(
+        'Scheduled notification $notificationId for $triggerTime (exact)',
+      );
     } on PlatformException catch (e) {
       if (e.code == 'exact_alarms_not_permitted') {
         try {
@@ -170,9 +222,13 @@ class LocalNotificationService {
           );
           usedMode = AndroidScheduleMode.inexactAllowWhileIdle;
           status = ScheduleStatus.scheduledInexact;
-          debugPrint('Scheduled notification $notificationId (inexact fallback) for $triggerTime');
+          debugPrint(
+            'Scheduled notification $notificationId (inexact fallback) for $triggerTime',
+          );
         } catch (fallbackError) {
-          debugPrint('[NotificationService] schedule fallback failed: $fallbackError');
+          debugPrint(
+            '[NotificationService] schedule fallback failed: $fallbackError',
+          );
           status = ScheduleStatus.failed;
         }
       } else {
@@ -193,7 +249,9 @@ class LocalNotificationService {
     final pending = await _plugin.pendingNotificationRequests();
     debugPrint('[NotificationService][$tag] pending count=${pending.length}');
     for (final p in pending) {
-      debugPrint('[NotificationService][$tag] pending id=${p.id} title=${p.title}');
+      debugPrint(
+        '[NotificationService][$tag] pending id=${p.id} title=${p.title}',
+      );
     }
   }
 
@@ -202,7 +260,8 @@ class LocalNotificationService {
   }
 
   Future<void> reschedule(
-      Future<List<Reminder>> Function() pendingFetcher) async {
+    Future<List<Reminder>> Function() pendingFetcher,
+  ) async {
     final reminders = await pendingFetcher();
     for (final reminder in reminders) {
       try {
@@ -214,7 +273,9 @@ class LocalNotificationService {
           payload: '${reminder.targetType}:${reminder.targetId}',
         );
       } catch (e) {
-        debugPrint('[NotificationService] reschedule failed for ${reminder.id}: $e');
+        debugPrint(
+          '[NotificationService] reschedule failed for ${reminder.id}: $e',
+        );
         // Continue with next reminder
       }
     }
@@ -223,8 +284,7 @@ class LocalNotificationService {
   void _onNotificationResponse(NotificationResponse response) {
     final payload = response.payload;
     if (payload != null && payload.isNotEmpty) {
-      _notificationTapController
-          .add(NotificationPayload.fromString(payload));
+      _notificationTapController.add(NotificationPayload.fromString(payload));
     }
   }
 

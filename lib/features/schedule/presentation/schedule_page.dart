@@ -225,11 +225,9 @@ class _GlassFloatingActionButton extends StatelessWidget {
           child: DecoratedBox(
             key: const ValueKey('timeline-glass-fab-surface'),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
+              color: Colors.white.withValues(alpha: isLight ? 0.42 : 0.08),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
               boxShadow: [
                 BoxShadow(
                   color: colorScheme.shadow.withValues(alpha: 0.06),
@@ -391,7 +389,7 @@ class _TimelineDayListState extends State<_TimelineDayList> {
                 ),
               );
             },
-            ),
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 112)),
         ],
       ),
@@ -1637,27 +1635,51 @@ class _TimelineTaskEditorSheetState
 
   static DateTime? _computeDefaultReminder({
     required DateTime? startAt,
+    required int leadMinutes,
   }) {
     if (startAt == null) return null;
     final now = DateTime.now();
     if (!startAt.isAfter(now)) return null;
 
     final diff = startAt.difference(now);
-    if (diff >= const Duration(minutes: 15)) {
-      return startAt.subtract(const Duration(minutes: 15));
+    final lead = Duration(minutes: leadMinutes);
+    if (diff >= lead) {
+      return startAt.subtract(lead);
     }
     return startAt;
   }
 
-  Future<void> _applyDefaultReminder(String taskId, String title, DateTime startAt) async {
-    final reminderAt = _computeDefaultReminder(startAt: startAt);
-    if (reminderAt == null) return;
+  Future<bool?> _applyDefaultReminder(
+    String taskId,
+    String title,
+    DateTime startAt,
+  ) async {
+    final settings = await ref.read(settingsRepositoryProvider).load();
+    final reminderAt = _computeDefaultReminder(
+      startAt: startAt,
+      leadMinutes: settings.defaultReminderLeadMinutes,
+    );
+    if (reminderAt == null) return null;
 
+    final notificationId = ('schedule:$taskId').hashCode & 0x7fffffff;
     try {
       final reminderRepo = ref.read(reminderRepositoryProvider);
-      final notificationService = ref.read(localNotificationServiceProvider);
-      final notificationId = ('schedule:$taskId').hashCode & 0x7fffffff;
+      await reminderRepo.cancelByTarget(taskId);
+      await reminderRepo.create(
+        targetType: 'schedule',
+        targetId: taskId,
+        triggerTime: reminderAt,
+        notificationId: notificationId,
+      );
+    } catch (e) {
+      debugPrint(
+        '[TaskCreate] auto-reminder save failed taskId=$taskId error=$e',
+      );
+      return null;
+    }
 
+    try {
+      final notificationService = ref.read(localNotificationServiceProvider);
       final result = await notificationService.schedule(
         notificationId: notificationId,
         title: title.isNotEmpty ? title : '任务提醒',
@@ -1665,18 +1687,12 @@ class _TimelineTaskEditorSheetState
         triggerTime: reminderAt,
         payload: 'schedule:$taskId',
       );
-
-      await reminderRepo.create(
-        targetType: 'schedule',
-        targetId: taskId,
-        triggerTime: reminderAt,
-        notificationId: notificationId,
-      );
-
-      debugPrint('[TaskCreate] auto-reminder set taskId=$taskId reminderAt=$reminderAt status=${result.status}');
+      return result.isOk;
     } catch (e) {
-      debugPrint('[TaskCreate] auto-reminder failed taskId=$taskId error=$e — task still created');
-      // Default reminder failure is non-fatal — task creation continues
+      debugPrint(
+        '[TaskCreate] auto-reminder schedule failed taskId=$taskId error=$e — reminder remains saved',
+      );
+      return false;
     }
   }
 
@@ -1690,6 +1706,7 @@ class _TimelineTaskEditorSheetState
     final startAt = _dateTimeFor(_startTime);
     final endAt = _dateTimeFor(_endTime);
     final task = widget.task;
+    bool? defaultReminderScheduled;
     if (task == null) {
       final created = await actions.create(
         TimelineTaskDraft(
@@ -1705,7 +1722,11 @@ class _TimelineTaskEditorSheetState
 
       // Default reminder for new tasks with start time
       if (startAt != null) {
-        await _applyDefaultReminder(created.id, title, startAt);
+        defaultReminderScheduled = await _applyDefaultReminder(
+          created.id,
+          title,
+          startAt,
+        );
       }
     } else {
       await actions.update(
@@ -1723,16 +1744,22 @@ class _TimelineTaskEditorSheetState
     }
 
     if (mounted) {
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
+      if (defaultReminderScheduled == false) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('提醒已保存，但系统通知调度失败，请检查权限')),
+        );
+      }
     }
   }
 
   void _showReminderPicker() {
     final taskId = widget.task?.id;
     if (taskId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先保存任务再设置提醒')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先保存任务再设置提醒')));
       return;
     }
     showModalBottomSheet<void>(

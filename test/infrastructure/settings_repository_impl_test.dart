@@ -26,12 +26,20 @@ void main() {
 
   test('saves and reloads settings from drift', () async {
     final initial = await repository.load();
-    final updated = initial.copyWith(themeMode: AppThemeMode.dark);
+    final updated = initial.copyWith(
+      themeMode: AppThemeMode.dark,
+      fontScale: 1.2,
+      defaultReminderLeadMinutes: 30,
+      hasRequestedStartupPermissions: true,
+    );
 
     await repository.save(updated);
     final reloaded = await repository.load();
 
     expect(reloaded.themeMode, AppThemeMode.dark);
+    expect(reloaded.fontScale, 1.2);
+    expect(reloaded.defaultReminderLeadMinutes, 30);
+    expect(reloaded.hasRequestedStartupPermissions, isTrue);
     expect(reloaded.id, initial.id);
   });
 }

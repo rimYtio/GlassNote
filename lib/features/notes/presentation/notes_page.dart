@@ -247,14 +247,20 @@ class _CreateMenuOverlay extends StatelessWidget {
                     child: DecoratedBox(
                       key: const ValueKey('notes-create-glass-menu-surface'),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: isLight ? 0.65 : 0.12),
+                        color: Colors.white.withValues(
+                          alpha: isLight ? 0.42 : 0.08,
+                        ),
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: isLight ? 0.35 : 0.12),
+                          color: Colors.white.withValues(
+                            alpha: isLight ? 0.35 : 0.12,
+                          ),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.06),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.shadow.withValues(alpha: 0.06),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -372,8 +378,10 @@ class _SearchResults extends ConsumerWidget {
                   children: [
                     Icon(Icons.search, size: 64, color: Color(0xFFC0C5CE)),
                     SizedBox(height: 16),
-                    Text('未找到相关文件夹或笔记',
-                      style: TextStyle(color: Color(0xFFA0A5AE), fontSize: 15)),
+                    Text(
+                      '未找到相关文件夹或笔记',
+                      style: TextStyle(color: Color(0xFFA0A5AE), fontSize: 15),
+                    ),
                   ],
                 ),
               );
@@ -610,8 +618,13 @@ class _NotesList extends ConsumerWidget {
               children: [
                 const Icon(Icons.search, size: 64, color: Color(0xFFC0C5CE)),
                 const SizedBox(height: 16),
-                Text(filterTagId != null ? '该标签下暂无笔记' : '暂无笔记',
-                  style: const TextStyle(color: Color(0xFFA0A5AE), fontSize: 15)),
+                Text(
+                  filterTagId != null ? '该标签下暂无笔记' : '暂无笔记',
+                  style: const TextStyle(
+                    color: Color(0xFFA0A5AE),
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ),
           );
@@ -645,15 +658,13 @@ Future<void> _showMigrateNoteDialog(
   Note note,
 ) async {
   final folders = await ref.read(allFoldersProvider.future);
-  final targets = folders.where(
-    (f) => !f.isSystem && f.id != note.folderId,
-  );
+  final targets = folders.where((f) => !f.isSystem && f.id != note.folderId);
   if (!context.mounted) return;
 
   if (targets.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('没有可迁移的文件夹')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('没有可迁移的文件夹')));
     return;
   }
 
@@ -837,6 +848,7 @@ class _TagFilterBar extends ConsumerWidget {
         if (tags.isEmpty) return const SizedBox(height: 8);
 
         return SizedBox(
+          key: const ValueKey('notes-tag-filter-row'),
           height: 36,
           child: ListView(
             scrollDirection: Axis.horizontal,
@@ -854,6 +866,7 @@ class _TagFilterBar extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
+                    key: ValueKey('notes-tag-filter-${tag.id}'),
                     selected: selectedTag == tag.id,
                     onSelected: (_) => onTagSelected(tag.id),
                     avatar: CircleAvatar(

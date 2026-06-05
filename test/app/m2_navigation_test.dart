@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glass_note/app/app.dart';
 import 'package:glass_note/domain/entities/folder.dart';
+import 'package:glass_note/domain/services/data_protection_service.dart';
 import 'package:glass_note/infrastructure/database/app_database.dart';
 import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
 
@@ -50,7 +51,6 @@ void main() {
       find.byKey(const ValueKey('note-title-field')),
       '根目录笔记',
     );
-    await tester.enterText(find.byKey(const ValueKey('note-body-field')), '正文');
     await tester.tap(find.text('完成'));
     await _flushAsyncUi(tester);
 
@@ -326,6 +326,54 @@ void main() {
     await _disposeApp(tester);
   });
 
+  testWidgets('notes list filters by selected tag', (tester) async {
+    await database.foldersDao.ensureUncategorized();
+    await database.notesDao.createNote(
+      NoteRowsCompanion.insert(
+        id: 'tagged-note',
+        title: '带标签笔记',
+        plainText: '',
+        richContentJson: '{}',
+        folderId: Folder.uncategorizedId,
+        createdAt: DateTime(2026, 6, 5, 9),
+        updatedAt: DateTime(2026, 6, 5, 9),
+      ),
+    );
+    await database.notesDao.createNote(
+      NoteRowsCompanion.insert(
+        id: 'untagged-note',
+        title: '普通笔记',
+        plainText: '',
+        richContentJson: '{}',
+        folderId: Folder.uncategorizedId,
+        createdAt: DateTime(2026, 6, 5, 10),
+        updatedAt: DateTime(2026, 6, 5, 10),
+      ),
+    );
+    await database.tagsDao.createTag(
+      TagRowsCompanion.insert(
+        id: 'tag-work',
+        name: '工作',
+        color: 0xFF336699,
+        createdAt: DateTime(2026, 6, 5),
+      ),
+    );
+    await database.tagsDao.addTagToNote('tagged-note', 'tag-work');
+
+    await _pumpApp(tester, database);
+    await _openNotes(tester);
+
+    expect(find.byKey(const ValueKey('notes-tag-filter-row')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('notes-tag-filter-tag-work')));
+    await _pumpUi(tester);
+
+    expect(find.text('带标签笔记'), findsOneWidget);
+    expect(find.text('普通笔记'), findsNothing);
+    expect(find.text('工作'), findsWidgets);
+
+    await _disposeApp(tester);
+  });
+
   testWidgets('opening a note uses a full-screen editor without bottom tabs', (
     tester,
   ) async {
@@ -353,13 +401,46 @@ void main() {
     expect(find.text('捕获').hitTestable(), findsNothing);
 
     await tester.enterText(
-      find.byKey(const ValueKey('note-body-field')),
-      '更新后的内容',
+      find.byKey(const ValueKey('note-title-field')),
+      '更新后的会议记录',
     );
     await tester.tap(find.text('完成'));
     await _flushAsyncUi(tester);
 
-    expect((await database.notesDao.findById('n-edit'))?.plainText, '更新后的内容');
+    expect((await database.notesDao.findById('n-edit'))?.title, '更新后的会议记录');
+
+    await _disposeApp(tester);
+  });
+
+  testWidgets('rich editor exposes formatting audio and both export actions', (
+    tester,
+  ) async {
+    await _pumpApp(tester, database);
+    await _openNotes(tester);
+
+    await tester.tap(find.byTooltip('新建'));
+    await _pumpUi(tester);
+    await tester.tap(find.text('新建笔记'));
+    await _pumpUi(tester);
+
+    expect(find.byKey(const ValueKey('note-rich-toolbar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('note-toolbar-bold')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('note-toolbar-bullet-list')),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('插入音频'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('note-title-field')),
+      '导出入口测试',
+    );
+    await _pumpUi(tester);
+    await tester.tap(find.byKey(const ValueKey('btn-export')));
+    await _pumpUi(tester);
+
+    expect(find.text('导出 PDF'), findsOneWidget);
+    expect(find.text('导出 PNG'), findsOneWidget);
 
     await _disposeApp(tester);
   });
@@ -389,7 +470,10 @@ void main() {
 Future<void> _pumpApp(WidgetTester tester, AppDatabase database) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(database)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        secureKeyValueStoreProvider.overrideWithValue(_EmptySecureStore()),
+      ],
       child: const GlassNoteApp(),
     ),
   );
@@ -418,4 +502,17 @@ Future<void> _disposeApp(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 1));
   await tester.pump(const Duration(milliseconds: 1));
+}
+
+class _EmptySecureStore implements SecureKeyValueStore {
+  @override
+  Future<void> deleteSecret(String key) async {}
+
+  @override
+  Future<String?> readSecret(String key) async => null;
+
+  @override
+  Future<bool> writeSecret({required String key, required String value}) async {
+    return true;
+  }
 }

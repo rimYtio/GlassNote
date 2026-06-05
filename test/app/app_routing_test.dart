@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glass_note/app/app.dart';
 import 'package:glass_note/domain/entities/app_settings.dart';
+import 'package:glass_note/domain/services/data_protection_service.dart';
 import 'package:glass_note/infrastructure/database/app_database.dart';
 import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
 
@@ -53,12 +54,48 @@ void main() {
 
     await _disposeApp(tester);
   });
+
+  testWidgets('settings opens font and backup pages with real controls', (
+    tester,
+  ) async {
+    await _pumpApp(tester, database);
+
+    await tester.tap(find.text('设置').last);
+    await _pumpUi(tester);
+
+    await tester.tap(find.text('字体设置'));
+    await _pumpUi(tester);
+    expect(
+      find.byKey(const ValueKey('settings-font-scale-slider')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('settings-font-preview')), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await _pumpUi(tester);
+
+    await tester.tap(find.text('数据导出'));
+    await _pumpUi(tester);
+    expect(
+      find.byKey(const ValueKey('settings-backup-export-json')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-backup-import-json')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('不会导出 API Key'), findsOneWidget);
+
+    await _disposeApp(tester);
+  });
 }
 
 Future<void> _pumpApp(WidgetTester tester, AppDatabase database) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(database)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        secureKeyValueStoreProvider.overrideWithValue(_EmptySecureStore()),
+      ],
       child: const GlassNoteApp(),
     ),
   );
@@ -75,4 +112,17 @@ Future<void> _disposeApp(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 1));
   await tester.pump(const Duration(milliseconds: 1));
+}
+
+class _EmptySecureStore implements SecureKeyValueStore {
+  @override
+  Future<void> deleteSecret(String key) async {}
+
+  @override
+  Future<String?> readSecret(String key) async => null;
+
+  @override
+  Future<bool> writeSecret({required String key, required String value}) async {
+    return true;
+  }
 }

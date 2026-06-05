@@ -21,53 +21,38 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
     required AiConfig config,
     required AiSecrets secrets,
   }) async* {
-    debugPrint('[ASR] connecting to ${config.volcAsrEndpoint}...');
     final channel = await _connector(config, secrets);
-    debugPrint('[ASR] connected, sending full client request');
     final requestId = const Uuid().v4();
     channel.sink.add(_buildFullClientRequest(config, requestId));
-    debugPrint('[ASR] full client request sent, waiting for server');
 
     final events = StreamController<TranscriptionEvent>();
     var lastTranscript = '';
     late final StreamSubscription<Object> incomingSub;
     incomingSub = channel.stream.cast<Object>().listen(
       (message) {
-        debugPrint(
-          '[ASR] server response: ${message.toString().substring(0, message.toString().length.clamp(0, 200))}',
-        );
         final event = _decodeServerMessage(message);
-        debugPrint(
-          '[ASR] decoded: type=${event.type}, text="${event.text.substring(0, event.text.length.clamp(0, 80))}"',
-        );
         if (event.text.trim().isEmpty) {
-          debugPrint('[ASR] skipped empty text');
           return;
         }
         switch (event.type) {
           case TranscriptionEventType.delta:
             lastTranscript = event.text;
-            debugPrint('[ASR] event emitted: delta');
             events.add(event);
           case TranscriptionEventType.completed:
             lastTranscript = event.text;
-            debugPrint('[ASR] event emitted: completed');
             events.add(event);
             unawaited(events.close());
           case TranscriptionEventType.error:
             if (_isWaitingNextPacketTimeout(event.text) &&
                 lastTranscript.trim().isNotEmpty) {
-              debugPrint('[ASR] timeout with partial transcript, emitting completed');
               events.add(TranscriptionEvent.completed(lastTranscript));
             } else {
-              debugPrint('[ASR] event emitted: error');
               events.add(event);
             }
             unawaited(events.close());
         }
       },
       onDone: () {
-        debugPrint('[ASR] incoming stream done');
         unawaited(events.close());
       },
       onError: (Object error) {
@@ -76,7 +61,6 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
         unawaited(events.close());
       },
     );
-    debugPrint('[ASR] audio sending starting');
     final audioDone = _sendAudio(audio, channel);
     try {
       audioDone.catchError((Object error) {
@@ -89,9 +73,7 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
       yield* events.stream;
       unawaited(incomingSub.cancel());
       await audioDone;
-      debugPrint('[ASR] audio sending complete');
     } finally {
-      debugPrint('[ASR] closing channel');
       unawaited(channel.sink.close());
     }
   }
@@ -100,17 +82,12 @@ class VolcengineStreamingAsrClient implements RealtimeTranscriptionClient {
     Stream<List<int>> audio,
     WebSocketChannel channel,
   ) async {
-    int chunkCount = 0;
     await for (final chunk in audio) {
       if (chunk.isEmpty) continue;
-      chunkCount++;
       channel.sink.add(_buildAudioRequest(chunk));
-      debugPrint('[ASR] audio chunk sent: ${chunk.length} bytes (chunk #$chunkCount)');
     }
     // Send end frame with empty payload
     channel.sink.add(_buildAudioRequest(const [], isLast: true));
-    chunkCount++;
-    debugPrint('[ASR] end frame sent, total chunks: $chunkCount');
   }
 }
 
@@ -121,7 +98,6 @@ Future<WebSocketChannel> defaultVolcengineConnector(
   AiConfig config,
   AiSecrets secrets,
 ) async {
-  debugPrint('[ASR] connector called, endpoint: ${Uri.parse(config.volcAsrEndpoint)}');
   return IOWebSocketChannel.connect(
     Uri.parse(config.volcAsrEndpoint),
     headers: {
@@ -220,7 +196,6 @@ TranscriptionEvent _decodeServerMessage(Object message) {
 }
 
 Uint8List _buildFullClientRequest(AiConfig config, String requestId) {
-  debugPrint('[ASR] client request params: resourceId=${config.volcAsrResourceId}, format=pcm, rate=16000');
   final payload = gzip.encode(
     utf8.encode(
       jsonEncode({

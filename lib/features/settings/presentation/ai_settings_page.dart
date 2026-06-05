@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -90,12 +89,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   Widget build(BuildContext context) {
     return GlassScaffold(
       title: 'API 设置',
-      actions: [
-        _SpringSaveButton(
-          saving: _saving,
-          onPressed: _save,
-        ),
-      ],
+      actions: [_SpringSaveButton(saving: _saving, onPressed: _save)],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -166,10 +160,9 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
         children: [
           Text(
             '火山引擎豆包 2.0 流式语音转文字',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 14),
           _field(
@@ -227,10 +220,9 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
         children: [
           Text(
             'AI 分析模型',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 14),
           _providerDropdown(),
@@ -250,7 +242,9 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
           ),
           _testButton(
             key: 'ai-test-llm-button',
-            label: _testingLlm ? '测试中...' : '测试 ${_providerLabel(_selectedProvider)}',
+            label: _testingLlm
+                ? '测试中...'
+                : '测试 ${_providerLabel(_selectedProvider)}',
             onPressed: _testingLlm || _saving ? null : _testLlm,
             message: _llmTestMessage,
             messageVisible: _llmTestVisible,
@@ -268,7 +262,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: DropdownButtonFormField<AiProviderType>(
         key: const ValueKey('ai-provider-dropdown'),
-        value: _selectedProvider,
+        initialValue: _selectedProvider,
         decoration: const InputDecoration(labelText: 'AI 提供商'),
         items: AiProviderType.values.map((type) {
           return DropdownMenuItem(
@@ -290,84 +284,84 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
   List<Widget> _providerFields() {
     return switch (_selectedProvider) {
       AiProviderType.deepSeek => [
-          _field(
-            key: 'ai-deepseek-base-url-field',
-            controller: _deepSeekBaseUrlController,
-            label: 'Base URL',
-          ),
-          _field(
-            key: 'ai-deepseek-model-field',
-            controller: _deepSeekModelController,
-            label: '模型',
-          ),
-          _secretField(
-            key: 'ai-deepseek-key-field',
-            controller: _deepSeekKeyController,
-            label: 'DeepSeek API Key',
-            saved: _deepSeekKeySaved,
-            onEditStart: () {
-              _deepSeekKeyEdited = true;
-            },
-          ),
-        ],
+        _field(
+          key: 'ai-deepseek-base-url-field',
+          controller: _deepSeekBaseUrlController,
+          label: 'Base URL',
+        ),
+        _field(
+          key: 'ai-deepseek-model-field',
+          controller: _deepSeekModelController,
+          label: '模型',
+        ),
+        _secretField(
+          key: 'ai-deepseek-key-field',
+          controller: _deepSeekKeyController,
+          label: 'DeepSeek API Key',
+          saved: _deepSeekKeySaved,
+          onEditStart: () {
+            _deepSeekKeyEdited = true;
+          },
+        ),
+      ],
       AiProviderType.openAI => [
-          _field(
-            key: 'ai-openai-base-url-field',
-            controller: _apiBaseUrlController,
-            label: 'Base URL',
-          ),
-          _field(
-            key: 'ai-openai-model-field',
-            controller: _apiModelNameController,
-            label: '模型',
-          ),
-          _secretField(
-            key: 'ai-openai-key-field',
-            controller: _openAIKeyController,
-            label: 'OpenAI API Key',
-            saved: _openAIKeySaved,
-            onEditStart: () {
-              _openAIKeyEdited = true;
-            },
-          ),
-        ],
+        _field(
+          key: 'ai-openai-base-url-field',
+          controller: _apiBaseUrlController,
+          label: 'Base URL',
+        ),
+        _field(
+          key: 'ai-openai-model-field',
+          controller: _apiModelNameController,
+          label: '模型',
+        ),
+        _secretField(
+          key: 'ai-openai-key-field',
+          controller: _openAIKeyController,
+          label: 'OpenAI API Key',
+          saved: _openAIKeySaved,
+          onEditStart: () {
+            _openAIKeyEdited = true;
+          },
+        ),
+      ],
       AiProviderType.siliconFlow => [
-          _field(
-            key: 'ai-siliconflow-model-field',
-            controller: _apiModelNameController,
-            label: '模型',
-          ),
-          _secretField(
-            key: 'ai-siliconflow-key-field',
-            controller: _siliconFlowKeyController,
-            label: 'SiliconFlow API Key',
-            saved: _siliconFlowKeySaved,
-            onEditStart: () {
-              _siliconFlowKeyEdited = true;
-            },
-          ),
-        ],
+        _field(
+          key: 'ai-siliconflow-model-field',
+          controller: _apiModelNameController,
+          label: '模型',
+        ),
+        _secretField(
+          key: 'ai-siliconflow-key-field',
+          controller: _siliconFlowKeyController,
+          label: 'SiliconFlow API Key',
+          saved: _siliconFlowKeySaved,
+          onEditStart: () {
+            _siliconFlowKeyEdited = true;
+          },
+        ),
+      ],
       AiProviderType.custom => [
-          _field(
-            key: 'ai-custom-base-url-field',
-            controller: _apiBaseUrlController,
-            label: 'Base URL',
-          ),
-          _field(
-            key: 'ai-custom-model-field',
-            controller: _apiModelNameController,
-            label: '模型',
-          ),
-          _secretField(
-            key: 'ai-custom-key-field',
-            controller: _openAIKeyController,
-            label: 'API Key',
-            saved: _openAIKeySaved,
-            onEditStart: () {
-              _openAIKeyEdited = true;
-            },
-          ),
-        ],
+        _field(
+          key: 'ai-custom-base-url-field',
+          controller: _apiBaseUrlController,
+          label: 'Base URL',
+        ),
+        _field(
+          key: 'ai-custom-model-field',
+          controller: _apiModelNameController,
+          label: '模型',
+        ),
+        _secretField(
+          key: 'ai-custom-key-field',
+          controller: _openAIKeyController,
+          label: 'API Key',
+          saved: _openAIKeySaved,
+          onEditStart: () {
+            _openAIKeyEdited = true;
+          },
+        ),
+      ],
     };
   }
 
@@ -548,7 +542,8 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
     try {
       final secrets = ref.read(secureKeyValueStoreProvider);
       return AiSecrets(
-        volcAppKey: await secrets.readSecret(AiConfig.volcAppKeySecretKey) ?? '',
+        volcAppKey:
+            await secrets.readSecret(AiConfig.volcAppKeySecretKey) ?? '',
         volcAccessKey:
             await secrets.readSecret(AiConfig.volcAccessKeySecretKey) ?? '',
         deepSeekApiKey:
@@ -625,12 +620,18 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
     final tester = ref.read(aiConnectionTesterProvider);
 
     final result = switch (config.providerType) {
-      AiProviderType.deepSeek =>
-        await tester.testDeepSeek(config: config, secrets: secrets),
-      AiProviderType.openAI || AiProviderType.custom =>
-        await tester.testOpenAI(config: config, secrets: secrets),
-      AiProviderType.siliconFlow =>
-        await tester.testSiliconFlow(config: config, secrets: secrets),
+      AiProviderType.deepSeek => await tester.testDeepSeek(
+        config: config,
+        secrets: secrets,
+      ),
+      AiProviderType.openAI || AiProviderType.custom => await tester.testOpenAI(
+        config: config,
+        secrets: secrets,
+      ),
+      AiProviderType.siliconFlow => await tester.testSiliconFlow(
+        config: config,
+        secrets: secrets,
+      ),
     };
     if (!mounted) {
       return;
@@ -721,15 +722,31 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
 
       // Write each key and verify with read-back
       final keysToWrite = <String, String>{};
-      if (resolvedSecrets.volcAppKey.isNotEmpty) keysToWrite[AiConfig.volcAppKeySecretKey] = resolvedSecrets.volcAppKey;
-      if (resolvedSecrets.volcAccessKey.isNotEmpty) keysToWrite[AiConfig.volcAccessKeySecretKey] = resolvedSecrets.volcAccessKey;
-      if (resolvedSecrets.deepSeekApiKey.isNotEmpty) keysToWrite[AiConfig.deepSeekApiKeySecretKey] = resolvedSecrets.deepSeekApiKey;
-      if (resolvedSecrets.openAIApiKey.isNotEmpty) keysToWrite[AiConfig.openAIApiKeySecretKey] = resolvedSecrets.openAIApiKey;
-      if (resolvedSecrets.siliconFlowApiKey.isNotEmpty) keysToWrite[AiConfig.siliconFlowApiKeySecretKey] = resolvedSecrets.siliconFlowApiKey;
+      if (resolvedSecrets.volcAppKey.isNotEmpty) {
+        keysToWrite[AiConfig.volcAppKeySecretKey] = resolvedSecrets.volcAppKey;
+      }
+      if (resolvedSecrets.volcAccessKey.isNotEmpty) {
+        keysToWrite[AiConfig.volcAccessKeySecretKey] =
+            resolvedSecrets.volcAccessKey;
+      }
+      if (resolvedSecrets.deepSeekApiKey.isNotEmpty) {
+        keysToWrite[AiConfig.deepSeekApiKeySecretKey] =
+            resolvedSecrets.deepSeekApiKey;
+      }
+      if (resolvedSecrets.openAIApiKey.isNotEmpty) {
+        keysToWrite[AiConfig.openAIApiKeySecretKey] =
+            resolvedSecrets.openAIApiKey;
+      }
+      if (resolvedSecrets.siliconFlowApiKey.isNotEmpty) {
+        keysToWrite[AiConfig.siliconFlowApiKeySecretKey] =
+            resolvedSecrets.siliconFlowApiKey;
+      }
 
       for (final entry in keysToWrite.entries) {
-        debugPrint('[ApiSave] secure write key=${entry.key} len=${entry.value.length}');
-        final ok = await secureStore.writeSecret(key: entry.key, value: entry.value);
+        final ok = await secureStore.writeSecret(
+          key: entry.key,
+          value: entry.value,
+        );
         if (!ok) {
           keyWriteFailed = true;
           break;
@@ -737,14 +754,12 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
         // Read-back verification
         final readBack = await secureStore.readSecret(entry.key);
         if (readBack == null || readBack.isEmpty || readBack != entry.value) {
-          debugPrint('[ApiSave] read-back mismatch key=${entry.key} expectedLen=${entry.value.length} actualLen=${readBack?.length ?? 0}');
           keyWriteFailed = true;
           break;
         }
       }
 
       if (keyWriteFailed) {
-        debugPrint('[ApiSave] Keystore write failed — stopping save');
         if (!mounted) return;
         setState(() {
           _saveMessage = '本地密钥存储异常，请重置 API 密钥后重新保存';
@@ -758,7 +773,6 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       ref.invalidate(aiSecretsProvider);
       await _syncSavedSecretFlags();
 
-      debugPrint('[ApiSave] all keys written and verified');
       if (!mounted) return;
       setState(() {
         _volcAppKeyController.text = _maskedKey;
@@ -777,7 +791,6 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
       });
       _scheduleDismiss();
     } on Object catch (error) {
-      debugPrint('[ApiSave] exception: $error');
       if (!mounted) return;
       setState(() {
         _saveMessage = 'API 设置保存失败: $error';

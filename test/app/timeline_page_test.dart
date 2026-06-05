@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glass_note/app/app.dart';
 import 'package:glass_note/domain/entities/timeline_task.dart';
+import 'package:glass_note/domain/services/data_protection_service.dart';
 import 'package:glass_note/infrastructure/database/app_database.dart';
 import 'package:glass_note/infrastructure/providers/infrastructure_providers.dart';
 
@@ -516,7 +517,10 @@ Future<void> _seedTask(
 Future<void> _pumpApp(WidgetTester tester, AppDatabase database) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(database)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        secureKeyValueStoreProvider.overrideWithValue(_EmptySecureStore()),
+      ],
       child: const GlassNoteApp(),
     ),
   );
@@ -539,6 +543,19 @@ Future<void> _flushAsyncUi(WidgetTester tester) async {
     () => Future<void>.delayed(const Duration(milliseconds: 50)),
   );
   await _pumpUi(tester);
+}
+
+class _EmptySecureStore implements SecureKeyValueStore {
+  @override
+  Future<void> deleteSecret(String key) async {}
+
+  @override
+  Future<String?> readSecret(String key) async => null;
+
+  @override
+  Future<bool> writeSecret({required String key, required String value}) async {
+    return true;
+  }
 }
 
 Future<void> _dragTimelineUntilVisible(

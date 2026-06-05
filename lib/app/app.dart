@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,16 +21,38 @@ class _GlassNoteAppState extends ConsumerState<GlassNoteApp> {
   void initState() {
     super.initState();
     _listenForNotificationTaps();
+    _requestStartupPermissionsIfNeeded();
   }
 
   void _listenForNotificationTaps() {
-    final notificationService = ref.read(localNotificationServiceProvider);
-    notificationService.onNotificationTap.listen((NotificationPayload payload) {
-      final router = ref.read(appRouterProvider);
-      if (payload.targetType == 'note') {
-        router.go('/notes/${payload.targetId}/edit');
-      } else if (payload.targetType == 'schedule') {
-        router.go('/timeline');
+    try {
+      final notificationService = ref.read(localNotificationServiceProvider);
+      notificationService.onNotificationTap.listen((
+        NotificationPayload payload,
+      ) {
+        final router = ref.read(appRouterProvider);
+        if (payload.targetType == 'note') {
+          router.go('/notes/${payload.targetId}/edit');
+        } else if (payload.targetType == 'schedule') {
+          router.go('/timeline');
+        }
+      });
+    } on Object {
+      // Tests that pump GlassNoteApp directly do not run bootstrap overrides.
+    }
+  }
+
+  void _requestStartupPermissionsIfNeeded() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        unawaited(
+          ref
+              .read(startupPermissionServiceProvider)
+              .requestAtFirstLaunch()
+              .catchError((_) => null),
+        );
+      } on Object {
+        // Tests that pump GlassNoteApp directly do not run bootstrap overrides.
       }
     });
   }
@@ -45,9 +69,20 @@ class _GlassNoteAppState extends ConsumerState<GlassNoteApp> {
       darkTheme: AppTheme.dark(),
       themeMode: settings.when(
         data: (value) => value.themeMode.materialThemeMode,
-        error: (_, __) => ThemeMode.light,
+        error: (_, _) => ThemeMode.light,
         loading: () => ThemeMode.light,
       ),
+      builder: (context, child) {
+        final fontScale = settings.maybeWhen(
+          data: (value) => value.fontScale,
+          orElse: () => 1.0,
+        );
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(textScaler: TextScaler.linear(fontScale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routerConfig: router,
     );
   }

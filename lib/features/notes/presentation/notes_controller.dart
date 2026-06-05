@@ -48,8 +48,8 @@ final noteByIdProvider = FutureProvider.family<Note?, String>((ref, noteId) {
 
 final attachmentsByNoteProvider =
     StreamProvider.family<List<Attachment>, String>((ref, noteId) {
-  return ref.watch(attachmentRepositoryProvider).watchByNote(noteId);
-});
+      return ref.watch(attachmentRepositoryProvider).watchByNote(noteId);
+    });
 
 final notesActionsProvider = Provider<NotesActions>((ref) {
   return NotesActions(ref);
@@ -124,7 +124,11 @@ class NotesActions {
   }
 
   Future<void> deleteNote(Note note) async {
-    await _ref.read(reminderRepositoryProvider).cancelByTarget(note.id);
+    try {
+      await _ref.read(reminderRepositoryProvider).cancelByTarget(note.id);
+    } on Object {
+      // Reminder cleanup should not block deleting the local note.
+    }
     return _ref.read(noteRepositoryProvider).delete(note.id);
   }
 
@@ -144,9 +148,12 @@ final tagsByNoteProvider = StreamProvider.family<List<Tag>, String>((
 ) {
   final repo = ref.watch(tagRepositoryProvider);
   final allTags = ref.watch(allTagsProvider).asData?.value ?? [];
-  return repo.listByNote(noteId).asStream().map(
-    (tags) => tags.where((t) => allTags.any((a) => a.id == t.id)).toList(),
-  );
+  return repo
+      .listByNote(noteId)
+      .asStream()
+      .map(
+        (tags) => tags.where((t) => allTags.any((a) => a.id == t.id)).toList(),
+      );
 });
 
 final notesByTagProvider = FutureProvider.family<List<Note>, String?>((

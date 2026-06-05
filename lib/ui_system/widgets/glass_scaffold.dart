@@ -24,6 +24,7 @@ class GlassScaffold extends StatelessWidget {
         leading ??
         (Navigator.of(context).canPop()
             ? IconButton(
+                tooltip: '返回',
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
                   HapticFeedback.lightImpact();
@@ -46,10 +47,7 @@ class GlassScaffold extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFFEAF1F7),
-                      Color(0xFFDDE7F1),
-                    ],
+                    colors: [Color(0xFFEAF1F7), Color(0xFFDDE7F1)],
                   ),
                 ),
               ),
@@ -139,15 +137,17 @@ class GlassScaffold extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: isLight ? const [
-                  Color.fromRGBO(240, 246, 252, 0.20),
-                  Color.fromRGBO(228, 238, 248, 0.10),
-                  Color.fromRGBO(232, 239, 246, 0.0),
-                ] : const [
-                  Color.fromRGBO(255, 255, 255, 0.04),
-                  Color.fromRGBO(255, 255, 255, 0.02),
-                  Color.fromRGBO(255, 255, 255, 0.0),
-                ],
+                colors: isLight
+                    ? const [
+                        Color.fromRGBO(240, 246, 252, 0.20),
+                        Color.fromRGBO(228, 238, 248, 0.10),
+                        Color.fromRGBO(232, 239, 246, 0.0),
+                      ]
+                    : const [
+                        Color.fromRGBO(255, 255, 255, 0.04),
+                        Color.fromRGBO(255, 255, 255, 0.02),
+                        Color.fromRGBO(255, 255, 255, 0.0),
+                      ],
               ),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.18),
@@ -157,9 +157,7 @@ class GlassScaffold extends StatelessWidget {
           ),
 
           // Layer 4: Grain texture (1.5% opacity)
-          Positioned.fill(
-            child: CustomPaint(painter: _GrainPainter()),
-          ),
+          Positioned.fill(child: CustomPaint(painter: _GrainPainter())),
 
           // Layer 5: Content
           SafeArea(

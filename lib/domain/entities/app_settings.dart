@@ -20,6 +20,9 @@ class AppSettings {
     required this.autoTranscribeVoice,
     required this.defaultFolderId,
     required this.exportIncludeMetadata,
+    required this.fontScale,
+    required this.defaultReminderLeadMinutes,
+    required this.hasRequestedStartupPermissions,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +36,9 @@ class AppSettings {
   final bool autoTranscribeVoice;
   final String defaultFolderId;
   final bool exportIncludeMetadata;
+  final double fontScale;
+  final int defaultReminderLeadMinutes;
+  final bool hasRequestedStartupPermissions;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -46,6 +52,9 @@ class AppSettings {
       autoTranscribeVoice: false,
       defaultFolderId: 'inbox',
       exportIncludeMetadata: true,
+      fontScale: 1.0,
+      defaultReminderLeadMinutes: 15,
+      hasRequestedStartupPermissions: false,
       createdAt: timestamp,
       updatedAt: timestamp,
     );
@@ -59,9 +68,13 @@ class AppSettings {
     bool? autoTranscribeVoice,
     String? defaultFolderId,
     bool? exportIncludeMetadata,
+    double? fontScale,
+    int? defaultReminderLeadMinutes,
+    bool? hasRequestedStartupPermissions,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
+    final resolvedFontScale = fontScale ?? this.fontScale;
     return AppSettings(
       id: id ?? this.id,
       themeMode: themeMode ?? this.themeMode,
@@ -71,6 +84,11 @@ class AppSettings {
       defaultFolderId: defaultFolderId ?? this.defaultFolderId,
       exportIncludeMetadata:
           exportIncludeMetadata ?? this.exportIncludeMetadata,
+      fontScale: resolvedFontScale.clamp(0.85, 1.25).toDouble(),
+      defaultReminderLeadMinutes:
+          defaultReminderLeadMinutes ?? this.defaultReminderLeadMinutes,
+      hasRequestedStartupPermissions:
+          hasRequestedStartupPermissions ?? this.hasRequestedStartupPermissions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

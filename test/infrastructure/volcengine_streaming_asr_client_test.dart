@@ -119,7 +119,7 @@ void main() {
     expect(finalRequest[2], 0x01);
   });
 
-  test('transcribe marks the final real audio chunk as last packet', () async {
+  test('transcribe sends an explicit final empty audio packet', () async {
     final channel = _FakeWebSocketChannel(const Stream<Object>.empty());
     final client = VolcengineStreamingAsrClient(
       connector: (config, secrets) async => channel,
@@ -142,12 +142,15 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 20));
     await sub.cancel();
 
-    expect(channel.sink.sent, hasLength(3));
+    expect(channel.sink.sent, hasLength(4));
     final firstAudio = channel.sink.sent[1] as List<int>;
-    final lastAudio = channel.sink.sent[2] as List<int>;
+    final secondAudio = channel.sink.sent[2] as List<int>;
+    final finalAudio = channel.sink.sent[3] as List<int>;
     expect(firstAudio[1] & 0x0f, 0);
-    expect(lastAudio[1] & 0x0f, 0x02);
-    expect(_clientPayload(lastAudio), [3, 4]);
+    expect(secondAudio[1] & 0x0f, 0);
+    expect(finalAudio[1] & 0x0f, 0x02);
+    expect(_clientPayload(secondAudio), [3, 4]);
+    expect(_clientPayload(finalAudio), isEmpty);
   });
 
   test(
